@@ -1,0 +1,6 @@
+@Beruato_HostAddress = http://localhost:5254
+
+GET {{Beruato_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
