@@ -26,7 +26,7 @@
         public string Model { get; set; } = string.Empty;
         public string LicencePlate { get; set; } = string.Empty;
         public bool HaveValidVignette { get; set; }
-        public int Price { get; set; }
+        public decimal Price { get; set; }
         public int EngineSize { get; set; }
         public int HorsePower { get; set; }
         public int Seats { get; set; }

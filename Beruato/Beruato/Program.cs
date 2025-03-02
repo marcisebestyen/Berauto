@@ -16,6 +16,7 @@ namespace Beruato
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+            
             builder.Services.AddOpenApi();
             builder.Services.AddDbContext<BerautoDbContext>(options =>
             options.UseSqlServer(builder.Configuration
@@ -23,6 +24,7 @@ namespace Beruato
             b => b.MigrationsAssembly("Beruato")));
 
             builder.Services.AddScoped<IBerautoService, BeratuoService>();
+            builder.Services.AddScoped<ICarServices, CarServices>();
 
             // Swagger configuration
             builder.Services.AddEndpointsApiExplorer();
