@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Database.Models;
+using System.Threading;
 
 namespace Database.Data
 {
@@ -15,6 +16,8 @@ namespace Database.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True";
+            
             // Sebi - Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password
 
             string connectionString = "Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password";
