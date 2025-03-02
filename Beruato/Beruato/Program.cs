@@ -1,7 +1,6 @@
 using Database.Data;
 using Database.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.OpenApi.Models;
 using Services.Services;
 
@@ -26,12 +25,11 @@ namespace Beruato
 
             
 
-            builder.Services.AddScoped<ICarServices, CarServices>();
+            builder.Services.AddScoped<ICarServices, BerautoCarService>();
 
-            builder.Services.AddScoped<IBerautoRentServise, BerautoRentService>();
+            builder.Services.AddScoped<IRentService, BerautoRentService>();
 
-            builder.Services.AddScoped<IBerautoService, BeratuoService>();
-            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IUserService, BerautoUserService>();
 
             // Swagger configuration
             builder.Services.AddEndpointsApiExplorer();

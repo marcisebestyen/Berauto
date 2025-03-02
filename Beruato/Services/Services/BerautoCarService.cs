@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Database.Data;
 using Database.Models;
-using Database.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Services.Services
@@ -14,22 +8,22 @@ namespace Services.Services
     {
         public bool IsCarAvailable(int carId);
         public void AddCar(RequiredLicence licence,string brand, string model,
-        string licencePlate, bool haveValidVignette, decimal price, int engineSize, int horsePower,
+        string licencePlate, bool haveValidVignette, decimal price, 
         int seats, FuelType fuelType, bool isAutomaticTransmission, double trunk); // Added method signature
         public void RemoveCar(int carId);
         public void ListCars();
         public IEnumerable<Car> GetAvailableCars();
         public void UpdateCar(int id, bool? isAvailable, RequiredLicence? licence, string brand, string model,
-        string licencePlate, bool? haveValidVignette, decimal? price, int? engineSize, int? horsePower,
+        string licencePlate, bool? haveValidVignette, decimal? price,
         int? seats, FuelType? fuelType, bool? isAutomaticTransmission, double? trunk);
     }
 
-    public class CarServices : ICarServices
+    public class BerautoCarService : ICarServices
     {
         private readonly BerautoDbContext _context;
-        private readonly ILogger<CarServices> _logger;
+        private readonly ILogger<BerautoCarService> _logger;
 
-        public CarServices(BerautoDbContext context, ILogger<CarServices> logger)
+        public BerautoCarService(BerautoDbContext context, ILogger<BerautoCarService> logger)
         {
             _context = context;
             _logger = logger;
@@ -46,7 +40,7 @@ namespace Services.Services
         }
 
         public void AddCar(RequiredLicence licence,string brand, string model,
-        string licencePlate, bool haveValidVignette, decimal price, int engineSize, int horsePower,
+        string licencePlate, bool haveValidVignette, decimal price,
         int seats, FuelType fuelType, bool isAutomaticTransmission, double trunk)
         {
             var car = new Car
@@ -56,8 +50,6 @@ namespace Services.Services
                 Model = model,
                 LicencePlate = licencePlate,
                 Price = price,
-                EngineSize = engineSize,
-                HorsePower = horsePower,
                 Seats = seats,
                 FuelType = fuelType,
                 IsAutomaticTransmission = isAutomaticTransmission,
@@ -105,7 +97,7 @@ namespace Services.Services
 
         }
         public void UpdateCar(int id, bool? isAvailable, RequiredLicence? licence, string brand, string model,
-        string licencePlate, bool? haveValidVignette, decimal? price, int? engineSize, int? horsePower,
+        string licencePlate, bool? haveValidVignette, decimal? price, 
         int? seats, FuelType? fuelType, bool? isAutomaticTransmission, double? trunk)
         {
             var car = _context.Cars.Find(id);
@@ -121,8 +113,6 @@ namespace Services.Services
             if (!string.IsNullOrEmpty(licencePlate)) car.LicencePlate = licencePlate;
             if (haveValidVignette.HasValue) car.HaveValidVignette = haveValidVignette.Value;
             if (price.HasValue) car.Price = price.Value;
-            if (engineSize.HasValue) car.EngineSize = engineSize.Value;
-            if (horsePower.HasValue) car.HorsePower = horsePower.Value;
             if (seats.HasValue) car.Seats = seats.Value;
             if (fuelType.HasValue) car.FuelType = fuelType.Value;
             if (isAutomaticTransmission.HasValue) car.IsAutomaticTransmission = isAutomaticTransmission.Value;

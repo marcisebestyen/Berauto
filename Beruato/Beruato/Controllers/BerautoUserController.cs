@@ -7,11 +7,11 @@ namespace Beruato.Controllers;
 
 [ApiController]
 [Route("[controller]/[action]")]
-public class UserController : ControllerBase
+public class BerautoUserController : ControllerBase
 {
     private readonly IUserService _userService;
 
-    public UserController(IUserService userService)
+    public BerautoUserController(IUserService userService)
     {
         _userService = userService;
     }

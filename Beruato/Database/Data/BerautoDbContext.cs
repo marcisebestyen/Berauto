@@ -1,6 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Database.Models;
-using System.Threading;
+﻿using Database.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Database.Data
 {

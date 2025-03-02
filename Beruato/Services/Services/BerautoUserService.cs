@@ -14,11 +14,11 @@ namespace Database.Models
         string GetAddress(int userId);
     }
 
-    public class UserService : IUserService
+    public class BerautoUserService : IUserService
     {
         private readonly BerautoDbContext _context;
 
-        public UserService(BerautoDbContext context)
+        public BerautoUserService(BerautoDbContext context)
         {
             _context = context;
         }

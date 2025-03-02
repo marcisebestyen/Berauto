@@ -1,21 +1,16 @@
 ﻿using Database.Data;
 using Database.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Services.Services
 {
-    public interface IBerautoRentServise
+    public interface IRentService
     {
         public void AddRent(int carId, int userId,int administratorId, DateTime startDateDate, DateTime endDate);
         public void ReturnRent(int rentId);
         public List<Rent> GetRents();
     }
 
-    public class BerautoRentService : IBerautoRentServise
+    public class BerautoRentService : IRentService
     {
         private readonly BerautoDbContext _context;
 

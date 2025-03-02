@@ -1,7 +1,6 @@
+using Database.Models;
 using Microsoft.AspNetCore.Mvc;
 using Services.Services;
-using Microsoft.Extensions.Logging;
-using Database.Models;
 
 namespace Beruato.Controllers
 {
@@ -41,12 +40,12 @@ namespace Beruato.Controllers
 
         [HttpPost]
         public void AddCar(RequiredLicence licence, string brand, string model,
-            string licencePlate, bool haveValidVignette, decimal price, int engineSize, int horsePower,
+            string licencePlate, bool haveValidVignette, decimal price, 
             int seats, FuelType fuelType, bool isAutomaticTransmission, double trunk)
         {
             try
             {
-                _carServices.AddCar(licence,brand, model, licencePlate, haveValidVignette, price, engineSize, horsePower, seats, fuelType, isAutomaticTransmission, trunk);
+                _carServices.AddCar(licence,brand, model, licencePlate, haveValidVignette, price, seats, fuelType, isAutomaticTransmission, trunk);
             }
             catch (Exception ex)
             {
@@ -70,14 +69,14 @@ namespace Beruato.Controllers
         
         [HttpPut]
         public IActionResult UpdateCar(int id, bool? isAvailable, RequiredLicence? licence, string brand, string model,
-            string licencePlate, bool? haveValidVignette, decimal? price, int? engineSize, int? horsePower,
+            string licencePlate, bool? haveValidVignette, decimal? price, 
             int? seats, FuelType? fuelType, bool? isAutomaticTransmission, double? trunk)
         {
             _logger.LogInformation("UpdateCar method called");
             try
             {
                 _carServices.UpdateCar(id, isAvailable, licence, brand, model, licencePlate, haveValidVignette, price,
-                    engineSize, horsePower, seats, fuelType, isAutomaticTransmission, trunk);
+                    seats, fuelType, isAutomaticTransmission, trunk);
                 return Ok("Car updated successfully");
             }
             catch (Exception ex)

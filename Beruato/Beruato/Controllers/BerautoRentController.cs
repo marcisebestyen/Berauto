@@ -9,8 +9,8 @@ namespace Beruato.Controllers
     public class BerautoRentController : ControllerBase
     {
 
-        private readonly IBerautoRentServise _berautoRentService;
-        public BerautoRentController(IBerautoRentServise berautoRentService)
+        private readonly IRentService _berautoRentService;
+        public BerautoRentController(IRentService berautoRentService)
         {
             _berautoRentService = berautoRentService;
         }
