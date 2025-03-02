@@ -23,8 +23,12 @@ namespace Beruato
             .GetConnectionString("Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"),
             b => b.MigrationsAssembly("Beruato")));
 
-            builder.Services.AddScoped<IBerautoService, BeratuoService>();
+            
+
             builder.Services.AddScoped<ICarServices, CarServices>();
+
+            builder.Services.AddScoped<IBerautoRentServise, BerautoRentService>();
+
 
             // Swagger configuration
             builder.Services.AddEndpointsApiExplorer();

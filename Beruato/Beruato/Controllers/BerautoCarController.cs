@@ -7,26 +7,21 @@ namespace Beruato.Controllers
 {
     [ApiController]
     [Route("[controller]/[action]")]
-    public class BerautoController : ControllerBase
+    public class BerautoCarController : ControllerBase
     {
-        private readonly IBerautoService _berautoService;
+        
         private readonly ICarServices _carServices;
-        private readonly ILogger<BerautoController> _logger;
+        private readonly ILogger<BerautoCarController> _logger;
 
-        public BerautoController(IBerautoService berautoService, ICarServices carServices, ILogger<BerautoController> logger)
+        public BerautoCarController(ICarServices carServices, ILogger<BerautoCarController> logger)
         {
-            _berautoService = berautoService;
+            
             _carServices = carServices;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        [HttpGet]
-        public IActionResult List()
-        {
-            _logger.LogInformation("List method called");
-            var result = _berautoService.List();
-            return Ok(result);
-        }
+        
+       
 
         [HttpGet]
         public IActionResult ListCars()

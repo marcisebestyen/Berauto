@@ -69,7 +69,7 @@ namespace Services.Services
             _context.Cars.Add(car);
             _context.SaveChanges();
 
-            _logger.LogInformation("Car with ID: {CarId} added successfully");
+            _logger.LogInformation($"Car with ID: {car.Id} added successfully");
         }
 
         public void RemoveCar(int carId)
