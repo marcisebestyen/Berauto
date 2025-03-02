@@ -1,4 +1,5 @@
 using Database.Data;
+using Database.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.OpenApi.Models;
@@ -23,6 +24,7 @@ namespace Beruato
             b => b.MigrationsAssembly("Beruato")));
 
             builder.Services.AddScoped<IBerautoService, BeratuoService>();
+            builder.Services.AddScoped<IUserService, UserService>();
 
             // Swagger configuration
             builder.Services.AddEndpointsApiExplorer();

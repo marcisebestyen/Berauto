@@ -11,10 +11,10 @@
 
     public enum FuelType
     {
-        Diesel, // TDI for life
+        Diesel, 
         Petrol,
         Hybrid,
-        Electric // shittiest ever
+        Electric 
     }
 
     public class Car
@@ -27,8 +27,6 @@
         public string LicencePlate { get; set; } = string.Empty;
         public bool HaveValidVignette { get; set; }
         public int Price { get; set; }
-        public int EngineSize { get; set; }
-        public int HorsePower { get; set; }
         public int Seats { get; set; }
         public FuelType FuelType { get; set; }
         public bool IsAutomaticTransmission { get; set; } = false; // false = manual, true = automatic 

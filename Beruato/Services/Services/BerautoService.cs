@@ -1,10 +1,5 @@
 ﻿using Database.Data;
 using Database.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Services.Services
 {
@@ -36,8 +31,6 @@ namespace Services.Services
                 LicencePlate = "ABC123",
                 HaveValidVignette = true,
                 Price = 60000,
-                EngineSize = 0,
-                HorsePower = 670,
                 Seats = 5,
                 FuelType = FuelType.Electric,
                 IsAutomaticTransmission = true,
@@ -53,8 +46,6 @@ namespace Services.Services
                 LicencePlate = "XYZ789",
                 HaveValidVignette = false,
                 Price = 75000,
-                EngineSize = 3000,
-                HorsePower = 523,
                 Seats = 7,
                 FuelType = FuelType.Petrol,
                 IsAutomaticTransmission = true,
@@ -70,8 +61,6 @@ namespace Services.Services
                 LicencePlate = "DEF456",
                 HaveValidVignette = true,
                 Price = 40000,
-                EngineSize = 2000,
-                HorsePower = 201,
                 Seats = 5,
                 FuelType = FuelType.Diesel,
                 IsAutomaticTransmission = false,
