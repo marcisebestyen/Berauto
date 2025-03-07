@@ -10,11 +10,12 @@ namespace Services.Services
     public interface ICarServices
     {
         public bool IsCarAvailable(int carId);
-        public Task AddCarAsync(CarDto carDto); 
-        public Task RemoveCarAsync(int carId);
-        public Task<List<Car>> ListCarsAsync();
-        public Task<List<Car>> GetAvailableCarsAsync();
-        public Task UpdateCarAsync(int id, CarUpdateDTO carUpdateDto);
+        Task<CarDto> AddCarAsync(CreateCarDto carDto); 
+        Task<CarDto> RemoveCarAsync(int carId);
+        Task<List<CarDto>> ListCarsAsync();
+        Task<List<Car>> GetAvailableCarsAsync();
+        Task<CarDto> UpdateCarAsync(int id, UpdateCarDto carUpdateDto);
+        Task<bool> ValidateVignetteAsync(int carId);
     }
 
     public class CarService : ICarServices
@@ -39,9 +40,9 @@ namespace Services.Services
             return car.IsAvailable;
         }
 
-        public async Task AddCarAsync(CarDto carDto)
+        public async Task<CarDto> AddCarAsync(CreateCarDto createCarDto)
         {
-            var car = _mapper.Map<Car>(carDto);
+            var car = _mapper.Map<Car>(createCarDto);
 
             _logger.LogInformation("Adding a new car");
 
@@ -49,9 +50,10 @@ namespace Services.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Car added successfully with ID: {CarId}", car.Id);
+            return _mapper.Map<CarDto>(car);
         }
 
-        public async Task RemoveCarAsync(int id)
+        public async Task<CarDto> RemoveCarAsync(int id)
         {
             var car = await _context.Cars.FindAsync(id);
             if (car == null)
@@ -65,13 +67,15 @@ namespace Services.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Car with ID: {id} removed successfully");
+            return _mapper.Map<CarDto>(car);
         }
 
-        public async Task<List<Car>> ListCarsAsync()
+        public async Task<List<CarDto>> ListCarsAsync()
         {
 
             _logger.LogInformation("Listing all cars");
-            return await _context.Cars.ToListAsync();
+            var cars = await _context.Cars.ToListAsync();
+            return _mapper.Map<List<CarDto>>(cars);
         }
         public async Task<List<Car>> GetAvailableCarsAsync()
         {
@@ -79,7 +83,7 @@ namespace Services.Services
             return await _context.Cars.Where(car => car.IsAvailable).ToListAsync();
 
         }
-        public async Task UpdateCarAsync(int id, CarUpdateDTO carUpdateDto)
+        public async Task<CarDto> UpdateCarAsync(int id, UpdateCarDto carUpdateDto)
         {
             var car = await _context.Cars.FindAsync(id);
             if (car == null)
@@ -96,6 +100,18 @@ namespace Services.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Car with ID: {id} updated successfully");
+            return _mapper.Map<CarDto>(car);
+        }
+        public async Task<bool> ValidateVignetteAsync(int carId)
+        {
+            var car = await _context.Cars.FindAsync(carId);
+            if (car == null)
+            {
+                throw new ArgumentException($"Car with ID {carId} not found.");
+            }
+
+            _logger.LogInformation("Validating vignette for car with ID: {CarId}", car.Id);
+            return car.HaveValidVignette;
         }
     }
 }

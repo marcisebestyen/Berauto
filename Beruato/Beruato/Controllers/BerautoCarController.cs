@@ -39,7 +39,7 @@ namespace Beruato.Controllers
         }
 
         [HttpPost]
-        public IActionResult AddCar([FromBody] CarDto carDto)
+        public IActionResult AddCar([FromBody] CreateCarDto carDto)
         {
             _logger.LogInformation("AddCar method called");
             try
@@ -69,7 +69,7 @@ namespace Beruato.Controllers
         }
         
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCar(int id, [FromBody] CarUpdateDTO carUpdateDto)
+        public async Task<IActionResult> UpdateCar(int id, [FromBody] UpdateCarDto carUpdateDto)
         {
             _logger.LogInformation("UpdateCar method called");
             try
