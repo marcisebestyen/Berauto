@@ -1,5 +1,6 @@
 using Database.Data;
 using Database.Models;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Services.Services;
@@ -30,6 +31,8 @@ namespace Beruato
             builder.Services.AddScoped<IRentService, BerautoRentService>();
 
             builder.Services.AddScoped<IUserService, BerautoUserService>();
+
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             // Swagger configuration
             builder.Services.AddEndpointsApiExplorer();
