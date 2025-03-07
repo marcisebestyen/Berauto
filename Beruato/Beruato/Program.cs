@@ -1,5 +1,6 @@
 using Database.Data;
 using Database.Models;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Services.Services;

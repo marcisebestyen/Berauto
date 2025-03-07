@@ -15,11 +15,11 @@ namespace Beruato.Controllers
             _berautoRentService = berautoRentService;
         }
         [HttpPost]
-        public IActionResult AddRent(int carId, int userId,int administratorId, DateTime startDate, DateTime endDate)
+        public async Task<IActionResult> AddRent(int carId, int userId,int administratorId, DateTime startDate, DateTime endDate)
         {
             try
             {
-                _berautoRentService.AddRent(carId, userId,administratorId, startDate, endDate);
+                _berautoRentService.CreateRent(carId, userId,administratorId, startDate, endDate);
                 return Ok();
             }
             catch (Exception ex)

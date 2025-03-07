@@ -1,3 +1,4 @@
+using Database.Dtos;
 using Database.Models;
 using Microsoft.AspNetCore.Mvc;
 using Services.Services;
@@ -39,50 +40,32 @@ namespace Beruato.Controllers
         }
 
         [HttpPost]
-        public void AddCar(RequiredLicence licence, string brand, string model,
-            string licencePlate, bool haveValidVignette, decimal price, 
-            int seats, FuelType fuelType, bool isAutomaticTransmission, decimal trunk)
+        public IActionResult AddCar([FromBody] CarDto carDto)
         {
+            _logger.LogInformation("AddCar method called");
             try
             {
-                _carServices.AddCar(licence,brand, model, licencePlate, haveValidVignette, price, seats, fuelType, isAutomaticTransmission, trunk);
+                _carServices.AddCar(carDto);
+                return Ok("Car added successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while adding a car");
-                throw;
+                _logger.LogError(ex, "An error occurred while adding the car");
+                return StatusCode(500, "Internal server error");
             }
         }
         [HttpGet]
-        public void GetAvailableCars()
+        public IActionResult GetAvailableCars()
         {
             try
             {
                 _carServices.GetAvailableCars();
+                return Ok("Car added succesfully");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while getting available cars");
                 throw;
-            }
-        }
-        
-        [HttpPut]
-        public IActionResult UpdateCar(int id, bool? isAvailable, RequiredLicence? licence, string brand, string model,
-            string licencePlate, bool? haveValidVignette, decimal? price, 
-            int? seats, FuelType? fuelType, bool? isAutomaticTransmission, decimal? trunk)
-        {
-            _logger.LogInformation("UpdateCar method called");
-            try
-            {
-                _carServices.UpdateCar(id, isAvailable, licence, brand, model, licencePlate, haveValidVignette, price,
-                    seats, fuelType, isAutomaticTransmission, trunk);
-                return Ok("Car updated successfully");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred while updating the car");
-                return StatusCode(500, "Internal server error");
             }
         }
     }

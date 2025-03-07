@@ -1,5 +1,7 @@
 ﻿using Database.Data;
 using Database.Models;
+using Database.Dtos;
+using AutoMapper;
 using Microsoft.Extensions.Logging;
 
 namespace Services.Services
@@ -7,26 +9,23 @@ namespace Services.Services
     public interface ICarServices
     {
         public bool IsCarAvailable(int carId);
-        public void AddCar(RequiredLicence licence,string brand, string model,
-        string licencePlate, bool haveValidVignette, decimal price, 
-        int seats, FuelType fuelType, bool isAutomaticTransmission, decimal trunk); 
+        public void AddCar(CarDto carDto); 
         public void RemoveCar(int carId);
         public void ListCars();
         public IEnumerable<Car> GetAvailableCars();
-        public void UpdateCar(int id, bool? isAvailable, RequiredLicence? licence, string brand, string model,
-        string licencePlate, bool? haveValidVignette, decimal? price,
-        int? seats, FuelType? fuelType, bool? isAutomaticTransmission, decimal? trunk);
+        public void UpdateCar(int id, CarUpdateDTO carUpdateDto);
     }
 
     public class BerautoCarService : ICarServices
     {
         private readonly BerautoDbContext _context;
         private readonly ILogger<BerautoCarService> _logger;
-
-        public BerautoCarService(BerautoDbContext context, ILogger<BerautoCarService> logger)
+        private readonly IMapper _mapper;
+        public BerautoCarService(BerautoDbContext context, ILogger<BerautoCarService> logger, IMapper mapper)
         {
             _context = context;
             _logger = logger;
+            _mapper = mapper;
         }
 
         public bool IsCarAvailable(int carId)
@@ -39,29 +38,16 @@ namespace Services.Services
             return car.IsAvailable;
         }
 
-        public void AddCar(RequiredLicence licence,string brand, string model,
-        string licencePlate, bool haveValidVignette, decimal price,
-        int seats, FuelType fuelType, bool isAutomaticTransmission, decimal trunk)
+        public void AddCar(CarDto carDto)
         {
-            var car = new Car
-            {
-                Licence = licence,
-                Brand = brand,
-                Model = model,
-                LicencePlate = licencePlate,
-                Price = price,
-                Seats = seats,
-                FuelType = fuelType,
-                IsAutomaticTransmission = isAutomaticTransmission,
-                Trunk = trunk
-            };
+            var car = _mapper.Map<Car>(carDto);
 
-            _logger.LogInformation("Adding a new car with ID: {CarId}", car.Id);
+            _logger.LogInformation("Adding a new car");
 
             _context.Cars.Add(car);
             _context.SaveChanges();
 
-            _logger.LogInformation($"Car with ID: {car.Id} added successfully");
+            _logger.LogInformation("Car added successfully with ID: {CarId}", car.Id);
         }
 
         public void RemoveCar(int carId)
@@ -96,9 +82,7 @@ namespace Services.Services
             return _context.Cars.Where(car => car.IsAvailable).ToList();
 
         }
-        public void UpdateCar(int id, bool? isAvailable, RequiredLicence? licence, string brand, string model,
-        string licencePlate, bool? haveValidVignette, decimal? price, 
-        int? seats, FuelType? fuelType, bool? isAutomaticTransmission, decimal? trunk)
+        public void UpdateCar(int id, CarUpdateDTO carUpdateDto)
         {
             var car = _context.Cars.Find(id);
             if (car == null)
@@ -106,24 +90,15 @@ namespace Services.Services
                 throw new ArgumentException($"Car with ID {id} not found.");
             }
 
-            if (isAvailable.HasValue) car.IsAvailable = isAvailable.Value;
-            if (licence.HasValue) car.Licence = licence.Value;
-            if (!string.IsNullOrEmpty(brand)) car.Brand = brand;
-            if (!string.IsNullOrEmpty(model)) car.Model = model;
-            if (!string.IsNullOrEmpty(licencePlate)) car.LicencePlate = licencePlate;
-            if (haveValidVignette.HasValue) car.HaveValidVignette = haveValidVignette.Value;
-            if (price.HasValue) car.Price = price.Value;
-            if (seats.HasValue) car.Seats = seats.Value;
-            if (fuelType.HasValue) car.FuelType = fuelType.Value;
-            if (isAutomaticTransmission.HasValue) car.IsAutomaticTransmission = isAutomaticTransmission.Value;
-            if (trunk.HasValue) car.Trunk = trunk.Value;
+            // Map non-null properties from carUpdateDto to the existing car entity
+            _mapper.Map(carUpdateDto, car);
 
-            _logger.LogInformation("Updating car with ID: {CarId}", car.Id);
+            _logger.LogInformation($"Updating car with ID: {id}");
 
             _context.Cars.Update(car);
             _context.SaveChanges();
 
-            _logger.LogInformation("Car with ID: {CarId} updated successfully", car.Id);
+            _logger.LogInformation($"Car with ID: {id} updated successfully");
         }
     }
 }
