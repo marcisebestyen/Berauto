@@ -7,22 +7,22 @@ namespace Beruato.Controllers;
 
 [ApiController]
 [Route("[controller]/[action]")]
-public class BerautoUserController : ControllerBase
+public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
 
-    public BerautoUserController(IUserService userService)
+    public UserController(IUserService userService)
     {
         _userService = userService;
     }
 
     [HttpPost]
-    public IActionResult AddUser([FromBody] UserDto userDto)
+    public async Task<IActionResult> AddUser([FromBody] CreateUserDto userDto)
     {
         try
         {
-            _userService.AddUser(userDto);
-            return CreatedAtAction(nameof(GetAddress), new { userId = userDto.Id }, userDto);
+            var createdUser = await _userService.AddUser(userDto);
+            return CreatedAtAction(nameof(GetAddress), new { userId = createdUser.Id }, createdUser);
         }
         catch (Exception ex)
         {
@@ -41,13 +41,6 @@ public class BerautoUserController : ControllerBase
     public IActionResult GetEmail(int userId)
     {
         var result = _userService.GetEmail(userId);
-        return Ok(result);
-    }
-
-    [HttpGet]
-    public IActionResult GetFullname(int userId)
-    {
-        var result = _userService.GetFullName(userId);
         return Ok(result);
     }
 

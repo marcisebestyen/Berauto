@@ -16,12 +16,12 @@ namespace Services.Services
         public void UpdateCar(int id, UpdateCarDto carUpdateDto);
     }
 
-    public class BerautoCarService : ICarServices
+    public class CarService : ICarServices
     {
         private readonly BerautoDbContext _context;
-        private readonly ILogger<BerautoCarService> _logger;
+        private readonly ILogger<CarService> _logger;
         private readonly IMapper _mapper;
-        public BerautoCarService(BerautoDbContext context, ILogger<BerautoCarService> logger, IMapper mapper)
+        public CarService(BerautoDbContext context, ILogger<CarService> logger, IMapper mapper)
         {
             _context = context;
             _logger = logger;

@@ -28,11 +28,13 @@ namespace Services.Services
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"));
 
             // Address <-> DTO
-            CreateMap<Address, AddressDto>();
+            CreateMap<Address, AddressDto>()
+                .ForMember(dest => dest.Address, opt => opt.MapFrom(src => $"{src.ZipCode} {src.Settlement} {src.Street} {src.HouseNumber}"));
             CreateMap<CreateAddressDto, Address>();
             CreateMap<UpdateAddressDto, Address>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<Address, ListAddressDto>();
+            CreateMap<Address, ListAddressDto>()
+                .ForMember(dest => dest.Address, opt => opt.MapFrom(src => $"{src.ZipCode} {src.Settlement} {src.Street} {src.HouseNumber}"));
 
             // Rent <-> DTO
             CreateMap<Rent, RentDto>();

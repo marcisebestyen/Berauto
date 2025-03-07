@@ -1,6 +1,5 @@
 using Database.Data;
 using Database.Models;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Services.Services;
@@ -26,9 +25,10 @@ namespace Beruato
 
 
 
-            builder.Services.AddScoped<ICarServices, BerautoCarService>();
-            builder.Services.AddScoped<IRentService, BerautoRentService>();
-            builder.Services.AddScoped<IUserService, BerautoUserService>();
+            builder.Services.AddScoped<ICarServices, CarService>();
+            builder.Services.AddScoped<IRentService, RentService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddLogging();
 
             builder.Services.AddAutoMapper(typeof(Program));
 

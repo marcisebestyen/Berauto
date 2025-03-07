@@ -15,9 +15,9 @@ namespace Database.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
+            //string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
 
-            //string connectionString = "Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
+            string connectionString = "Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
 
             optionsBuilder.UseSqlServer(connectionString);
         }
