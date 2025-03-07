@@ -17,9 +17,7 @@ namespace Database.Dtos
         public DateTime EndDate { get; set; }
         public bool Finished { get; set; }
 
-        public Car Car { get; set; } = new();
-        public User User { get; set; } = new();
-        public User Administrator { get; set; } = new();
+        
     }
 
     public class CreateRentDto
@@ -33,11 +31,10 @@ namespace Database.Dtos
     public class UpdateRentDto
     {
         public int? CarId { get; set; }
-        public int? UserId { get; set; }
         public int? AdministratorId { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public bool? Finished { get; set; }
+        
     }
 
     public class RentListDto
@@ -49,5 +46,7 @@ namespace Database.Dtos
         public DateTime EndDate { get; set; }
         public bool Finished { get; set; }
     }
+
+
 
 }

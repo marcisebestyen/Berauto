@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Database.Dtos;
+using Microsoft.AspNetCore.Mvc;
 using Services.Services;
+
 
 namespace Beruato.Controllers
 {
@@ -15,25 +17,26 @@ namespace Beruato.Controllers
             _berautoRentService = berautoRentService;
         }
         [HttpPost]
-        public async Task<IActionResult> AddRent(int carId, int userId,int administratorId, DateTime startDate, DateTime endDate)
+        public async Task<IActionResult> CreateRent([FromBody] CreateRentDto createRentDto)
         {
             try
             {
-                _berautoRentService.CreateRent(carId, userId,administratorId, startDate, endDate);
-                return Ok();
+                var rent = await _berautoRentService.CreateRent(createRentDto);
+                return Ok(rent);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                Console.WriteLine(ex.Message);
+                return StatusCode(500, "Internal server error");
             }
         }
         [HttpPost]
-        public IActionResult ReturnCar(int rentId)
+        public async Task<IActionResult> ReturnRent([FromBody] int rentId)
         {
             try
             {
-                _berautoRentService.ReturnRent(rentId);
-                return Ok();
+                var rent = await _berautoRentService.ReturnRent(rentId);
+                return Ok(rent);
             }
             catch (Exception ex)
             {
@@ -41,10 +44,38 @@ namespace Beruato.Controllers
             }
         }
         [HttpGet]
-        public IActionResult GetRents()
+        public async Task<IActionResult> ListAllRents()
         {
-            var result = _berautoRentService.GetRents();
+            var result = await _berautoRentService.ListAllRents();
             return Ok(result);
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateRent(UpdateRentDto updateRentDto, int rentId)
+        {
+            try
+            {
+                var rent = await _berautoRentService.UpdateRent(updateRentDto, rentId);
+                return Ok(rent);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteRent([FromBody] int rentId)
+        {
+            try
+            {
+                var rent = await _berautoRentService.DeleteRent(rentId);
+                return Ok(rent);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

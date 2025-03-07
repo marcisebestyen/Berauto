@@ -1,67 +1,99 @@
 ﻿using Database.Data;
 using Database.Models;
+using AutoMapper;
+using Database.Dtos;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace Services.Services
 {
     public interface IRentService
     {
-        public void CreateRent(int carId, int userId,int administratorId, DateTime startDateDate, DateTime endDate);
-        public void ReturnRent(int rentId);
-        public List<Rent> GetRents();
+        public Task<RentDto> CreateRent(CreateRentDto createRentDto);
+        public Task<RentDto> ReturnRent(int rentId);
+        public Task<List<RentListDto>> ListAllRents();
+        public Task<RentDto> UpdateRent(UpdateRentDto updateRentDto, int rentId);
+        public Task<RentDto> DeleteRent(int rentId);
     }
 
     public class BerautoRentService : IRentService
     {
         private readonly BerautoDbContext _context;
+        private readonly IMapper _mapper;
 
-        public BerautoRentService(BerautoDbContext context)
+        public BerautoRentService(BerautoDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
-        public void CreateRent(int carId, int userId, int administratorId, DateTime startDate, DateTime endDate)
+        public async Task<RentDto> CreateRent(CreateRentDto createRentDto)
         {
-            var car = _context.Cars.FirstOrDefault(c => c.Id == carId);
-            var user = _context.Users.FirstOrDefault(u => u.Id == userId);
-            var administrator = _context.Users.FirstOrDefault(u => u.Id == administratorId);
-            if (car == null || user == null || administrator == null)
+            var rent = _mapper.Map<Rent>(createRentDto);
+            if (rent is null) 
             {
-                throw new Exception("Car or user or administrator not found");
+                throw new Exception("Rent is null");
             }
-            if (!car.IsAvailable)
-            {
-                throw new Exception("Car is not available");
-            }
-            var rent = new Rent
-            {
-                Car = car,
-                User = user,
-                Administrator = administrator,
-                StartDate = startDate,
-                EndDate = endDate
-            };
-            
-            _context.Rents.Add(rent);
-            _context.SaveChanges();
+            await _context.Rents.AddAsync(rent);
+            await _context.SaveChangesAsync();
+
+            return _mapper.Map<RentDto>(rent);
+
         }
 
-        public void ReturnRent(int rentId)
+        public async Task<RentDto> ReturnRent(int rentId)
         {
-            var rent = _context.Rents.FirstOrDefault(r => r.Id == rentId);
+            var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
             if (rent == null)
             {
                 throw new Exception("Rent not found");
             }
-            rent.Finished = true;
-            _context.SaveChanges();
+
+            return _mapper.Map<RentDto>(rent);
         }
 
-        public List<Rent> GetRents()
+        public async Task<List<RentListDto>> ListAllRents()
         {
-            return _context.Rents.ToList();
+            return await _context.Rents.Select(r => _mapper.Map<RentListDto>(r)).ToListAsync();
         }
 
+        public async Task<RentDto> UpdateRent(UpdateRentDto updateRentDto, int rentId)
+        {
+            var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
+            var update = _mapper.Map<Rent>(updateRentDto);
+            if (rent == null)
+            {
+                throw new Exception("Rent not found");
+            }
+            if (update.CarId != default)
+            {
+                rent.CarId = update.CarId;
+            }
+            if (update.StartDate != default)
+            {
+                rent.StartDate = update.StartDate;
+            }
+            if (update.EndDate != default)
+            {
+                rent.EndDate = update.EndDate;
+            }
 
+            await _context.SaveChangesAsync();
+            return _mapper.Map<RentDto>(rent);
+        }
 
+        public async Task<RentDto> DeleteRent(int rentId)
+        {
+            var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
+            if (rent == null)
+            {
+                throw new Exception("Rent not found");
+            }
+            _context.Rents.Remove(rent);
+            await _context.SaveChangesAsync();
+            return _mapper.Map<RentDto>(rent);
+        }
+
+        
     }
 }
