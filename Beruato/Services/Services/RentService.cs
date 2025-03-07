@@ -42,7 +42,7 @@ namespace Services.Services
         }
 
         public async Task<RentDto> ReturnRent(int rentId)
-        {
+            {
             var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
             if (rent == null)
             {
@@ -53,7 +53,7 @@ namespace Services.Services
         }
 
         public async Task<List<RentDto>> ListAllRents()
-        {
+            {
             return await _context.Rents.Select(r => _mapper.Map<RentDto>(r)).ToListAsync();
         }
 
@@ -86,7 +86,7 @@ namespace Services.Services
         {
             var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
             if (rent == null)
-            {
+        {
                 throw new Exception("Rent not found");
             }
             _context.Rents.Remove(rent);
