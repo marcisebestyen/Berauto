@@ -32,7 +32,7 @@ namespace Beruato
 
             builder.Services.AddScoped<IUserService, BerautoUserService>();
 
-            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+            builder.Services.AddAutoMapper(typeof(Program));
 
             // Swagger configuration
             builder.Services.AddEndpointsApiExplorer();
