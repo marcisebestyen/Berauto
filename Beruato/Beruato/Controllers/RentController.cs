@@ -8,11 +8,11 @@ namespace Beruato.Controllers
 
     [ApiController]
     [Route("[controller]/[action]")]
-    public class BerautoRentController : ControllerBase
+    public class RentController : ControllerBase
     {
 
         private readonly IRentService _berautoRentService;
-        public BerautoRentController(IRentService berautoRentService)
+        public RentController(IRentService berautoRentService)
         {
             _berautoRentService = berautoRentService;
         }

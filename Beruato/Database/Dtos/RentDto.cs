@@ -10,10 +10,7 @@ namespace Database.Dtos
         public int AdministratorId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public bool Finished { get; set; }
-
-        
-        
+        public bool Finished { get; set; }       
     }
 
     public class CreateRentDto
@@ -22,9 +19,8 @@ namespace Database.Dtos
         public int UserId { get; set; }
         public int AdministratorId { get; set; }
         public DateTime StartDate { get; set; }
-        
-       
     }
+
     public class UpdateRentDto
     {
         public int? CarId { get; set; }
