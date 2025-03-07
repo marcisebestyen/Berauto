@@ -29,7 +29,7 @@ namespace Beruato.Controllers
             _logger.LogInformation("ListCars method called");
             try
             {
-                _carServices.ListCars();
+                _carServices.ListCarsAsync();
                 return Ok();
             }
             catch (Exception ex)
@@ -40,12 +40,12 @@ namespace Beruato.Controllers
         }
 
         [HttpPost]
-        public IActionResult AddCar([FromBody] CarDto carDto)
+        public IActionResult AddCar([FromBody] CreateCarDto carDto)
         {
             _logger.LogInformation("AddCar method called");
             try
             {
-                _carServices.AddCar(carDto);
+                _carServices.AddCarAsync(carDto);
                 return Ok("Car added successfully");
             }
             catch (Exception ex)
@@ -59,7 +59,7 @@ namespace Beruato.Controllers
         {
             try
             {
-                _carServices.GetAvailableCars();
+                _carServices.GetAvailableCarsAsync();
                 return Ok("Car added succesfully");
             }
             catch (Exception ex)
