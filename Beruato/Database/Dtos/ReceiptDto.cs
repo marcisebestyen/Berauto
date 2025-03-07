@@ -21,11 +21,4 @@
         public decimal? Cost { get; set; }
         public DateTime? IssueDate { get; set; }
     }
-
-    public class ListReceiptDto
-    {
-        public int Id { get; set; }
-        public decimal Cost { get; set; }
-        public DateTime IssueDate { get; set; }
-    }
 }

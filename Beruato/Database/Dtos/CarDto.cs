@@ -38,13 +38,4 @@ namespace Database.Dtos
         public bool? HaveValidVignette { get; set; }
         public decimal? Price { get; set; }
     }
-
-    public class ListCarDto
-    {
-        public int Id { get; set; }
-        public string Brand { get; set; } = string.Empty;
-        public string Model { get; set; } = string.Empty;
-        public decimal Price { get; set; }
-        public bool IsAvailable { get; set; }
-    }
 }

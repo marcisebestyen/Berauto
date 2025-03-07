@@ -31,10 +31,4 @@ namespace Database.Dtos
         public string? Floor { get; set; }
         public string? Door { get; set; }
     }
-
-    public class ListAddressDto
-    {
-        public int Id { get; set; }
-        public string Address { get; set;} = string.Empty;
-    }
 }
