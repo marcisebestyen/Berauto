@@ -5,7 +5,7 @@ namespace Services.Services
 {
     public interface IRentService
     {
-        public void AddRent(int carId, int userId,int administratorId, DateTime startDateDate, DateTime endDate);
+        public void CreateRent(int carId, int userId,int administratorId, DateTime startDateDate, DateTime endDate);
         public void ReturnRent(int rentId);
         public List<Rent> GetRents();
     }
@@ -19,7 +19,7 @@ namespace Services.Services
             _context = context;
         }
 
-        public void AddRent(int carId, int userId, int administratorId, DateTime startDate, DateTime endDate)
+        public void CreateRent(int carId, int userId, int administratorId, DateTime startDate, DateTime endDate)
         {
             var car = _context.Cars.FirstOrDefault(c => c.Id == carId);
             var user = _context.Users.FirstOrDefault(u => u.Id == userId);

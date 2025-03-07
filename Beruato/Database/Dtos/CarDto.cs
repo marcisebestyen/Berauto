@@ -42,13 +42,6 @@ namespace Database.Dtos
         public double? Trunk { get; set; }
 
 
-        public class CarProfile : Profile
-        {
-            public CarProfile()
-            {
-                CreateMap<CarDto, Car>();
-                CreateMap<Car, CarDto>();
-            }
-        }
+       
     }
 }

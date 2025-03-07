@@ -34,7 +34,14 @@ namespace Services.Services
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
             CreateMap<Address, AddressListDto>();
 
-
+            // Rent <-> DTO
+            CreateMap<Rent, RentDto>();
+            CreateMap<CreateRentDto, Rent>();
+            CreateMap<UpdateRentDto, Rent>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+            CreateMap<Rent, RentListDto>()
+                .ForMember(dest => dest.CarModel, opt => opt.MapFrom(src => src.Car.Model))
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => $"{src.User.FirstName} {src.User.LastName}"));
 
         }
     }
