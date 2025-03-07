@@ -3,17 +3,18 @@ using Database.Models;
 using Database.Dtos;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace Services.Services
 {
     public interface ICarServices
     {
         public bool IsCarAvailable(int carId);
-        public void AddCar(CarDto carDto); 
-        public void RemoveCar(int carId);
-        public void ListCars();
-        public IEnumerable<Car> GetAvailableCars();
-        public void UpdateCar(int id, CarUpdateDTO carUpdateDto);
+        public Task AddCarAsync(CarDto carDto); 
+        public Task RemoveCarAsync(int carId);
+        public Task<List<Car>> ListCarsAsync();
+        public Task<List<Car>> GetAvailableCarsAsync();
+        public Task UpdateCarAsync(int id, CarUpdateDTO carUpdateDto);
     }
 
     public class BerautoCarService : ICarServices
@@ -38,53 +39,49 @@ namespace Services.Services
             return car.IsAvailable;
         }
 
-        public void AddCar(CarDto carDto)
+        public async Task AddCarAsync(CarDto carDto)
         {
             var car = _mapper.Map<Car>(carDto);
 
             _logger.LogInformation("Adding a new car");
 
-            _context.Cars.Add(car);
-            _context.SaveChanges();
+            await _context.Cars.AddAsync(car);
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation("Car added successfully with ID: {CarId}", car.Id);
         }
 
-        public void RemoveCar(int carId)
+        public async Task RemoveCarAsync(int id)
         {
-            var car = _context.Cars.Find(carId);
+            var car = await _context.Cars.FindAsync(id);
             if (car == null)
             {
-                throw new ArgumentException($"Car with ID {carId} not found.");
+                throw new ArgumentException($"Car with ID {id} not found.");
             }
+
+            _logger.LogInformation($"Removing car with ID: {id}");
 
             _context.Cars.Remove(car);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Car with ID: {id} removed successfully");
         }
 
-        public void ListCars()
+        public async Task<List<Car>> ListCarsAsync()
         {
-            var cars = _context.Cars.ToList();
-            if (cars == null || !cars.Any())
-            {
-                Console.WriteLine("No cars available.");
-                return;
-            }
 
-            foreach (var car in cars)
-            {
-                Console.WriteLine($"ID: {car.Id}, Brand: {car.Brand}, Model: {car.Model}, Price: {car.Price}");
-            }
+            _logger.LogInformation("Listing all cars");
+            return await _context.Cars.ToListAsync();
         }
-        public IEnumerable<Car> GetAvailableCars()
+        public async Task<List<Car>> GetAvailableCarsAsync()
         {
             _logger.LogInformation("GetAvailableCars method called");
-            return _context.Cars.Where(car => car.IsAvailable).ToList();
+            return await _context.Cars.Where(car => car.IsAvailable).ToListAsync();
 
         }
-        public void UpdateCar(int id, CarUpdateDTO carUpdateDto)
+        public async Task UpdateCarAsync(int id, CarUpdateDTO carUpdateDto)
         {
-            var car = _context.Cars.Find(id);
+            var car = await _context.Cars.FindAsync(id);
             if (car == null)
             {
                 throw new ArgumentException($"Car with ID {id} not found.");
@@ -96,7 +93,7 @@ namespace Services.Services
             _logger.LogInformation($"Updating car with ID: {id}");
 
             _context.Cars.Update(car);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Car with ID: {id} updated successfully");
         }
