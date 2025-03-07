@@ -21,7 +21,7 @@ namespace Services.Services
         private readonly BerautoDbContext _context;
         private readonly IMapper _mapper;
 
-        public BerautoRentService(BerautoDbContext context, IMapper mapper)
+        public RentService(BerautoDbContext context, IMapper mapper)
         {
             _context = context;
             _mapper = mapper;
