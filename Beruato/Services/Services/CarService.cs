@@ -13,15 +13,15 @@ namespace Services.Services
         public void RemoveCar(int carId);
         public void ListCars();
         public IEnumerable<Car> GetAvailableCars();
-        public void UpdateCar(int id, CarUpdateDTO carUpdateDto);
+        public void UpdateCar(int id, UpdateCarDto carUpdateDto);
     }
 
-    public class BerautoCarService : ICarServices
+    public class CarService : ICarServices
     {
         private readonly BerautoDbContext _context;
-        private readonly ILogger<BerautoCarService> _logger;
+        private readonly ILogger<CarService> _logger;
         private readonly IMapper _mapper;
-        public BerautoCarService(BerautoDbContext context, ILogger<BerautoCarService> logger, IMapper mapper)
+        public CarService(BerautoDbContext context, ILogger<CarService> logger, IMapper mapper)
         {
             _context = context;
             _logger = logger;
@@ -82,7 +82,7 @@ namespace Services.Services
             return _context.Cars.Where(car => car.IsAvailable).ToList();
 
         }
-        public void UpdateCar(int id, CarUpdateDTO carUpdateDto)
+        public void UpdateCar(int id, UpdateCarDto carUpdateDto)
         {
             var car = _context.Cars.Find(id);
             if (car == null)

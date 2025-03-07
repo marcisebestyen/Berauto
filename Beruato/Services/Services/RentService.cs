@@ -11,12 +11,12 @@ namespace Services.Services
     {
         public Task<RentDto> CreateRent(CreateRentDto createRentDto);
         public Task<RentDto> ReturnRent(int rentId);
-        public Task<List<RentListDto>> ListAllRents();
+        public Task<List<RentDto>> ListAllRents();
         public Task<RentDto> UpdateRent(UpdateRentDto updateRentDto, int rentId);
         public Task<RentDto> DeleteRent(int rentId);
     }
 
-    public class BerautoRentService : IRentService
+    public class RentService : IRentService
     {
         private readonly BerautoDbContext _context;
         private readonly IMapper _mapper;
@@ -52,9 +52,9 @@ namespace Services.Services
             return _mapper.Map<RentDto>(rent);
         }
 
-        public async Task<List<RentListDto>> ListAllRents()
+        public async Task<List<RentDto>> ListAllRents()
         {
-            return await _context.Rents.Select(r => _mapper.Map<RentListDto>(r)).ToListAsync();
+            return await _context.Rents.Select(r => _mapper.Map<RentDto>(r)).ToListAsync();
         }
 
         public async Task<RentDto> UpdateRent(UpdateRentDto updateRentDto, int rentId)

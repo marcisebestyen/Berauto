@@ -1,6 +1,5 @@
 using Database.Data;
 using Database.Models;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Services.Services;
@@ -17,20 +16,19 @@ namespace Beruato
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            
+
             builder.Services.AddOpenApi();
             builder.Services.AddDbContext<BerautoDbContext>(options =>
             options.UseSqlServer(builder.Configuration
             .GetConnectionString("Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"),
             b => b.MigrationsAssembly("Beruato")));
 
-            
 
-            builder.Services.AddScoped<ICarServices, BerautoCarService>();
 
-            builder.Services.AddScoped<IRentService, BerautoRentService>();
-
-            builder.Services.AddScoped<IUserService, BerautoUserService>();
+            builder.Services.AddScoped<ICarServices, CarService>();
+            builder.Services.AddScoped<IRentService, RentService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddLogging();
 
             builder.Services.AddAutoMapper(typeof(Program));
 

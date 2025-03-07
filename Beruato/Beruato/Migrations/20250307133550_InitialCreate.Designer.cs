@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Beruato.Migrations
 {
     [DbContext(typeof(BerautoDbContext))]
-    [Migration("20250307105358_InitialCreate")]
+    [Migration("20250307133550_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

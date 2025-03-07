@@ -1,9 +1,4 @@
 ﻿using Database.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Database.Dtos
 {
@@ -36,17 +31,4 @@ namespace Database.Dtos
         public DateTime? EndDate { get; set; }
         
     }
-
-    public class RentListDto
-    {
-        public int Id { get; set; }
-        public string CarModel { get; set; } = string.Empty;
-        public string UserName { get; set; } = string.Empty;
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public bool Finished { get; set; }
-    }
-
-
-
 }
