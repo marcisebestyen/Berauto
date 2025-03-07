@@ -13,7 +13,7 @@ namespace Services.Services
         public void RemoveCar(int carId);
         public void ListCars();
         public IEnumerable<Car> GetAvailableCars();
-        public void UpdateCar(int id, CarUpdateDTO carUpdateDto);
+        public void UpdateCar(int id, UpdateCarDto carUpdateDto);
     }
 
     public class BerautoCarService : ICarServices
@@ -82,7 +82,7 @@ namespace Services.Services
             return _context.Cars.Where(car => car.IsAvailable).ToList();
 
         }
-        public void UpdateCar(int id, CarUpdateDTO carUpdateDto)
+        public void UpdateCar(int id, UpdateCarDto carUpdateDto)
         {
             var car = _context.Cars.Find(id);
             if (car == null)
