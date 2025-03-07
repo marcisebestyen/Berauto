@@ -10,11 +10,11 @@ namespace Services.Services
         public List<Rent> GetRents();
     }
 
-    public class BerautoRentService : IRentService
+    public class RentService : IRentService
     {
         private readonly BerautoDbContext _context;
 
-        public BerautoRentService(BerautoDbContext context)
+        public RentService(BerautoDbContext context)
         {
             _context = context;
         }
@@ -60,8 +60,5 @@ namespace Services.Services
         {
             return _context.Rents.ToList();
         }
-
-
-
     }
 }

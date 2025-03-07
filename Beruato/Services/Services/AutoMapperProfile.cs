@@ -15,7 +15,6 @@ namespace Services.Services
             CreateMap<CreateCarDto, CarDto>();
             CreateMap<UpdateCarDto, Car>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<Car, ListCarDto>();
 
             // User <-> DTO
             CreateMap<User, UserDto>()
@@ -24,24 +23,19 @@ namespace Services.Services
             CreateMap<CreateUserDto, User>();
             CreateMap<UpdateUserDto, User>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<User, ListUserDto>()
-                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"));
 
             // Address <-> DTO
-            CreateMap<Address, AddressDto>();
+            CreateMap<Address, AddressDto>()
+                .ForMember(dest => dest.Address, opt => opt.MapFrom(src => $"{src.ZipCode} {src.Settlement} {src.Street} {src.HouseNumber}"));
             CreateMap<CreateAddressDto, Address>();
             CreateMap<UpdateAddressDto, Address>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<Address, ListAddressDto>();
 
             // Rent <-> DTO
             CreateMap<Rent, RentDto>();
             CreateMap<CreateRentDto, Rent>();
             CreateMap<UpdateRentDto, Rent>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<Rent, ListRendDto>()
-                .ForMember(dest => dest.CarModel, opt => opt.MapFrom(src => src.Car.Model))
-                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => $"{src.User.FirstName} {src.User.LastName}"));
         }
     }
 }

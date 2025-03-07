@@ -17,7 +17,7 @@
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public int AddressId { get; set; }
-        public Role Role { get; set; }
+        public Role Role { get; set; } = Role.Guest;
         public List<string> PhoneNumber { get; set; } = new();
 
         public Address Address { get; set; } = new();
