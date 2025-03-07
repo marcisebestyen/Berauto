@@ -43,13 +43,11 @@ namespace Beruato.Migrations
                     Model = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LicencePlate = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     HaveValidVignette = table.Column<bool>(type: "bit", nullable: false),
-                    Price = table.Column<int>(type: "int", nullable: false),
-                    EngineSize = table.Column<int>(type: "int", nullable: false),
-                    HorsePower = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Seats = table.Column<int>(type: "int", nullable: false),
                     FuelType = table.Column<int>(type: "int", nullable: false),
                     IsAutomaticTransmission = table.Column<bool>(type: "bit", nullable: false),
-                    Trunk = table.Column<double>(type: "float", nullable: false)
+                    Trunk = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -63,6 +61,8 @@ namespace Beruato.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AddressId = table.Column<int>(type: "int", nullable: false),
@@ -122,7 +122,7 @@ namespace Beruato.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     RentId = table.Column<int>(type: "int", nullable: false),
-                    Cost = table.Column<double>(type: "float", nullable: false),
+                    Cost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     IssueDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>

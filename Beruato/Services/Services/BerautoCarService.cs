@@ -9,13 +9,13 @@ namespace Services.Services
         public bool IsCarAvailable(int carId);
         public void AddCar(RequiredLicence licence,string brand, string model,
         string licencePlate, bool haveValidVignette, decimal price, 
-        int seats, FuelType fuelType, bool isAutomaticTransmission, double trunk); // Added method signature
+        int seats, FuelType fuelType, bool isAutomaticTransmission, decimal trunk); 
         public void RemoveCar(int carId);
         public void ListCars();
         public IEnumerable<Car> GetAvailableCars();
         public void UpdateCar(int id, bool? isAvailable, RequiredLicence? licence, string brand, string model,
         string licencePlate, bool? haveValidVignette, decimal? price,
-        int? seats, FuelType? fuelType, bool? isAutomaticTransmission, double? trunk);
+        int? seats, FuelType? fuelType, bool? isAutomaticTransmission, decimal? trunk);
     }
 
     public class BerautoCarService : ICarServices
@@ -41,7 +41,7 @@ namespace Services.Services
 
         public void AddCar(RequiredLicence licence,string brand, string model,
         string licencePlate, bool haveValidVignette, decimal price,
-        int seats, FuelType fuelType, bool isAutomaticTransmission, double trunk)
+        int seats, FuelType fuelType, bool isAutomaticTransmission, decimal trunk)
         {
             var car = new Car
             {
@@ -98,7 +98,7 @@ namespace Services.Services
         }
         public void UpdateCar(int id, bool? isAvailable, RequiredLicence? licence, string brand, string model,
         string licencePlate, bool? haveValidVignette, decimal? price, 
-        int? seats, FuelType? fuelType, bool? isAutomaticTransmission, double? trunk)
+        int? seats, FuelType? fuelType, bool? isAutomaticTransmission, decimal? trunk)
         {
             var car = _context.Cars.Find(id);
             if (car == null)

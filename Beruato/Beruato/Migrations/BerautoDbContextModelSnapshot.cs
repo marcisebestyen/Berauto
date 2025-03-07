@@ -100,14 +100,14 @@ namespace Beruato.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Price")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("Seats")
                         .HasColumnType("int");
 
-                    b.Property<double>("Trunk")
-                        .HasColumnType("float");
+                    b.Property<decimal>("Trunk")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -122,8 +122,8 @@ namespace Beruato.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<double>("Cost")
-                        .HasColumnType("float");
+                    b.Property<decimal>("Cost")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("IssueDate")
                         .HasColumnType("datetime2");

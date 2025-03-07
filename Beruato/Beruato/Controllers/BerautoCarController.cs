@@ -41,7 +41,7 @@ namespace Beruato.Controllers
         [HttpPost]
         public void AddCar(RequiredLicence licence, string brand, string model,
             string licencePlate, bool haveValidVignette, decimal price, 
-            int seats, FuelType fuelType, bool isAutomaticTransmission, double trunk)
+            int seats, FuelType fuelType, bool isAutomaticTransmission, decimal trunk)
         {
             try
             {
@@ -70,7 +70,7 @@ namespace Beruato.Controllers
         [HttpPut]
         public IActionResult UpdateCar(int id, bool? isAvailable, RequiredLicence? licence, string brand, string model,
             string licencePlate, bool? haveValidVignette, decimal? price, 
-            int? seats, FuelType? fuelType, bool? isAutomaticTransmission, double? trunk)
+            int? seats, FuelType? fuelType, bool? isAutomaticTransmission, decimal? trunk)
         {
             _logger.LogInformation("UpdateCar method called");
             try

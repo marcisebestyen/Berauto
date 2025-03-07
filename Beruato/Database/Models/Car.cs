@@ -30,6 +30,6 @@
         public int Seats { get; set; }
         public FuelType FuelType { get; set; }
         public bool IsAutomaticTransmission { get; set; } = false; // false = manual, true = automatic 
-        public double Trunk { get; set; }
+        public decimal Trunk { get; set; }
     }
 }

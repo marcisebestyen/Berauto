@@ -1,6 +1,6 @@
 ﻿using Database.Models;
 
-namespace Services.Dtos
+namespace Database.Dtos
 {
     public class UserDto
     {

@@ -1,7 +1,6 @@
 ﻿using Database.Data;
 using Microsoft.EntityFrameworkCore;
-using Services.Dtos;
-using Services.Services;
+using Database.Dtos;
 
 namespace Database.Models
 {
@@ -25,15 +24,13 @@ namespace Database.Models
 
         public void AddUser(UserDto userDto)
         {
-            CustomHashService hashService = new CustomHashService();
-
             var newUser = new User
             {
                 UserName = userDto.UserName,
                 FirstName = userDto.FirstName,
                 LastName = userDto.LastName,
                 Email = userDto.Email,
-                Password = hashService.HashPassword(userDto.Password),
+                Password = BCrypt.Net.BCrypt.HashPassword(userDto.Password),
                 AddressId = userDto.AddressId,
                 Role = userDto.Role,
                 PhoneNumber = userDto.PhoneNumber
