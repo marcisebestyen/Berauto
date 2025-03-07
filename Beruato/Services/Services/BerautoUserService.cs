@@ -6,7 +6,7 @@ namespace Database.Models
 {
     public interface IUserService
     {
-        void AddUser(UserDto userDto);
+        void AddUser(CreateUserDto userDto);
         string GetFullName(int userId);
         string GetEmail(int userId);
         List<string> GetPhoneNumber(int userId);
@@ -22,7 +22,7 @@ namespace Database.Models
             _context = context;
         }
 
-        public void AddUser(UserDto userDto)
+        public void AddUser(CreateUserDto userDto)
         {
             var newUser = new User
             {

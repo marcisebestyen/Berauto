@@ -1,11 +1,6 @@
 ﻿using AutoMapper;
 using Database.Dtos;
 using Database.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Services.Services
 {
@@ -13,9 +8,14 @@ namespace Services.Services
     {
         public AutoMapperProfile()
         {
-            //Car mapping
-            CreateMap<CarDto, Car>().ReverseMap();
-            CreateMap<Car, CarDto>();
+            // Car <-> DTO
+            CreateMap<Car, CarDto>()
+                .ForMember(dest => dest.Licence, opt => opt.MapFrom(src => src.Licence.ToString()))
+                .ForMember(dest => dest.FuelType, opt => opt.MapFrom(src => src.FuelType.ToString()));
+            CreateMap<CreateCarDto, CarDto>();
+            CreateMap<UpdateCarDto, Car>()
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+            CreateMap<Car, ListCarDto>();
 
             // User <-> DTO
             CreateMap<User, UserDto>()
@@ -24,7 +24,7 @@ namespace Services.Services
             CreateMap<CreateUserDto, User>();
             CreateMap<UpdateUserDto, User>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<User, UserListDto>()
+            CreateMap<User, ListUserDto>()
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"));
 
             // Address <-> DTO
@@ -32,17 +32,16 @@ namespace Services.Services
             CreateMap<CreateAddressDto, Address>();
             CreateMap<UpdateAddressDto, Address>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<Address, AddressListDto>();
+            CreateMap<Address, ListAddressDto>();
 
             // Rent <-> DTO
             CreateMap<Rent, RentDto>();
             CreateMap<CreateRentDto, Rent>();
             CreateMap<UpdateRentDto, Rent>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-            CreateMap<Rent, RentListDto>()
+            CreateMap<Rent, ListRendDto>()
                 .ForMember(dest => dest.CarModel, opt => opt.MapFrom(src => src.Car.Model))
                 .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => $"{src.User.FirstName} {src.User.LastName}"));
-
         }
     }
 }
