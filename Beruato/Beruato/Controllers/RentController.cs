@@ -77,5 +77,19 @@ namespace Beruato.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPut]
+        public async Task<IActionResult> ChangeFinished([FromBody] int rentId)
+        {
+            try
+            {
+                var rent = await _berautoRentService.ChangeFinished(rentId);
+                return Ok(rent);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

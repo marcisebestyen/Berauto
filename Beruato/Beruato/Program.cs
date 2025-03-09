@@ -21,11 +21,12 @@ namespace Beruato
             b => b.MigrationsAssembly("Beruato")));
 
 
-
+            
             builder.Services.AddScoped<ICarServices, CarService>();
             builder.Services.AddScoped<IRentService, RentService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IReceiptService, ReceiptService>();
+            builder.Services.AddScoped<IAddrssService, AddressService>();
             builder.Services.AddLogging();
 
             builder.Services.AddAutoMapper(typeof(Program));

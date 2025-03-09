@@ -14,6 +14,8 @@ namespace Services.Services
         public Task<List<RentDto>> ListAllRents();
         public Task<RentDto> UpdateRent(UpdateRentDto updateRentDto, int rentId);
         public Task<RentDto> DeleteRent(int rentId);
+        public Task<RentDto> ChangeFinished(int rentId);
+
     }
 
     public class RentService : IRentService
@@ -90,6 +92,18 @@ namespace Services.Services
                 throw new Exception("Rent not found");
             }
             _context.Rents.Remove(rent);
+            await _context.SaveChangesAsync();
+            return _mapper.Map<RentDto>(rent);
+        }
+
+        public async Task<RentDto> ChangeFinished(int rentId)
+        {
+            var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
+            if (rent == null)
+            {
+                throw new Exception("Rent not found");
+            }
+            rent.Finished = true;
             await _context.SaveChangesAsync();
             return _mapper.Map<RentDto>(rent);
         }
