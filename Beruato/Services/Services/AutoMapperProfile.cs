@@ -18,8 +18,7 @@ namespace Services.Services
 
             // User <-> DTO
             CreateMap<User, UserDto>()
-                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"))
-                .ForMember(dest => dest.Address, opt => opt.MapFrom(src => src.Address));
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => $"{src.FirstName} {src.LastName}"));
             CreateMap<CreateUserDto, User>();
             CreateMap<UpdateUserDto, User>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
@@ -35,6 +34,12 @@ namespace Services.Services
             CreateMap<Rent, RentDto>();
             CreateMap<CreateRentDto, Rent>();
             CreateMap<UpdateRentDto, Rent>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+            // Receipt <-> DTO
+            CreateMap<Receipt, ReceiptDto>();
+            CreateMap<CreateReceiptDto, Receipt>();
+            CreateMap<UpdateReceiptDto, Receipt>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
         }
     }

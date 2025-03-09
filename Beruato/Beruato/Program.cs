@@ -12,10 +12,7 @@ namespace Beruato
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
             builder.Services.AddOpenApi();
             builder.Services.AddDbContext<BerautoDbContext>(options =>
@@ -28,11 +25,12 @@ namespace Beruato
             builder.Services.AddScoped<ICarServices, CarService>();
             builder.Services.AddScoped<IRentService, RentService>();
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IReceiptService, ReceiptService>();
             builder.Services.AddLogging();
 
             builder.Services.AddAutoMapper(typeof(Program));
+            builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
-            // Swagger configuration
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
@@ -43,7 +41,6 @@ namespace Beruato
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();

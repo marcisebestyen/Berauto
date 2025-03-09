@@ -1,9 +1,7 @@
 ﻿using Database.Models;
 using Microsoft.AspNetCore.Mvc;
 using Database.Dtos;
-
-namespace Beruato.Controllers;
-
+namespace Beruato.Controller;
 
 [ApiController]
 [Route("[controller]/[action]")]
@@ -17,12 +15,26 @@ public class UserController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> AddUser([FromBody] CreateUserDto userDto)
+    public async Task<IActionResult> AddUser([FromBody]CreateUserDto userDto)
     {
         try
         {
-            var createdUser = await _userService.AddUser(userDto);
-            return CreatedAtAction(nameof(GetAddress), new { userId = createdUser.Id }, createdUser);
+            var user = await _userService.AddUser(userDto);
+            return CreatedAtAction(nameof(GetUser), new { userId = user.Id }, user);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpGet("{userId}")]
+    public async Task<IActionResult> GetUser(int userId)
+    {
+        try
+        {
+            var user = await _userService.GetUser(userId);
+            return Ok(user);
         }
         catch (Exception ex)
         {
@@ -31,23 +43,48 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetAddress(int userId)
+    public async Task<IActionResult> GetUsers()
     {
-        var result = _userService.GetAddress(userId);
-        return Ok(result);
+        try
+        {
+            var users = await _userService.GetUsers();
+            return Ok(users);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    [HttpGet]
-    public IActionResult GetEmail(int userId)
+    [HttpPut("{userId}")]
+    public async Task<IActionResult> UpdateUser(int userId, [FromBody]UpdateUserDto updateUserDto)
     {
-        var result = _userService.GetEmail(userId);
-        return Ok(result);
+        try
+        {
+            var user = await _userService.UpdateUser(userId, updateUserDto);
+            return Ok(user);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    [HttpGet]
-    public IActionResult GetPhoneNumber(int userId)
+    [HttpDelete("{userId}")]
+    public async Task<IActionResult> DeleteUser(int userId)
     {
-        var result = _userService.GetPhoneNumber(userId);
-        return Ok(result);
+        try
+        {
+            var result = await _userService.DeleteUser(userId);
+            if (!result)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 }

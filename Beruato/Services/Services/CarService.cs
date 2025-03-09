@@ -91,7 +91,6 @@ namespace Services.Services
                 throw new ArgumentException($"Car with ID {id} not found.");
             }
 
-            // Map non-null properties from carUpdateDto to the existing car entity
             _mapper.Map(carUpdateDto, car);
 
             _logger.LogInformation($"Updating car with ID: {id}");

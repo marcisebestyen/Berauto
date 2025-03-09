@@ -9,7 +9,7 @@ namespace Database.Dtos
         public string UserName { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public AddressDto Address { get; set; } = new();
+        public int AddressId { get; set; } = new();
         public Role Role { get; set; }
         public List<string> PhoneNumber { get; set; } = new();
     }

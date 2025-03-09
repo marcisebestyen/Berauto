@@ -8,10 +8,10 @@ namespace Database.Models
     public interface IUserService
     {
         Task<UserDto> AddUser(CreateUserDto userDto);
-        Task<string> GetAddress(int userId);
-        Task<string> GetEmail(int userId);
-
-        Task<List<string>> GetPhoneNumber(int userId);
+        Task<UserDto> GetUser(int userId);
+        Task<List<UserDto>> GetUsers();
+        Task<UserDto> UpdateUser(int userId, UpdateUserDto updateUserDto);
+        Task<bool> DeleteUser(int userId);
     }
 
     public class UserService : IUserService
@@ -33,60 +33,76 @@ namespace Database.Models
             return _mapper.Map<UserDto>(user);
         }
 
-        public async Task<string> GetAddress(int userId)
+        public async Task<UserDto> GetUser(int userId)
         {
             var user = await _context.Users
-                .Include(a => a.Address)
+                .Include(u => u.Address)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
-            if (user == null || user.Address == null)
+            if (user == null)
             {
-                throw new ArgumentException("The given user does not exist or has no address.");
+                throw new ArgumentException("The given user does not exist.");
             }
 
-            var address = user.Address;
-            string formattedAddress = $"{address.ZipCode} {address.Settlement} {address.Street} Street {address.HouseNumber}";
-
-            if (!string.IsNullOrEmpty(address.Floor))
-            {
-                formattedAddress += $", {address.Floor}. level";
-            }
-            if (!string.IsNullOrEmpty(address.Door))
-            {
-                formattedAddress += $", {address.Door}. door";
-            }
-
-            return formattedAddress;
+            return _mapper.Map<UserDto>(user);
         }
 
-        public async Task<string> GetEmail(int userId)
+        public async Task<List<UserDto>> GetUsers()
         {
-            var email = await _context.Users
-                .Where(u => u.Id == userId)
-                .Select(u => u.Email)
-                .FirstOrDefaultAsync();
+            var users = await _context.Users
+                .Include(u => u.Address)
+                .ToListAsync();
 
-            if (string.IsNullOrEmpty(email))
-            {
-                throw new ArgumentException("The given user does not exist or has no email address.");
-            }
-
-            return email;
+            return _mapper.Map<List<UserDto>>(users);
         }
 
-        public async Task<List<string>> GetPhoneNumber(int userId)
+        public async Task<UserDto> UpdateUser(int userId, UpdateUserDto updateUserDto)
         {
-            var phoneNumbers = await _context.Users
-                .Where(u => u.Id == userId)
-                .Select(u => u.PhoneNumber)
-                .FirstOrDefaultAsync();
-
-            if (phoneNumbers!.Any() || phoneNumbers == null)
+            try
             {
-                throw new ArgumentException("The given user does not exist or has no phone number");
+                var user = await _context.Users
+                .Include(u => u.Address)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+                if (user == null)
+                {
+                    throw new ArgumentException("User not found");
+                }
+
+                _mapper.Map(updateUserDto, user);
+
+                await _context.Entry(user)
+                    .Reference(u => u.Address)
+                    .LoadAsync();
+
+
+                await _context.SaveChangesAsync();
+                return _mapper.Map<UserDto>(user);
+            }
+            catch (DbUpdateException ex)
+            {
+                Console.WriteLine("DB Update Error: " + ex.InnerException?.Message);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("General Error: " + ex.Message);
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteUser(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+            {
+                return false;
             }
 
-            return phoneNumbers;
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

@@ -6,7 +6,6 @@
         public int RentId { get; set; }
         public decimal Cost { get; set; }
         public DateTime IssueDate { get; set; }
-        public RentDto Rent { get; set; } = new();
     }
 
     public class CreateReceiptDto
