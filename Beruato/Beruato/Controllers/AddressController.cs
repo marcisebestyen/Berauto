@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Database.Dtos;
-using Microsoft.AspNetCore.Mvc;
 using Services.Services;
 
 namespace Beruato.Controllers

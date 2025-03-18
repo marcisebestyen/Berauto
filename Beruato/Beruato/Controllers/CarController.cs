@@ -18,13 +18,13 @@ namespace Beruato.Controllers
         }
 
         [HttpGet]
-        public IActionResult ListCars()
+        public async Task<IActionResult> ListCars()
         {
             _logger.LogInformation("ListCars method called");
             try
             {
-                _carServices.ListCarsAsync();
-                return Ok();
+                var cars = await _carServices.ListCarsAsync();
+                return Ok(cars);
             }
             catch (Exception ex)
             {
@@ -34,12 +34,12 @@ namespace Beruato.Controllers
         }
 
         [HttpPost]
-        public IActionResult AddCar([FromBody] CreateCarDto carDto)
+        public async Task<IActionResult> AddCar([FromBody] CreateCarDto carDto)
         {
             _logger.LogInformation("AddCar method called");
             try
             {
-                _carServices.AddCarAsync(carDto);
+                await _carServices.AddCarAsync(carDto);
                 return Ok("Car added successfully");
             }
             catch (Exception ex)
@@ -50,20 +50,20 @@ namespace Beruato.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAvailableCars()
+        public async Task<IActionResult> GetAvailableCars()
         {
             try
             {
-                _carServices.GetAvailableCarsAsync();
-                return Ok("Car added succesfully");
+                var availableCars = await _carServices.GetAvailableCarsAsync();
+                return Ok(availableCars);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while getting available cars");
-                throw;
+                return StatusCode(500, "Internal server error");
             }
         }
-        
+
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCar(int id, [FromBody] UpdateCarDto carUpdateDto)
         {
@@ -79,7 +79,7 @@ namespace Beruato.Controllers
                 return StatusCode(500, "Internal server error");
             }
         }
-        
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> RemoveCar(int id)
         {
