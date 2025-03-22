@@ -2,6 +2,12 @@
 using Database.Data;
 using Database.Dtos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace Database.Models
 {
@@ -12,22 +18,26 @@ namespace Database.Models
         Task<List<UserDto>> GetUsers();
         Task<UserDto> UpdateUser(int userId, UpdateUserDto updateUserDto);
         Task<bool> DeleteUser(int userId);
+        Task<string> LoginAsync(UserLoginDto userDto);
     }
 
     public class UserService : IUserService
     {
         private readonly BerautoDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IConfiguration _configuration;
 
-        public UserService(BerautoDbContext context, IMapper mapper)
+        public UserService(BerautoDbContext context, IMapper mapper, IConfiguration configuration)
         {
             _context = context;
             _mapper = mapper;
+            _configuration = configuration;
         }
 
         public async Task<UserDto> AddUser(CreateUserDto userDto)
         {
             var user = _mapper.Map<User>(userDto);
+            user.Password = BCrypt.Net.BCrypt.HashPassword(userDto.Password);
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
             return _mapper.Map<UserDto>(user);
@@ -104,5 +114,62 @@ namespace Database.Models
             await _context.SaveChangesAsync();
             return true;
         }
+        public async Task<string> LoginAsync(UserLoginDto userDto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == userDto.Email);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(userDto.Password, user.Password))
+            {
+                throw new UnauthorizedAccessException("Invalid credentials.");
+            }
+
+            return await GenerateToken(user);
+        }
+
+        private async Task<string> GenerateToken(User user)
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var expires = DateTime.Now.AddDays(Convert.ToDouble(_configuration["Jwt:ExpireDays"]));
+
+            var id = await GetClaimsIdentity(user);
+            var token = new JwtSecurityToken(_configuration["Jwt:Issuer"], _configuration["Jwt:Audience"], id.Claims, expires: expires, signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private async Task<ClaimsIdentity> GetClaimsIdentity(User user)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Sid, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.AuthTime, DateTime.Now.ToString(CultureInfo.InvariantCulture))
+            };
+
+            if (user.Roles != null && user.Roles.Any())
+            {
+                claims.AddRange(user.Roles.Select(role => new Claim("roleIds", Convert.ToString((int)role))));
+
+                claims.AddRange(user.Roles.Select(role => new Claim(ClaimTypes.Role, role.ToString())));
+            }
+
+            return new ClaimsIdentity(claims, "Token");
+        }
+
+        public async Task<UserDto> RegisterAsync(CreateUserDto userDto)
+        {
+            var user = _mapper.Map<User>(userDto);
+            user.Password = BCrypt.Net.BCrypt.HashPassword(userDto.Password);
+
+            user.Roles = userDto.Roles ?? new List<Role> { Role.User };
+
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+
+            return _mapper.Map<UserDto>(user);
+        }
+
     }
 }

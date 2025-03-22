@@ -1,4 +1,5 @@
 ﻿using Database.Models;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 
 
 namespace Database.Dtos
@@ -10,7 +11,7 @@ namespace Database.Dtos
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public int AddressId { get; set; } = new();
-        public Role Role { get; set; }
+        public List<Role> Roles { get; set; } = new();
         public List<string> PhoneNumber { get; set; } = new();
     }
 
@@ -22,7 +23,7 @@ namespace Database.Dtos
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public int AddressId { get; set; }
-        public Role Role { get; set; }
+        public List<Role> Roles { get; set; } = new();
         public List<string> PhoneNumber { get; set; } = new();
     }
 
@@ -34,5 +35,12 @@ namespace Database.Dtos
         public string? Email { get; set; }
         public int? AddressId { get; set; }
         public List<string>? PhoneNumber { get; set; }
+    }
+
+    public class UserLoginDto
+    {
+        public string UserName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
     }
 }

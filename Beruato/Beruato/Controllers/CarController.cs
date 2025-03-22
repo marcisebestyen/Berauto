@@ -1,4 +1,5 @@
 using Database.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Services;
 
@@ -18,6 +19,7 @@ namespace Beruato.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> ListCars()
         {
             _logger.LogInformation("ListCars method called");
@@ -34,6 +36,7 @@ namespace Beruato.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin, Director")]
         public async Task<IActionResult> AddCar([FromBody] CreateCarDto carDto)
         {
             _logger.LogInformation("AddCar method called");
@@ -50,6 +53,7 @@ namespace Beruato.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAvailableCars()
         {
             try
@@ -65,6 +69,7 @@ namespace Beruato.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin, Director")]
         public async Task<IActionResult> UpdateCar(int id, [FromBody] UpdateCarDto carUpdateDto)
         {
             _logger.LogInformation("UpdateCar method called");
@@ -81,6 +86,7 @@ namespace Beruato.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin, Director")]
         public async Task<IActionResult> RemoveCar(int id)
         {
             _logger.LogInformation("RemoveCar method called");

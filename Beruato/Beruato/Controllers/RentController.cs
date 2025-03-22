@@ -1,4 +1,5 @@
 ﻿using Database.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Services;
 
@@ -16,7 +17,10 @@ namespace Beruato.Controllers
         {
             _berautoRentService = berautoRentService;
         }
+
+
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> CreateRent([FromBody] CreateRentDto createRentDto)
         {
             try
@@ -31,11 +35,12 @@ namespace Beruato.Controllers
             }
         }
         [HttpPost]
-        public async Task<IActionResult> ReturnRent([FromBody] int rentId)
+        [Authorize(Roles = "Admin, Director")]
+        public async Task<IActionResult> GetRent([FromBody] int rentId)
         {
             try
             {
-                var rent = await _berautoRentService.ReturnRent(rentId);
+                var rent = await _berautoRentService.GetRent(rentId);
                 return Ok(rent);
             }
             catch (Exception ex)
@@ -44,13 +49,15 @@ namespace Beruato.Controllers
             }
         }
         [HttpGet]
-        public async Task<IActionResult> ListAllRents()
+        [Authorize(Roles = "Admin, Director")]
+        public async Task<IActionResult> GetAllRent()
         {
-            var result = await _berautoRentService.ListAllRents();
+            var result = await _berautoRentService.GetAllRent();
             return Ok(result);
         }
 
         [HttpPut]
+        [Authorize(Roles = "Admin, Director")]
         public async Task<IActionResult> UpdateRent(UpdateRentDto updateRentDto, int rentId)
         {
             try
@@ -65,6 +72,7 @@ namespace Beruato.Controllers
         }
 
         [HttpDelete]
+        [Authorize(Roles = "Admin, Director")]
         public async Task<IActionResult> DeleteRent([FromBody] int rentId)
         {
             try
@@ -79,6 +87,7 @@ namespace Beruato.Controllers
         }
 
         [HttpPut]
+        [Authorize(Roles = "Admin, Director")]
         public async Task<IActionResult> ChangeFinished([FromBody] int rentId)
         {
             try

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Database.Dtos;
 using Services.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Beruato.Controllers
 {
@@ -14,7 +15,9 @@ namespace Beruato.Controllers
         {
             _addressService = addressService;
         }
+
         [HttpPost]
+        [Authorize(Roles = "Admin, User, Director, Guest")]
         public async Task<IActionResult> CreateAddress([FromBody] CreateAddressDto addressDto)
         {
             try
@@ -29,6 +32,7 @@ namespace Beruato.Controllers
             }
         }
         [HttpDelete]
+        [Authorize(Roles = "Admin, Director")]
         public async Task<IActionResult> DeleteAddress([FromBody] int addressId)
         {
             try
@@ -42,6 +46,7 @@ namespace Beruato.Controllers
             }
         }
         [HttpGet]
+        [Authorize(Roles = "Admin, Director")]
         public async Task<IActionResult> GetAddress([FromBody] int addressId)
         {
             try
@@ -55,6 +60,7 @@ namespace Beruato.Controllers
             }
         }
         [HttpPut]
+        [Authorize(Roles = "Admin, Director, User")]
         public async Task<IActionResult> UpdateAddress([FromBody] UpdateAddressDto updateAddressDto, int addressId)
         {
             try

@@ -66,7 +66,7 @@ namespace Beruato.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AddressId = table.Column<int>(type: "int", nullable: false),
-                    Role = table.Column<int>(type: "int", nullable: false),
+                    Roles = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>

@@ -22,6 +22,7 @@ namespace Services.Services
             CreateMap<CreateUserDto, User>();
             CreateMap<UpdateUserDto, User>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+            CreateMap<UserLoginDto, User>();
 
             // Address <-> DTO
             CreateMap<Address, AddressDto>()

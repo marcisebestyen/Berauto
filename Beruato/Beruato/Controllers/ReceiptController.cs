@@ -1,4 +1,5 @@
 ﻿using Database.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Services;
 namespace Beruato.Controllers;
@@ -15,6 +16,7 @@ public class ReceiptController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin, Director")]
     public async Task<IActionResult> AddReceipt([FromBody] CreateReceiptDto receiptDto)
     {
         try
@@ -29,6 +31,7 @@ public class ReceiptController : ControllerBase
     }
 
     [HttpGet("{receiptId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetReceipt(int receiptId)
     {
         try
@@ -43,7 +46,8 @@ public class ReceiptController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetReceipts()
+    [Authorize(Roles = "Admin, Director")]
+    public async Task<IActionResult> GetAllReceipt()
     {
         try
         {
@@ -57,6 +61,7 @@ public class ReceiptController : ControllerBase
     }
 
     [HttpPut("{receiptId}")]
+    [Authorize(Roles = "Admin, Director")]
     public async Task<IActionResult> UpdateReceipt(int receiptId, [FromBody] UpdateReceiptDto updateReceiptDto)
     {
         try
@@ -71,6 +76,7 @@ public class ReceiptController : ControllerBase
     }
 
     [HttpDelete("{receiptId}")]
+    [Authorize(Roles = "Admin, Director")]
     public async Task<IActionResult> DeleteReceipt(int receiptId)
     {
         try

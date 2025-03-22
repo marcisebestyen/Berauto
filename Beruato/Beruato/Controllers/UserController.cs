@@ -1,6 +1,7 @@
 ﻿using Database.Models;
 using Microsoft.AspNetCore.Mvc;
 using Database.Dtos;
+using Microsoft.AspNetCore.Authorization;
 namespace Beruato.Controller;
 
 [ApiController]
@@ -15,6 +16,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost]
+    [AllowAnonymous]
     public async Task<IActionResult> AddUser([FromBody]CreateUserDto userDto)
     {
         try
@@ -29,6 +31,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("{userId}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetUser(int userId)
     {
         try
@@ -43,7 +46,8 @@ public class UserController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetUsers()
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAllUser()
     {
         try
         {
@@ -57,6 +61,8 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("{userId}")]
+    [Authorize(Roles = "Admin, User, Director")]
+
     public async Task<IActionResult> UpdateUser(int userId, [FromBody]UpdateUserDto updateUserDto)
     {
         try
@@ -71,6 +77,7 @@ public class UserController : ControllerBase
     }
 
     [HttpDelete("{userId}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteUser(int userId)
     {
         try
@@ -81,6 +88,21 @@ public class UserController : ControllerBase
                 return NotFound(new { message = "User not found." });
             }
             return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost]
+    [AllowAnonymous]
+    public async Task<IActionResult> Login([FromBody] UserLoginDto userLoginDto)
+    {
+        try
+        {
+            var token = await _userService.LoginAsync(userLoginDto);
+            return Ok(token);
         }
         catch (Exception ex)
         {

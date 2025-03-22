@@ -9,8 +9,8 @@ namespace Services.Services
     public interface IRentService
     {
         public Task<RentDto> CreateRent(CreateRentDto createRentDto);
-        public Task<RentDto> ReturnRent(int rentId);
-        public Task<List<RentDto>> ListAllRents();
+        public Task<RentDto> GetRent(int rentId);
+        public Task<List<RentDto>> GetAllRent();
         public Task<RentDto> UpdateRent(UpdateRentDto updateRentDto, int rentId);
         public Task<RentDto> DeleteRent(int rentId);
         public Task<RentDto> ChangeFinished(int rentId);
@@ -42,7 +42,7 @@ namespace Services.Services
 
         }
 
-        public async Task<RentDto> ReturnRent(int rentId)
+        public async Task<RentDto> GetRent(int rentId)
             {
             var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
             if (rent == null)
@@ -53,7 +53,7 @@ namespace Services.Services
             return _mapper.Map<RentDto>(rent);
         }
 
-        public async Task<List<RentDto>> ListAllRents()
+        public async Task<List<RentDto>> GetAllRent()
             {
             return await _context.Rents.Select(r => _mapper.Map<RentDto>(r)).ToListAsync();
         }
