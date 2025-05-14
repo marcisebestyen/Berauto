@@ -3,7 +3,8 @@ import {rem, Button, useMantineTheme} from "@mantine/core";
 import {
     IconUserCircle,
     IconLogout,
-    IconHome
+    IconHome,
+    IconCar
 } from "@tabler/icons-react";
 import classes from "./NavbarMinimalColored.module.css";
 import {useNavigate} from "react-router-dom";
@@ -48,6 +49,11 @@ export function NavbarMinimal({toggle}: any) {
             icon: IconHome,
             label: "Kezdőlap",
             url: "dashboard",
+        },
+        {
+            icon: IconCar,
+            label: "Autók",
+            url: "cars",
         }
     ];
 

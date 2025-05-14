@@ -116,7 +116,10 @@ namespace Database.Models
         }
         public async Task<string> LoginAsync(UserLoginDto userDto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == userDto.Email);
+            var user = await _context.Users
+                                     .Include(u => u.Roles)
+                                     .FirstOrDefaultAsync(x => x.Email == userDto.Email);
+
             if (user == null || !BCrypt.Net.BCrypt.Verify(userDto.Password, user.Password))
             {
                 throw new UnauthorizedAccessException("Invalid credentials.");
@@ -150,9 +153,9 @@ namespace Database.Models
 
             if (user.Roles != null && user.Roles.Any())
             {
-                claims.AddRange(user.Roles.Select(role => new Claim("roleIds", Convert.ToString((int)role))));
+                claims.AddRange(user.Roles.Select(role => new Claim("roleIds", role.Id.ToString())));
 
-                claims.AddRange(user.Roles.Select(role => new Claim(ClaimTypes.Role, role.ToString())));
+                claims.AddRange(user.Roles.Select(role => new Claim(ClaimTypes.Role, role.Name)));
             }
 
             return new ClaimsIdentity(claims, "Token");
@@ -160,15 +163,38 @@ namespace Database.Models
 
         public async Task<UserDto> RegisterAsync(CreateUserDto userDto)
         {
+            if (await _context.Users.AnyAsync(u => u.UserName == userDto.UserName || u.Email == userDto.Email))
+            {
+                throw new ArgumentException("Username or Email already exists.");
+            }
+
             var user = _mapper.Map<User>(userDto);
             user.Password = BCrypt.Net.BCrypt.HashPassword(userDto.Password);
 
-            user.Roles = userDto.Roles ?? new List<Role> { Role.User };
+            user.Roles = new List<Role>(); 
+            var defaultRoleName = "User";
+
+            var userRoleEntity = await _context.Roles
+                                               .FirstOrDefaultAsync(r => r.Name == defaultRoleName);
+
+            if (userRoleEntity != null)
+            {
+                user.Roles.Add(userRoleEntity);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Default role '{defaultRoleName}' not found in the database. Registration cannot proceed.");
+            }
 
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<UserDto>(user);
+            var createdUser = await _context.Users
+                                      .Include(u => u.Address)
+                                      .Include(u => u.Roles)
+                                      .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+            return _mapper.Map<UserDto>(createdUser);
         }
 
     }

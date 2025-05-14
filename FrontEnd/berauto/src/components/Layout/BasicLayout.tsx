@@ -16,7 +16,7 @@ const BasicLayout = () => {
                 collapsed: {mobile: !opened},
             }}
             padding="md"
-            style={{background: '#f9f9f9'}}
+            style={{background: '#0c0d21'}}
         >
 
             <AppShell.Header

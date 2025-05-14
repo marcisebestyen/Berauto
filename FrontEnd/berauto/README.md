@@ -1,4 +1,4 @@
-# Netpincer app
+
 Prerequirements:
  - install node version manager (windows: https://github.com/coreybutler/nvm-windows)
  

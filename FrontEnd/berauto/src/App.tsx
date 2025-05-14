@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { MantineProvider, createTheme } from '@mantine/core';
+import { MantineProvider } from '@mantine/core';
 import { AuthContext } from './context/AuthContext';
-import LoginPage from './pages/LoginPage';
 import useAuthHook from './hooks/useAuth'; // Corrected import path
 import { emailKeyName, tokenKeyName } from './constants/constants';
+import Routing from "./routing/Routing.tsx";
 
-const theme = createTheme({});
+
 
 function App() {
     const auth = useAuthHook();
@@ -15,13 +15,10 @@ function App() {
     const [email, setEmail] = useState<string | null>(localStorage.getItem(emailKeyName));
 
     return (
-        <MantineProvider theme={theme}>
+        <MantineProvider defaultColorScheme={"dark"}>
             <BrowserRouter>
                 <AuthContext.Provider value={{ token, setToken, email, setEmail }}>
-                    <Routes>
-                        <Route path="/" element={<LoginPage />} />
-                        {/* Define other routes as needed */}
-                    </Routes>
+                    <Routing/>
                 </AuthContext.Provider>
             </BrowserRouter>
         </MantineProvider>
