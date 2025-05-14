@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import '@mantine/core/styles.css';
 import App from './App'; // Import your App component
 
-import { MantineProvider, createTheme } from '@mantine/core';
+import { MantineProvider} from '@mantine/core';
 
 
 

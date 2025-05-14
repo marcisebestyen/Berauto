@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import '@mantine/core/styles.css';
+import { useState } from 'react';
+import { BrowserRouter} from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
 import { AuthContext } from './context/AuthContext';
 import useAuthHook from './hooks/useAuth'; // Corrected import path
@@ -9,7 +10,7 @@ import Routing from "./routing/Routing.tsx";
 
 
 function App() {
-    const auth = useAuthHook();
+    const { } = useAuthHook();
 
     const [token, setToken] = useState<string | null>(localStorage.getItem(tokenKeyName));
     const [email, setEmail] = useState<string | null>(localStorage.getItem(emailKeyName));

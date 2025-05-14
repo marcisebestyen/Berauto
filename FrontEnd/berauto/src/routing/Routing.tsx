@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import { ReactElement } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import BasicLayout from '../components/Layout/BasicLayout'; // Ensure this path is correct
 import { routes } from './Routes'; // Ensure this path is correct (contains login, forgot, dashboard, cars)
@@ -6,17 +6,17 @@ import useAuth from '../hooks/useAuth'; // Ensure this path is correct
 
 // Helper component to protect routes - redirects to login if not authenticated
 const PrivateRoute = ({ element }: { element: ReactElement }) => {
-    const { isLoggedIn } = useAuth();
-    // console.log("PrivateRoute check:", isLoggedIn); // Keep for debugging if needed
-    return isLoggedIn ? element : <Navigate to="/login" replace />;
+    const {isAuthenticated: isAuthenticated} = useAuth();
+    // console.log("PrivateRoute check:", isAuthenticated); // Keep for debugging if needed
+    return isAuthenticated ? element : <Navigate to="/login" replace />;
 };
 
 // Helper component to redirect authenticated users away from public pages like login
 // Redirects logged-in users trying to access '/' or public routes to '/app'
 const AuthenticatedRedirect = ({ element }: { element: ReactElement }) => {
-    const { isLoggedIn } = useAuth();
+    const { isAuthenticated } = useAuth();
     // If logged in, redirect to /app (which defaults to /app/dashboard), otherwise show the element (e.g., Login page)
-    return isLoggedIn ? <Navigate to="/app" replace /> : element;
+    return isAuthenticated ? <Navigate to="/app" replace /> : element;
 };
 
 const Routing = () => {

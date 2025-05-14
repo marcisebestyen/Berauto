@@ -16,21 +16,29 @@ interface NavbarLinkProps {
     label: string;
     color: string;
     active?: boolean;
-
     onClick?(): void;
 }
 
 function NavbarLink({icon: Icon, label, color, active, onClick}: NavbarLinkProps) {
-
     return (
         <div
             role="button"
-            className={classes.link} color={color}
+            className={classes.link} 
+            color={color}
             onClick={onClick}
             data-active={active || undefined}
         >
-            <Button variant="light" color={color} className={classes.iconButton} style={{width: rem(40), height: rem(40), flexGrow: 0, flexShrink:0, flexBasis: rem(40)}}>
-                <Icon className={classes.linkIcon} style={{width: rem(25), height: rem(25), flexGrow: 0, flexShrink:0, flexBasis: rem(25)}} stroke={1.8}/>
+            <Button 
+                variant="light" 
+                color={color} 
+                className={classes.iconButton} 
+                style={{width: rem(40), height: rem(40), flexGrow: 0, flexShrink:0, flexBasis: rem(40)}}
+            >
+                <Icon 
+                    className={classes.linkIcon} 
+                    style={{width: rem(25), height: rem(25), flexGrow: 0, flexShrink:0, flexBasis: rem(25)}} 
+                    stroke={1.8}
+                />
             </Button>
             <span>{label}</span>
         </div>
@@ -57,14 +65,16 @@ export function NavbarMinimal({toggle}: any) {
         }
     ];
 
-
-    const onLogout = () => {
-        logout();
-    }
+    const handleLogout = () => {
+        logout(() => {
+            toggle();
+            navigate('/login');
+        });
+    };
 
     useEffect(() => {
         setActive(menuItems.findIndex(m => location.pathname === m.url));
-    }, [])
+    }, []);
 
     const links = menuItems
         .map((link, index) => (
@@ -95,12 +105,15 @@ export function NavbarMinimal({toggle}: any) {
                         onClick={() => {
                             navigate("profile");
                             toggle();
-                        }} color="grape" />
+                        }} 
+                        color="grape" 
+                    />
                     <NavbarLink
                         icon={IconLogout}
-                        label={"Kijelentkezés"}
-                        onClick={onLogout} color="grape"/>
-
+                        label="Kijelentkezés"
+                        onClick={handleLogout} 
+                        color="grape"
+                    />
                 </div>
             </div>
         </nav>

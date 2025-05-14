@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Group, Image, Table, Text } from "@mantine/core";
+import { Badge, Card, Table } from "@mantine/core";
 import {useEffect, useState} from "react";
 import api from "../api/api.ts";
 import {ICar} from "../interfaces/ICar.ts";

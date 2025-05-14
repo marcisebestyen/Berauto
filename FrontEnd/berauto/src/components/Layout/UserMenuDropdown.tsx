@@ -8,8 +8,11 @@ const UserMenuDropdown = () => {
     const navigate = useNavigate();
     const theme = useMantineTheme();
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+    const {logout, user} = useAuth();
 
-    const {logout, email} = useAuth();
+    const handleLogout = () => {
+        logout(() => navigate('/login'));
+    };
 
     const items = [
         {
@@ -23,12 +26,12 @@ const UserMenuDropdown = () => {
         {
             url: 'logout',
             label: "Kijelentkezés",
-            onClick: () => {logout()},
+            onClick: handleLogout,
             icon: IconLogout
         }
     ]
 
-    const profileName = <>{email}</>
+    const profileName = <>{user?.email}</>
 
     return <>
         <Menu
@@ -38,8 +41,7 @@ const UserMenuDropdown = () => {
             withinPortal
         >
             <Menu.Target>
-                <UnstyledButton
-                >
+                <UnstyledButton>
                     <Group gap={7}>
                        <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20}/>
                         <Text fw={500} size="sm" lh={1} mr={3}>
@@ -78,7 +80,6 @@ const UserMenuDropdown = () => {
                                 stroke={1}
                             />
                         }
-
                     >
                         {item.label}
                     </Menu.Item>
