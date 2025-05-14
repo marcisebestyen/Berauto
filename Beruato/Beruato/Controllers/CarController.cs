@@ -69,21 +69,27 @@ namespace Beruato.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin, Director")]
+        [AllowAnonymous]
         public async Task<IActionResult> UpdateCar(int id, [FromBody] UpdateCarDto carUpdateDto)
         {
             _logger.LogInformation("UpdateCar method called");
             try
             {
                 await _carServices.UpdateCarAsync(id, carUpdateDto);
-                return Ok("Car updated successfully");
+                return Ok("Car availability updated successfully");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid request for updating car availability");
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while updating the car");
+                _logger.LogError(ex, "An error occurred while updating car availability");
                 return StatusCode(500, "Internal server error");
             }
         }
+
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin, Director")]
