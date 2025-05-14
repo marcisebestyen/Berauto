@@ -7,6 +7,6 @@
         public decimal Cost { get; set; }
         public DateTime IssueDate { get; set; }
 
-        public Rent Rent { get; set; } = new();
+        public Rent Rent { get; set; }
     }
 }

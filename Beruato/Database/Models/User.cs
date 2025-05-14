@@ -13,6 +13,6 @@
         public List<Role> Roles { get; set; } = new();
         public List<string> PhoneNumber { get; set; } = new();
 
-        public Address Address { get; set; } = new();
+        public Address Address { get; set; }
     }
 }
