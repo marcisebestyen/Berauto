@@ -27,7 +27,6 @@ namespace Services.Services
             _context = context;
             _mapper = mapper;
         }
-
         public async Task<RentDto> CreateRent(CreateRentDto createRentDto)
         {
             var rent = _mapper.Map<Rent>(createRentDto);

@@ -1,14 +1,14 @@
 export interface ICar {
     id: number;
     isAvailable: boolean;
-    licence: string; // e.g., "B", "A1", etc.
+    licence: string;
     brand: string;
     model: string;
     licencePlate: string;
     haveValidVignette: boolean;
-    price: number; // Assuming this can be a decimal value
+    price: number;
     seats: number;
-    fuelType: string; // e.g., "Hybrid", "Petrol", etc.
+    fuelType: string;
     isAutomaticTransmission: boolean;
     trunk: number;
 }

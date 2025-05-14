@@ -11,8 +11,6 @@ const Cars = () => {
         });
     }, []);
 
-
-
     const rows = items.map((element) => (
         <Table.Tr key={element.id}>
             <Table.Td>{element.brand}</Table.Td>

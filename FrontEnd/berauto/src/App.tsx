@@ -1,13 +1,13 @@
 import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css'; // Ezt is hozzá kell adni
 import { useState } from 'react';
 import { BrowserRouter} from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
 import { AuthContext } from './context/AuthContext';
-import useAuthHook from './hooks/useAuth'; // Corrected import path
+import useAuthHook from './hooks/useAuth';
 import { emailKeyName, tokenKeyName } from './constants/constants';
 import Routing from "./routing/Routing.tsx";
-
-
+import { Notifications } from '@mantine/notifications';
 
 function App() {
     const { } = useAuthHook();
@@ -17,6 +17,7 @@ function App() {
 
     return (
         <MantineProvider defaultColorScheme={"dark"}>
+            <Notifications position="top-right" />
             <BrowserRouter>
                 <AuthContext.Provider value={{ token, setToken, email, setEmail }}>
                     <Routing/>

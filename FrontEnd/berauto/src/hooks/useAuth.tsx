@@ -8,11 +8,14 @@ interface User {
     id: string;
     email: string;
     role: string;
+    username?: string;
 }
 
 interface DecodedJwtPayload {
     sub?: string;
-    nameid?: string;
+
+    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'?: string;
+    name?: string;
 
     'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'?: string;
     email?: string;
@@ -36,6 +39,7 @@ const useAuth = () => {
                     id: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || '',
                     email: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || decoded.email || '',
                     role: decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role || '',
+                    username: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || decoded['preferred_username'] || ''
                 };
                 if (mappedUser.id && mappedUser.email) {
                     return mappedUser;
@@ -76,7 +80,8 @@ const useAuth = () => {
                     const mappedUser: User = {
                         id: decodedPayload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || "defaultIdOnError",
                         email: decodedPayload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || decodedPayload.email || "defaultEmailOnError",
-                        role: decodedPayload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decodedPayload.role || "defaultRoleOnError"
+                        role: decodedPayload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decodedPayload.role || "defaultRoleOnError",
+                        username: decodedPayload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || decodedPayload['preferred_username'] || "defaultUsernameOnError"
                     };
 
                     if (mappedUser.id !== "defaultIdOnError" && mappedUser.email !== "defaultEmailOnError") {
@@ -126,7 +131,6 @@ const useAuth = () => {
         }
 
     };
-
 
         return {
         user,

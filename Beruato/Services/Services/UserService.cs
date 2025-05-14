@@ -19,6 +19,8 @@ namespace Database.Models
         Task<UserDto> UpdateUser(int userId, UpdateUserDto updateUserDto);
         Task<bool> DeleteUser(int userId);
         Task<string> LoginAsync(UserLoginDto userDto);
+        Task<int> GetUserRents(int userId);
+        Task<int> GetActiveRents(int userId);
     }
 
     public class UserService : IUserService
@@ -197,5 +199,30 @@ namespace Database.Models
             return _mapper.Map<UserDto>(createdUser);
         }
 
+        public async Task<int> GetUserRents(int userId)
+        {
+            var rents = await _context.Rents
+                .Where(r => r.UserId == userId)
+                .ToListAsync();
+
+            if (rents == null || rents.Count == 0)
+            {
+                throw new ArgumentException("No rents found for this user.");
+            }
+
+            return rents.Count;
+        }
+
+        public async Task<int> GetActiveRents(int userId)
+        {
+            var rents = await _context.Rents
+                .Where(r => r.UserId == userId && r.Finished == false)
+                .ToListAsync();
+            if (rents == null || rents.Count == 0)
+            {
+                throw new ArgumentException("No active rents found for this user.");
+            }
+            return rents.Count;
+        }
     }
 }
