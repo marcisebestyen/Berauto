@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using Services.Services;
 using System.Text;
 
+
 namespace Beruato
 {
     public class Program
@@ -15,7 +16,24 @@ namespace Beruato
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+
+            var frontendOrigin = "http://localhost:7285";
+
             builder.Services.AddControllers();
+
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(name: MyAllowSpecificOrigins,
+                                  policy =>
+                                  {
+                                      policy.WithOrigins(frontendOrigin)
+                                            .AllowAnyHeader()
+                                            .AllowAnyMethod();
+                                  });
+            });
 
             builder.Services.AddOpenApi();
             builder.Services.AddDbContext<BerautoDbContext>(options =>
@@ -68,6 +86,7 @@ namespace Beruato
                     Name = "Authorization",
                     Type = SecuritySchemeType.ApiKey,
                     BearerFormat = "JWT",
+                    Scheme = "Bearer" // Good to include Scheme for Swagger UI
                 });
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement {
         {
@@ -91,14 +110,14 @@ namespace Beruato
 
             app.UseHttpsRedirection();
 
-            app.UseAuthentication();
+            app.UseCors(MyAllowSpecificOrigins);
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
 
             app.Run();
         }
-
     }
 }

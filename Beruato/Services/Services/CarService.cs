@@ -91,16 +91,17 @@ namespace Services.Services
                 throw new ArgumentException($"Car with ID {id} not found.");
             }
 
-            _mapper.Map(carUpdateDto, car);
+            _logger.LogInformation($"Updating 'IsAvailable' status for car with ID: {id}");
 
-            _logger.LogInformation($"Updating car with ID: {id}");
+            car.IsAvailable = (bool)carUpdateDto.IsAvailable;
 
             _context.Cars.Update(car);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation($"Car with ID: {id} updated successfully");
+            _logger.LogInformation($"Car with ID: {id} 'IsAvailable' updated successfully");
             return _mapper.Map<CarDto>(car);
         }
+
         public async Task<bool> ValidateVignetteAsync(int carId)
         {
             var car = await _context.Cars.FindAsync(carId);

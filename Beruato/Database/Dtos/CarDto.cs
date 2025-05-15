@@ -34,8 +34,8 @@ namespace Database.Dtos
     public class UpdateCarDto
     {
         public bool? IsAvailable { get; set; }
-        public RequiredLicence? Licence { get; set; }
-        public bool? HaveValidVignette { get; set; }
-        public decimal? Price { get; set; }
+        //public RequiredLicence? Licence { get; set; }
+        //public bool? HaveValidVignette { get; set; }
+        //public decimal? Price { get; set; }
     }
 }

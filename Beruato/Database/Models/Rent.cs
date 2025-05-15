@@ -10,8 +10,8 @@
         public DateTime EndDate { get; set; }
         public bool Finished { get; set; } = false;
 
-        public Car Car { get; set; } = new();
-        public User User { get; set; } = new();
-        public User Administrator { get; set; } = new();
+        public Car Car { get; set; }
+        public User User { get; set; }
+        public User Administrator { get; set; }
     }
 }

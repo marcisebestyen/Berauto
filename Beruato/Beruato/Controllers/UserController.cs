@@ -109,4 +109,38 @@ public class UserController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
+    [HttpGet("{userId}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetUserRents(int userId)
+    {
+        try
+        {
+            var count = await _userService.GetUserRents(userId);
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpGet("{userId}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetActiveRents(int userId)
+    {
+        try
+        {
+            var count = await _userService.GetActiveRents(userId);
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+
+
+
 }
