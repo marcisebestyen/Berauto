@@ -17,9 +17,8 @@ namespace Database.Data
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             //string connectionString = "Server=ROMEOPC;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // romeo
-            string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
-
-            //string connectionString = "Server=localhost;Database=BerautoTestDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
+            // string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
+            string connectionString = "Server=localhost;Database=BerautoTestDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
 
             optionsBuilder.UseSqlServer(connectionString);
         }
@@ -31,21 +30,42 @@ namespace Database.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.UserName).IsRequired().HasMaxLength(100); // adminoknak, staffoknak
-                entity.HasIndex(e => e.UserName).IsUnique();
+                
+                entity.Property(e => e.FirstName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                
+                entity.Property(e => e.LastName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                
+                entity.Property(e => e.UserName)
+                    .IsRequired()
+                    .HasMaxLength(100); // adminoknak, staffoknak
+                
+                entity.HasIndex(e => e.UserName)
+                    .IsUnique();
 
                 entity.Ignore(e => e.Name);
 
-                entity.Property(e => e.PhoneNumber).HasMaxLength(30);
-                entity.Property(e => e.LicenceId).HasMaxLength(30);
+                entity.Property(e => e.PhoneNumber)
+                    .IsRequired()
+                    .HasMaxLength(30);
+                
+                entity.Property(e => e.LicenceId)
+                    .IsRequired()
+                    .HasMaxLength(30);
 
-                entity.Property(e => e.Email).HasMaxLength(255);
-                entity.Property(e => e.Password).HasMaxLength(255);
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .HasMaxLength(255);
+                
+                entity.Property(e => e.Password)
+                    .HasMaxLength(255);
 
-                entity.HasIndex(e => e.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
-                entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
+                entity.HasIndex(e => e.Email)
+                    .IsUnique()
+                    .HasFilter("[Email] IS NOT NULL");
             });
 
             modelBuilder.Entity<Car>(entity =>
@@ -55,19 +75,30 @@ namespace Database.Data
                 entity.Property(e => e.FuelType)
                     .IsRequired()
                     .HasMaxLength(50);
+                
                 entity.Property(e => e.RequiredLicence)
                     .IsRequired()
                     .HasMaxLength(50);
 
-                entity.Property(e => e.LicencePlate).IsRequired().HasMaxLength(15);
-                entity.HasIndex(e => e.LicencePlate).IsUnique();
+                entity.Property(e => e.LicencePlate)
+                    .IsRequired()
+                    .HasMaxLength(15);
+                
+                entity.HasIndex(e => e.LicencePlate)
+                    .IsUnique();
 
-                entity.Property(e => e.PricePerKilometer).IsRequired().HasColumnType("decimal(18, 2)");
-                entity.Property(e => e.ActualKilometers).IsRequired().HasColumnType("decimal(18, 2)");
+                entity.Property(e => e.PricePerKilometer)
+                    .IsRequired()
+                    .HasColumnType("decimal(18, 2)");
+                
+                entity.Property(e => e.ActualKilometers)
+                    .IsRequired()
+                    .HasColumnType("decimal(18, 2)");
 
                 entity.Property(e => e.Brand)
-                .IsRequired()
-                .HasMaxLength(100);
+                    .IsRequired()
+                    .HasMaxLength(100);
+                
                 entity.Property(e => e.Model)
                     .IsRequired()
                     .HasMaxLength(100);
@@ -92,31 +123,35 @@ namespace Database.Data
                 entity.HasOne(r => r.ApproverOperator)
                     .WithMany()
                     .HasForeignKey(r => r.ApprovedBy)
-                    .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(r => r.IssuerOperator)
                     .WithMany()
                     .HasForeignKey(r => r.IssuedBy)
-                    .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(r => r.RecipientOperator)
                     .WithMany()
                     .HasForeignKey(r => r.TakenBackBy)
-                    .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);
 
-                entity.Property(r => r.StartingKilometer).IsRequired().HasColumnType("decimal(18, 2)");
+                entity.Property(r => r.StartingKilometer)
+                    .HasColumnType("decimal(18, 2)");
 
-                entity.Property(r => r.EndingKilometer).IsRequired().HasColumnType("decimal(18, 2)");
+                entity.Property(r => r.EndingKilometer)
+                    .HasColumnType("decimal(18, 2)");
+
+                entity.Property(r => r.InvoiceRequest)
+                    .IsRequired();
             });
 
             modelBuilder.Entity<Receipt>(entity =>
             {
                 entity.HasKey(e => e.Id);
 
-                entity.Property(rec => rec.TotalCost).IsRequired().HasColumnType("decimal(18, 2)");
+                entity.Property(rec => rec.TotalCost)
+                    .IsRequired()
+                    .HasColumnType("decimal(18, 2)");
 
                 entity.HasOne(rec => rec.Rent)
                     .WithOne()

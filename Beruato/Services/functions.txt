@@ -29,7 +29,7 @@ admin jogok:
 user jogok:
 => regisztráció, login
 => adataik megnézése
-=> autó adatok megtekintése
+=> autó adatok megtekintése 
 => igény leadása (csak szabad autó)
 => előzmények megtekintése (regisztrált usereknek)
 => számla igénylése (rentId leadása, abból visszafejtett adatok)
