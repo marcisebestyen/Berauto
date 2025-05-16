@@ -4,6 +4,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Services;
+using Services.Repositories;
+using Services.Services;
+using System.Reflection;
 using System.Text;
 
 
@@ -40,6 +44,9 @@ namespace Beruato
                     .GetConnectionString("Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"),
                     b => b.MigrationsAssembly("Beruato")));
 
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<ICarService, CarService>();
+
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -64,12 +71,21 @@ namespace Beruato
                 options.AddPolicy("DirectorPolicy", policy => policy.RequireRole("Director"));
             });
 
-            builder.Services.AddAutoMapper(typeof(Program));
+            builder.Services.AddAutoMapper(typeof(Services.Services.MappingService).Assembly);
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Berauto API", Version = "v1" });
+
+                //swagger xml file
+                var servicesAssemblyXmlFile = $"{typeof(Services.Services.MappingService).Assembly.GetName().Name}.xml";
+                var servicesAssemblyXmlPath = Path.Combine(AppContext.BaseDirectory, servicesAssemblyXmlFile);
+                if (File.Exists(servicesAssemblyXmlPath))
+                {
+                    c.IncludeXmlComments(servicesAssemblyXmlPath);
+                }
+
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     In = ParameterLocation.Header,
@@ -77,7 +93,7 @@ namespace Beruato
                     Name = "Authorization",
                     Type = SecuritySchemeType.ApiKey,
                     BearerFormat = "JWT",
-                    Scheme = "Bearer" // Good to include Scheme for Swagger UI
+                    Scheme = "Bearer"
                 });
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement {
         {

@@ -26,7 +26,8 @@ public class MappingService : Profile
         CreateMap<Car,  CarGetDto>();
         CreateMap<Car, CarSimpleGetDto>();
         
-        CreateMap<CarCreateDto, Car>();
+        CreateMap<CarCreateDto, Car>()
+            .ForMember(dest => dest.InProperCondition, opt => opt.MapFrom(src => true));
         
         CreateMap<CarUpdateDto, Car>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));

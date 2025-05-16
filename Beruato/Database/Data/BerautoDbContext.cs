@@ -17,9 +17,9 @@ namespace Database.Data
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             //string connectionString = "Server=ROMEOPC;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // romeo
-            // string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
+            string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
 
-            string connectionString = "Server=localhost;Database=BerautoTestDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
+            //string connectionString = "Server=localhost;Database=BerautoTestDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
 
             optionsBuilder.UseSqlServer(connectionString);
         }
@@ -64,6 +64,13 @@ namespace Database.Data
 
                 entity.Property(e => e.PricePerKilometer).IsRequired().HasColumnType("decimal(18, 2)");
                 entity.Property(e => e.ActualKilometers).IsRequired().HasColumnType("decimal(18, 2)");
+
+                entity.Property(e => e.Brand)
+                .IsRequired()
+                .HasMaxLength(100);
+                entity.Property(e => e.Model)
+                    .IsRequired()
+                    .HasMaxLength(100);
             });
 
             modelBuilder.Entity<Rent>(entity =>

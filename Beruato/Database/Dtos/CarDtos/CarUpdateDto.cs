@@ -5,6 +5,11 @@ namespace Database.Dtos.CarDtos;
 
 public class CarUpdateDto
 {
+    [MaxLength(50, ErrorMessage = "A márka maximum 50 karakter hosszú lehet.")]
+    public string? Brand { get; set; }
+
+    [MaxLength(50, ErrorMessage = "A modell maximum 50 karakter hosszú lehet.")]
+    public string? Model { get; set; }
     public FuelType? FuelType { get; set; }
     public RequiredLicence? RequiredLicence { get; set; }
 
@@ -18,5 +23,4 @@ public class CarUpdateDto
 
     [Range(0, double.MaxValue, ErrorMessage = "A kilométeróra állás nem lehet negatív.")]
     public decimal? ActualKilometers { get; set; }
-    public bool? InProperCondition { get; set; }
 }

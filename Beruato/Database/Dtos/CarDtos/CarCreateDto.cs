@@ -28,7 +28,4 @@ public class CarCreateDto
     [Required(ErrorMessage = "Az aktuális kilométeróra állás megadása kötelező.")]
     [Range(0, double.MaxValue, ErrorMessage = "A kilométeróra állás nem lehet negatív.")]
     public decimal ActualKilometers { get; set; }
-
-    [Required(ErrorMessage = "A megfelelő műszaki állapot megadása kötelező.")]
-    public bool InProperCondition { get; set; }
 }
