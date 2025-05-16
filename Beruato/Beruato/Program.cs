@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Services.Services;
 using System.Text;
 
 
@@ -41,13 +40,6 @@ namespace Beruato
                     .GetConnectionString("Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"),
                     b => b.MigrationsAssembly("Beruato")));
 
-            builder.Services.AddScoped<ICarServices, CarService>();
-            builder.Services.AddScoped<IRentService, RentService>();
-            builder.Services.AddScoped<IUserService, UserService>();
-            builder.Services.AddScoped<IReceiptService, ReceiptService>();
-            builder.Services.AddScoped<IAddrssService, AddressService>();
-            builder.Services.AddLogging();
-
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -73,7 +65,6 @@ namespace Beruato
             });
 
             builder.Services.AddAutoMapper(typeof(Program));
-            builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>

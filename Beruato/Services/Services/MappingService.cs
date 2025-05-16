@@ -1,0 +1,61 @@
+using AutoMapper;
+using Database.Models;
+using Database.Dtos.CarDtos;
+using Database.Dtos.ReceiptDtos;
+using Database.Dtos.RentDtos;
+using Database.Dtos.UserDtos;
+
+namespace Services.Services;
+
+public class MappingService : Profile
+{
+    public MappingService()
+    {
+        // User mappings
+        
+        CreateMap<User, UserGetDto>(); // A Name property a DTO-ban getter, AutoMapper kezeli ha FirstName, LastName mapelve van.
+        CreateMap<User, UserSimpleGetDto>();
+        
+        CreateMap<UserCreateDto, User>();
+        
+        CreateMap<UserUpdateDto, User>()
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+        
+        //Car mappings
+        
+        CreateMap<Car,  CarGetDto>();
+        CreateMap<Car, CarSimpleGetDto>();
+        
+        CreateMap<CarCreateDto, Car>();
+        
+        CreateMap<CarUpdateDto, Car>()
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+        
+        // Rent mappings 
+        
+        CreateMap<Rent, RentGetDto>()
+            .ForMember(dest => dest.ActualStart, opt => opt.MapFrom(src => src.ActualStart == DateTime.MinValue ? (DateTime?)null : src.ActualStart))
+            .ForMember(dest => dest.ActualEnd, opt => opt.MapFrom(src => src.ActualEnd == DateTime.MinValue ? (DateTime?)null : src.ActualEnd))
+            .ForMember(dest => dest.IssuedAt, opt => opt.MapFrom(src => src.IssuedAt == DateTime.MinValue ? (DateTime?)null : src.IssuedAt))
+            .ForMember(dest => dest.StartingKilometer, opt => opt.MapFrom(src => src.StartingKilometer)) // Tegyük fel, hogy az entitásban is lehet 0
+            .ForMember(dest => dest.EndingKilometer, opt => opt.MapFrom(src => src.EndingKilometer)); // Tegyük fel, hogy az entitásban is lehet 0
+
+        CreateMap<RentCreateDto, Rent>();
+        
+        CreateMap<RentUpdateByStaffDto, Rent>()
+            .ForMember(dest => dest.ApprovedBy, opt => opt.MapFrom(src => src.ApprovedById))
+            .ForMember(dest => dest.IssuedBy, opt => opt.MapFrom(src => src.IssuedById))
+            .ForMember(dest => dest.TakenBackBy, opt => opt.MapFrom(src => src.TakenBackById))
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+        
+        // Receipt mappings 
+
+        CreateMap<Receipt, ReceiptGetDto>();
+        
+        CreateMap<ReceiptCreateDto, Receipt>()
+            .ForMember(dest => dest.IssuedBy, opt => opt.MapFrom(src => src.IssuedById));
+        
+        CreateMap<UpdateReceiptDto, Receipt>()
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+    }
+}
