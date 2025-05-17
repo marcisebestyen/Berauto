@@ -1,5 +1,6 @@
 using AutoMapper;
 using Database.Dtos.UserDtos;
+using Database.Models;
 using Database.Results;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,8 +12,8 @@ public interface IUserService
 {
     Task<UserGetDto?> GetUserByIdAsync(int userId);
     Task<ServiceResult> UpdateUserAsync(int userId, UserUpdateDto userUpdateDto);
-    Task<LoginResult> LoginAsync(UserLoginDto loginDto); 
-
+    Task<LoginResult> LoginAsync(UserLoginDto loginDto);
+    Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto);
 }
 
 public class UserService : IUserService
@@ -21,10 +22,10 @@ public class UserService : IUserService
     private readonly IMapper _mapper;
     private readonly ILogger<UserService> _logger;
 
-    public UserService(IUnitOfWork unitOfWork,  IMapper mapper,  ILogger<UserService> logger)
+    public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
-        _mapper  = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -47,7 +48,7 @@ public class UserService : IUserService
         {
             return ServiceResult.Failed("A módosítandó felhasználó nem található.");
         }
-        
+
         if (!user.RegisteredUser)
         {
             return ServiceResult.Failed("Csak regisztrált felhasználók módosíthatják az adataikat.");
@@ -82,7 +83,9 @@ public class UserService : IUserService
         if (userUpdateDto.Email != null && user.Email != userUpdateDto.Email)
         {
             // Ellenőrizzük, hogy az új email cím nem foglalt-e már más felhasználó által
-            var existingUserWithEmail = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == userUpdateDto.Email && u.Id != user.Id)).FirstOrDefault();
+            var existingUserWithEmail =
+                (await _unitOfWork.UserRepository.GetAsync(u => u.Email == userUpdateDto.Email && u.Id != user.Id))
+                .FirstOrDefault();
             if (existingUserWithEmail != null)
             {
                 return ServiceResult.Failed("Az email cím már foglalt egy másik felhasználó által.");
@@ -127,15 +130,17 @@ public class UserService : IUserService
             return ServiceResult.Failed($"Váratlan hiba történt: {ex.Message}");
         }
     }
-    
+
     public async Task<LoginResult> LoginAsync(UserLoginDto loginDto)
     {
-        if (loginDto == null || string.IsNullOrWhiteSpace(loginDto.Identifier) || string.IsNullOrWhiteSpace(loginDto.Password))
+        if (loginDto == null || string.IsNullOrWhiteSpace(loginDto.Identifier) ||
+            string.IsNullOrWhiteSpace(loginDto.Password))
         {
             return LoginResult.Failure("Az e-mail cím és a jelszó megadása kötelező.");
         }
 
-        var user = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == loginDto.Identifier || u.UserName == loginDto.Identifier)).FirstOrDefault();
+        var user = (await _unitOfWork.UserRepository.GetAsync(u =>
+            u.Email == loginDto.Identifier || u.UserName == loginDto.Identifier)).FirstOrDefault();
 
         if (user == null)
         {
@@ -182,5 +187,78 @@ public class UserService : IUserService
         // Mivel egyelőre nincs JWT, itt nem generálunk tokent.
         // A sikeres bejelentkezés eredményeként visszaadjuk a felhasználó adatait.
         return LoginResult.Success(userGetDto);
+    }
+
+    public async Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto)
+    {
+        if (registrationDto == null)
+        {
+            return RegistrationResult.Failure("A regisztrációs adatok nem lehetnek üresek.");
+        }
+
+        // Ellenőrizzük, hogy az e-mail cím foglalt-e már
+        var existingUserByEmail = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == registrationDto.Email))
+            .FirstOrDefault();
+        if (existingUserByEmail != null)
+        {
+            return RegistrationResult.Failure("Ez az e-mail cím már regisztrálva van.");
+        }
+
+        // UserName generálása/beállítása (itt az Email-t használjuk, de lehetne bonyolultabb logika is)
+        // és ellenőrizzük az egyediségét.
+        string userNameToRegister = registrationDto.Email; // Egyszerűsített UserName
+        var existingUserByUserName = (await _unitOfWork.UserRepository.GetAsync(u => u.UserName == userNameToRegister))
+            .FirstOrDefault();
+        if (existingUserByUserName != null)
+        {
+            // Ha az email egyedi, de a UserName (ami itt ugyanaz) valahogy mégis foglalt, az adatbázis anomália
+            // vagy a UserName generálási logika bonyolultabb és ütközést okozott.
+            // Egyedi UserName-t kell biztosítani. Lehet pl. egyedi stringet generálni.
+            return RegistrationResult.Failure("A felhasználónév már foglalt. Próbálkozzon másikkal, vagy ez az email már használatban van felhasználónévként.");
+        }
+        
+        // string hashedPassword = _passwordHasher.HashPassword(registrationDto.Password);
+        string hashedPassword = registrationDto.Password; 
+        
+        var newUser = new User
+        {
+            FirstName = registrationDto.FirstName,
+            LastName = registrationDto.LastName,
+            PhoneNumber = registrationDto.PhoneNumber,
+            LicenceId = registrationDto.LicenceId,
+            Email = registrationDto.Email,
+            UserName = userNameToRegister, 
+            Password = hashedPassword, // A HASH-elt jelszót kellene itt tárolni!
+            RegisteredUser = true, 
+            Role = Role.Renter 
+        };
+
+        try
+        {
+            await _unitOfWork.UserRepository.InsertAsync(newUser);
+            await _unitOfWork.SaveAsync();
+        }
+        catch (DbUpdateException ex) // Általános adatbázis hiba, pl. unique constraint sérülés, amit fent nem kezeltünk
+        {
+            return RegistrationResult.Failure($"Adatbázis hiba történt a regisztráció során: {ex.InnerException?.Message ?? ex.Message}");
+        }
+        catch (Exception ex) // Egyéb váratlan hibák
+        {
+            return RegistrationResult.Failure($"Váratlan hiba történt a regisztráció során: {ex.Message}");
+        }
+        
+        var userGetDto = new UserGetDto
+        {
+            Id = newUser.Id,
+            FirstName = newUser.FirstName,
+            LastName = newUser.LastName,
+            UserName = newUser.UserName,
+            PhoneNumber = newUser.PhoneNumber,
+            RegisteredUser = newUser.RegisteredUser,
+            LicenceId = newUser.LicenceId,
+            Email = newUser.Email,
+        };
+
+        return RegistrationResult.Success(userGetDto);
     }
 }
