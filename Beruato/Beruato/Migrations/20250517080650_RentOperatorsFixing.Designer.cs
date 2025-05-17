@@ -4,6 +4,7 @@ using Database.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Beruato.Migrations
 {
     [DbContext(typeof(BerautoDbContext))]
-    partial class BerautoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250517080650_RentOperatorsFixing")]
+    partial class RentOperatorsFixing
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -114,10 +117,10 @@ namespace Beruato.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime?>("ActualEnd")
+                    b.Property<DateTime>("ActualEnd")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("ActualStart")
+                    b.Property<DateTime>("ActualStart")
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("ApprovedBy")
@@ -126,13 +129,13 @@ namespace Beruato.Migrations
                     b.Property<int>("CarId")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("EndingKilometer")
+                    b.Property<decimal>("EndingKilometer")
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<bool>("InvoiceRequest")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime?>("IssuedAt")
+                    b.Property<DateTime>("IssuedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("IssuedBy")
@@ -147,7 +150,7 @@ namespace Beruato.Migrations
                     b.Property<int>("RenterId")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("StartingKilometer")
+                    b.Property<decimal>("StartingKilometer")
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<int?>("TakenBackBy")
