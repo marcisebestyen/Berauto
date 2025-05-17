@@ -1,0 +1,175 @@
+using System.Security.Claims;
+using Database.Dtos.UserDtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Services.Services;
+
+namespace Berauto.Controllers;
+
+[ApiController]
+[Route("api/users")]
+public class UserController : Controller
+{
+    private readonly IUserService _userService;
+    private readonly ILogger<UserController> _logger;
+
+    public UserController(IUserService userService, ILogger<UserController> logger)
+    {
+        _userService = userService ?? throw new ArgumentNullException(nameof(userService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    /// <summary>
+    /// Lekérdezi egy felhasználó profiladatait az azonosítója alapján.
+    /// </summary>
+    /// <param name="userId">A lekérdezendő felhasználó azonosítója.</param>
+    /// <returns>A felhasználó profiladatai.</returns>
+    // [Authorize] // Eltávolítva
+    [HttpGet("{userId}")] // Az userId-t az útvonalból kapja
+    [ProducesResponseType(typeof(UserGetDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetMyProfile(int userId)
+    {
+        var userDto = await _userService.GetUserByIdAsync(userId);
+
+        if (userDto == null)
+        {
+            // _logger?.LogInformation("User profile not found for user ID: {RequestedUserId}", userId);
+            return NotFound(new { Message = $"A(z) {userId} azonosítójú felhasználói profil nem található." });
+        }
+
+        return Ok(userDto);
+    }
+
+    /// <summary>
+    /// Részlegesen frissíti egy felhasználó profiladatait az azonosítója alapján.
+    /// </summary>
+    /// <param name="userId">A frissítendő felhasználó azonosítója.</param>
+    /// <param name="patchDoc">A JSON Patch dokumentum, ami a módosításokat tartalmazza.</param>
+    /// <returns>HTTP státuszkód a művelet eredményéről.</returns>
+    [HttpPatch("{userId}")] // HTTP metódus cserélve PATCH-re
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)] // ModelState hibák vagy patch hibák
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)] // Pl. email ütközés
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateUserProfile(int userId, [FromBody] JsonPatchDocument<UserUpdateDto> patchDoc)
+    {
+        if (patchDoc == null)
+        {
+            return BadRequest(new { Message = "A PATCH dokumentum nem lehet üres." });
+        }
+        
+        //    A UserGetDto-t használjuk, majd átalakítjuk UserUpdateDto-ra.
+        var userGetDto = await _userService.GetUserByIdAsync(userId);
+        if (userGetDto == null)
+        {
+            return NotFound(new { Message = $"A(z) {userId} azonosítójú felhasználó nem található a PATCH művelethez." });
+        }
+
+        // Alakítsuk át az aktuális adatokat egy UserUpdateDto példányra,
+        // mivel a JsonPatchDocument<UserUpdateDto>-t várunk.
+        // Ez a DTO tartalmazza azokat a mezőket, amiket a PATCH módosíthat.
+        var userToPatchDto = new UserUpdateDto
+        {
+            FirstName = userGetDto.FirstName,
+            LastName = userGetDto.LastName,
+            PhoneNumber = userGetDto.PhoneNumber,
+            LicenceId = userGetDto.LicenceId,
+            Email = userGetDto.Email
+        };
+        
+        // A ModelState-et átadjuk, hogy az ApplyTo bele tudja írni a patch alkalmazása során keletkező hibákat
+        // (pl. ha egy nem létező property-t próbál módosítani).
+        patchDoc.ApplyTo(userToPatchDto, ModelState);
+        
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        // Újraellenőrizzük a DTO-t a patch után, hogy a benne lévő DataAnnotation attribútumok (pl. StringLength)
+        // érvényesek-e a módosított értékekre.
+        TryValidateModel(userToPatchDto);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        // A UserService.UpdateUserAsync logikája változatlan, az kezeli a DTO alapján a tényleges entitásfrissítést.
+        var result = await _userService.UpdateUserAsync(userId, userToPatchDto);
+
+        if (result.Succeeded)
+        {
+            return NoContent();
+        }
+
+        // Hibakezelés a ServiceResult alapján (hasonlóan a PUT-hoz)
+        if (result.Errors.Any())
+        {
+            string firstError = result.Errors.First().ToLowerInvariant();
+            if (firstError.Contains("nem található"))
+            {
+                return NotFound(new { Errors = result.Errors });
+            }
+
+            if (firstError.Contains("már foglalt")) // Pl. email cím ütközés
+            {
+                return Conflict(new { Errors = result.Errors });
+            }
+
+            return BadRequest(new { Errors = result.Errors });
+        }
+
+        _logger?.LogError("UpdateUserProfile (PATCH) failed for user ID {UpdatedUserId} without specific errors.", userId);
+        return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Ismeretlen hiba történt a profil frissítése közben." });
+    }
+
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(UserGetDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Login([FromBody] UserLoginDto loginDto)
+    {
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            return BadRequest(new { Message = "Érvénytelen bemeneti adatok.", Errors = errors });
+        }
+
+        var loginResult = await _userService.LoginAsync(loginDto); // A loginDto most Identifier-t tartalmaz
+
+        if (!loginResult.Succeeded)
+        {
+            return Unauthorized(new { Message = "Hibás felhasználónév/e-mail cím vagy jelszó." });
+        }
+
+        return Ok(loginResult.User);
+    }
+
+    // /// <summary>
+    // /// Segédfüggvény a bejelentkezett felhasználó azonosítójának kinyerésére.
+    // /// </summary>
+    // /// <returns>A felhasználó azonosítója.</returns>
+    // /// <exception cref="UnauthorizedAccessException">Ha a felhasználói azonosító nem található vagy érvénytelen.</exception>
+    // private int GetCurrentUserId()
+    // {
+    //     // Az User objektum a ControllerBase-ből érhető el, és a bejelentkezett felhasználó adatait tartalmazza.
+    //     var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    //     if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+    //     {
+    //         // Ez a helyzet nem fordulhatna elő, ha az [Authorize] attribútumot használjuk
+    //         // és a token megfelelően van konfigurálva a NameIdentifier claim-mel.
+    //         // Egyébként a rendszernek Unauthorized vagy Forbid választ kellene adnia
+    //         // mielőtt idáig eljutna a kód.
+    //         throw new UnauthorizedAccessException(
+    //             "A felhasználói azonosító (ClaimTypes.NameIdentifier) nem található vagy érvénytelen a tokenben.");
+    //     }
+    //
+    //     return userId;
+    // }
+}
