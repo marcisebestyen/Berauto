@@ -48,6 +48,7 @@ namespace Beruato
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRentService, RentService>();
             builder.Services.AddScoped<IStaffService, StaffServise>();
+            builder.Services.AddScoped<IReceiptService, ReceiptService>();
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>

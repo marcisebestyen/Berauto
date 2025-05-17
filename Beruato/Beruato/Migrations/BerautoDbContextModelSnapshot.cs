@@ -73,7 +73,7 @@ namespace Beruato.Migrations
                     b.HasIndex("LicencePlate")
                         .IsUnique();
 
-                    b.ToTable("Cars");
+                    b.ToTable("Cars", (string)null);
                 });
 
             modelBuilder.Entity("Database.Models.Receipt", b =>
@@ -103,7 +103,7 @@ namespace Beruato.Migrations
                     b.HasIndex("RentId")
                         .IsUnique();
 
-                    b.ToTable("Receipts");
+                    b.ToTable("Receipts", (string)null);
                 });
 
             modelBuilder.Entity("Database.Models.Rent", b =>
@@ -165,7 +165,7 @@ namespace Beruato.Migrations
 
                     b.HasIndex("TakenBackBy");
 
-                    b.ToTable("Rents");
+                    b.ToTable("Rents", (string)null);
                 });
 
             modelBuilder.Entity("Database.Models.User", b =>
@@ -225,7 +225,7 @@ namespace Beruato.Migrations
                     b.HasIndex("UserName")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Database.Models.Receipt", b =>

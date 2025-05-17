@@ -8,5 +8,5 @@ public class ReceiptGetDto
     public int RentId { get; set; }
     public decimal TotalCost { get; set; }
     public DateTime IssueDate { get; set; }
-    public UserSimpleGetDto Issuer { get; set; }
+    public int IssuedById { get; set; }
 }

@@ -17,7 +17,7 @@
         public string Name => $"{FirstName} {LastName}";
         public string PhoneNumber { get; set; }
         public bool RegisteredUser { get; set; } = false;
-        public string LicenceId { get; set; } // pl. ABC123
+        public string? LicenceId { get; set; } // pl. ABC123
         public Role Role { get; set; } = Role.Renter;
         public string Email { get; set; }
 

@@ -38,7 +38,7 @@ public class UserController : Controller
 
         if (userDto == null)
         {
-            // _logger?.LogInformation("User profile not found for user ID: {RequestedUserId}", userId);
+            _logger?.LogInformation("User profile not found for user ID: {RequestedUserId}", userId);
             return NotFound(new { Message = $"A(z) {userId} azonosítójú felhasználói profil nem található." });
         }
 
