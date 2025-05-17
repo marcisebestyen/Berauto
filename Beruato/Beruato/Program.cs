@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Services.Repositories;
 using Services.Services;
+using Services.Services.Services.Services;
 using System.Text;
 
 
@@ -46,6 +47,7 @@ namespace Beruato
             builder.Services.AddScoped<ICarService, CarService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRentService, RentService>();
+            builder.Services.AddScoped<IStaffService, StaffServise>();
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
