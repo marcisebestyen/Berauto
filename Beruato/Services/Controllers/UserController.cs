@@ -150,6 +150,31 @@ public class UserController : Controller
 
         return Ok(loginResult.User);
     }
+    
+    [HttpPost("register")]
+    [ProducesResponseType(typeof(UserGetDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)] // Validációs hibák vagy üzleti logikai hibák (pl. email foglalt)
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Register([FromBody] UserCreateDto registrationDto)
+    {
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            return BadRequest(new { Message = "Érvénytelen bemeneti adatok.", Errors = errors });
+        }
+
+        var registrationResult = await _userService.RegisterAsync(registrationDto);
+        
+        if (!registrationResult.Succeeded)
+        {
+            return BadRequest(new { Errors = registrationResult.Errors });
+        }
+
+        // Sikeres regisztráció esetén 201 Created választ adunk vissza,
+        // a válasz body-jában az új felhasználó adataival (UserGetDto),
+        // és a Location headerben az új erőforrás URI-jával (opcionális, de jó gyakorlat).
+        return CreatedAtAction(nameof(GetMyProfile), new { userId = registrationResult.User.Id }, registrationResult.User);
+    }
 
     // /// <summary>
     // /// Segédfüggvény a bejelentkezett felhasználó azonosítójának kinyerésére.
