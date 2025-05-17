@@ -1,6 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services.Services;
 using Database.Dtos.CarDtos;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Database.Models;
+using Microsoft.AspNetCore.JsonPatch;
 
 namespace Berauto.Controllers
 {
@@ -75,29 +79,89 @@ namespace Berauto.Controllers
         }
 
         /// <summary>
-        /// Frissíti egy meglévő autó adatait a megadott azonosító alapján.
+        /// Részlegesen frissíti egy meglévő autó adatait JSON Patch dokumentummal.
         /// </summary>
         /// <param name="carId">A frissítendő autó egyedi azonosítója.</param>
-        /// <param name="updateCarDto">Az autó frissítéséhez szükséges adatok.</param>
+        /// <param name="patchDocument">A JSON Patch dokumentum, ami a módosításokat tartalmazza az autó entitáson.</param>
+        /// <remarks>
+        /// Példa JSON Patch kérésre:
+        /// [
+        ///   { "op": "replace", "path": "/licencePlate", "value": "NEW-123" },
+        ///   { "op": "replace", "path": "/isAutomatic", "value": false }
+        /// ]
+        /// </remarks>
         /// <response code="204">Az autó adatai sikeresen frissítve.</response>
-        /// <response code="400">Érvénytelen bemeneti adatok.</response>
+        /// <response code="400">Érvénytelen bemeneti adatok vagy hibás patch dokumentum.</response>
         /// <response code="404">A megadott azonosítóval nem található autó.</response>
+        /// <response code="409">Konkurrens módosítási ütközés történt.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
         [HttpPatch("{carId:int}")]
-        public async Task<IActionResult> UpdateCar(int carId, [FromBody] CarUpdateDto updateCarDto)
+        public async Task<IActionResult> UpdateCar([FromRoute(Name = "carId")] int id,
+                                                   [FromBody] JsonPatchDocument<Car> patchDocument)
         {
+            // Ellenőrizzük, hogy maga a patchDocument objektum létrejött-e (nem null-e).
+            // Ha a kliens pl. üres body-t küld, vagy nem valid JSON Patch formátumot,
+            // a patchDocument null lehet, vagy a ModelState már itt tartalmazhat hibát.
+            if (patchDocument == null)
+            {
+                return BadRequest("A patch dokumentum nem lehet null, vagy érvénytelen formátumú.");
+            }
+
+            // Az alap ModelState validáció (pl. ha a JSON deszerializáció során hiba történt)
+            // Mielőtt a service-t hívnánk, érdemes lehet ellenőrizni.
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
+
             try
             {
-                await _carService.UpdateCarAsync(carId, updateCarDto);
-                return NoContent();
+                // Hívjuk a service metódust, átadva a controller saját ModelState objektumát.
+                // A service metódus ebbe fogja beleírni a patchDocument.ApplyTo() során keletkező hibákat.
+                await _carService.UpdateCarAsync(id, patchDocument, ModelState);
+
+                // Ellenőrizzük újra a ModelState-et, miután a service lefutott és esetleg
+                // hibákat adott hozzá a patchDocument.ApplyTo() vagy a belső validáció során.
+                // (A service-ünk úgy lett megírva, hogy ArgumentException-t dob, ha a ModelState invalid lett az ApplyTo után)
+                // Ezt az ArgumentException-t lentebb elkapjuk. Ha a service nem dobna kivételt,
+                // akkor itt kellene ellenőrizni: if (!ModelState.IsValid) return BadRequest(ModelState);
+
+                return NoContent(); // Sikeres frissítés
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex) // Elkapja a service-ből dobott hibát, ha a ModelState érvénytelen lett a patch miatt
+            {
+                // Ha az ArgumentException azért jött, mert a ModelState hibás (az ApplyTo miatt),
+                // akkor a ModelState itt már tartalmazza a részletes hibákat.
+                if (ModelState.ErrorCount > 0) // Győződjünk meg róla, hogy tényleg a ModelState miatt van
+                {
+                    return BadRequest(ModelState);
+                }
+                return BadRequest(new { message = ex.Message }); // Általánosabb BadRequest, ha a ModelState üres
+            }
+            catch (InvalidOperationException ex) // Egyéb, üzleti logikai hibák a service-ből (pl. a te rendszám ellenőrzésed)
+            {
+                // Az InvalidOperationException gyakran 409 Conflict vagy 400 BadRequest.
+                // A rendszám ütközés inkább 409 Conflict.
+                return Conflict(new { message = ex.Message });
+            }
+            catch (DbUpdateConcurrencyException /* ex */)
+            {
+                // Ide logolhatnánk az ex-et
+                return Conflict(new { message = "Az adatokat időközben valaki más módosította. Kérjük, próbálja újra." });
+            }
+            catch (DbUpdateException /* ex */)
+            {
+                // Ide logolhatnánk az ex-et
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Hiba történt az adatok frissítése közben." });
+            }
+            catch (Exception /* ex */) // Egyéb, nem várt hibákra
+            {
+                // Ide logolhatnánk az ex-et
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Váratlan hiba történt." });
             }
         }
 

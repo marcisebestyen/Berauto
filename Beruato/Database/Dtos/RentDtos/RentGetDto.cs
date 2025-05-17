@@ -16,9 +16,9 @@ public class RentGetDto
     public DateTime? IssuedAt { get; set; } // Számla kiállítási dátuma (a bérléshez kapcsolódóan)
 
     // Kapcsolódó entitások egyszerűsített formában
-    public UserSimpleGetDto Renter { get; set; }
-    public CarSimpleGetDto Car { get; set; }
-    public UserSimpleGetDto Approver { get; set; } // Lehet null, ha még nincs jóváhagyva
-    public UserSimpleGetDto Issuer { get; set; }   // Lehet null, ha még nincs kiadva
-    public UserSimpleGetDto Recipient { get; set; } // Lehet null, ha még nincs visszavéve
+    public int RenterId { get; set; }
+    public int CarId { get; set; }
+    public int? ApproverId { get; set; } // Lehet null, ha még nincs jóváhagyva
+    public int? IssuerId { get; set; }   // Lehet null, ha még nincs kiadva
+    public int? RecipientId { get; set; } // Lehet null, ha még nincs visszavéve
 }

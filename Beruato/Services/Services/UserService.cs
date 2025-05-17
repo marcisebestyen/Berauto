@@ -30,15 +30,12 @@ public class UserService : IUserService
 
     public async Task<UserGetDto?> GetUserByIdAsync(int userId)
     {
-        // A Repository GetByIdAsync object[] keyValues-t vár, az User Id típusa int.
         var user = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { userId });
 
         if (user == null)
         {
             return null;
         }
-
-        // Mappelés User -> UserGetDto
         return _mapper.Map<UserGetDto>(user);
     }
 
@@ -56,9 +53,6 @@ public class UserService : IUserService
             return ServiceResult.Failed("Csak regisztrált felhasználók módosíthatják az adataikat.");
         }
 
-        // Adatok frissítése a DTO alapján
-        // Csak akkor frissítünk, ha a DTO-ban az adott property nem null.
-        // Ez lehetővé teszi a részleges frissítést.
         bool changed = false;
 
         if (userUpdateDto.FirstName != null && user.FirstName != userUpdateDto.FirstName)
