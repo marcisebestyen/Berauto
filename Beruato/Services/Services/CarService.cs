@@ -54,15 +54,6 @@ public class CarService : ICarService
 
         return _mapper.Map<CarGetDto>(car);
     }
-    /// <summary>
-    /// Részlegesen frissíti az autó adatait egy JSON Patch dokumentum alapján.
-    /// </summary>
-    /// <param name="id">A frissítendő autó azonosítója.</param>
-    /// <param name="patchDocument">A JSON Patch dokumentum, amely a módosításokat tartalmazza.</param>
-    /// <param name="modelState">A controller ModelState objektuma a validációs hibák rögzítésére.</param>
-    /// <exception cref="KeyNotFoundException">Ha az autó nem található.</exception>
-    /// <exception cref="ArgumentException">Ha a patch művelet érvénytelen állapotot eredményez,
-    /// vagy ha a patchDocument null.</exception>
     public async Task UpdateCarAsync(int id, JsonPatchDocument<Car> patchDocument, ModelStateDictionary modelState)
     {
         if (patchDocument == null)

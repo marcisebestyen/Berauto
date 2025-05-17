@@ -120,11 +120,7 @@ namespace Berauto.Controllers
                 // A service metódus ebbe fogja beleírni a patchDocument.ApplyTo() során keletkező hibákat.
                 await _carService.UpdateCarAsync(id, patchDocument, ModelState);
 
-                // Ellenőrizzük újra a ModelState-et, miután a service lefutott és esetleg
-                // hibákat adott hozzá a patchDocument.ApplyTo() vagy a belső validáció során.
-                // (A service-ünk úgy lett megírva, hogy ArgumentException-t dob, ha a ModelState invalid lett az ApplyTo után)
-                // Ezt az ArgumentException-t lentebb elkapjuk. Ha a service nem dobna kivételt,
-                // akkor itt kellene ellenőrizni: if (!ModelState.IsValid) return BadRequest(ModelState);
+
 
                 return NoContent(); // Sikeres frissítés
             }

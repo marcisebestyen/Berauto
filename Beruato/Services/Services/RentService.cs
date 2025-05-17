@@ -5,6 +5,7 @@ using Services.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -21,7 +22,7 @@ namespace Services.Services
 
     public interface IRentService
     {
-        Task<IEnumerable<RentGetDto>> GetAllRentsAsync(RentStatusFilter statusFilter);
+        Task<IEnumerable<RentGetDto>> GetAllRentsAsync(RentStatusFilter statusFilter, int? userId);
         Task<RentGetDto> AddRentAsync(RentCreateDto createRentDto);
         Task<RentGetDto?> GetRentByIdAsync(int id);
     }
@@ -47,25 +48,57 @@ namespace Services.Services
             return _mapper.Map<RentGetDto>(rent);
         }
 
-        public async Task<IEnumerable<RentGetDto>> GetAllRentsAsync(RentStatusFilter statusFilter = RentStatusFilter.All)
+        public async Task<IEnumerable<RentGetDto>> GetAllRentsAsync(RentStatusFilter statusFilter = RentStatusFilter.All, int? userId = null)
         {
-            IEnumerable<Rent> rentsFromDb;
+            Expression<Func<Rent, bool>>? predicate = null; // Nullable expression
+            bool useGenericGetAsync = true; // Jelzi, hogy a GetAsync-ot vagy a GetAllAsync-ot hívjuk-e
+
+            // Predikátum összeállítása a statusFilter alapján
             switch (statusFilter)
             {
                 case RentStatusFilter.Open:
-                    rentsFromDb = await _unitOfWork.RentRepository.GetAsync(r => r.ApprovedBy == null);
+                    if (userId.HasValue)
+                        predicate = r => r.RenterId == userId.Value && r.ApprovedBy == null;
+                    else
+                        predicate = r => r.ApprovedBy == null;
                     break;
                 case RentStatusFilter.Closed:
-
-                    rentsFromDb = await _unitOfWork.RentRepository.GetAsync(r => r.ActualEnd.HasValue);
+                    if (userId.HasValue)
+                        predicate = r => r.RenterId == userId.Value && r.ActualEnd.HasValue;
+                    else
+                        predicate = r => r.ActualEnd.HasValue;
                     break;
                 case RentStatusFilter.Running:
-                    rentsFromDb = await _unitOfWork.RentRepository.GetAsync(r => r.ActualStart.HasValue && !r.ActualEnd.HasValue);
+                    if (userId.HasValue)
+                        predicate = r => r.RenterId == userId.Value && r.ActualStart.HasValue && !r.ActualEnd.HasValue;
+                    else
+                        predicate = r => r.ActualStart.HasValue && !r.ActualEnd.HasValue;
                     break;
                 case RentStatusFilter.All:
                 default:
-                    rentsFromDb = await _unitOfWork.RentRepository.GetAllAsync();
+                    if (userId.HasValue)
+                    {
+                        predicate = r => r.RenterId == userId.Value;
+                    }
+                    else
+                    {
+                        useGenericGetAsync = false;
+                    }
                     break;
+            }
+
+            IEnumerable<Rent> rentsFromDb;
+            if (useGenericGetAsync && predicate != null)
+            {
+                rentsFromDb = await _unitOfWork.RentRepository.GetAsync(predicate);
+            }
+            else if (!useGenericGetAsync) // Ez csak akkor igaz, ha statusFilter=All ÉS userId=null
+            {
+                rentsFromDb = await _unitOfWork.RentRepository.GetAllAsync();
+            }
+            else
+            {
+                rentsFromDb = Enumerable.Empty<Rent>();
             }
 
             return _mapper.Map<IEnumerable<RentGetDto>>(rentsFromDb);
