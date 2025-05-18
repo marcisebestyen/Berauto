@@ -66,9 +66,12 @@ export function NavbarMinimal({toggle}: any) {
     ];
 
     const handleLogout = () => {
-        logout();
-        toggle();
+        logout(); // Törli a tokent, usert stb.
+        window.location.reload(); // Teljes oldal újratöltés
     };
+
+
+
 
 
     useEffect(() => {

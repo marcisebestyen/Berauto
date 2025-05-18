@@ -20,10 +20,11 @@ const UserMenuDropdown = () => {
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
     const { logout, user } = useAuth();
 
-    // 🔁 Kijelentkezés: csak user kiürítés, nincs redirect
     const handleLogout = () => {
-        logout(); // NE legyen benne navigate
+        logout(); // Törli a tokent, usert stb.
+        window.location.reload(); // Teljes oldal újratöltés
     };
+
 
     const items = [
         {

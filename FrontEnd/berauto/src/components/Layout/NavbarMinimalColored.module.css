@@ -19,7 +19,10 @@
 .header {
   padding-bottom: var(--mantine-spacing-md);
   margin-bottom: calc(var(--mantine-spacing-md) * 1.5);
-  border-bottom: 1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-bottom: 1px solid var(--mantine-color-gray-3);
+  [data-mantine-color-scheme="dark"] & {
+    border-bottom: 1px solid var(--mantine-color-dark-4);
+  }
 }
 
 .footer {
@@ -34,13 +37,19 @@
   align-items: center;
   text-decoration: none;
   font-size: var(--mantine-font-size-sm);
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-1));
+  color: var(--mantine-color-gray-7);
+  [data-mantine-color-scheme="dark"] & {
+    color: var(--mantine-color-dark-1);
+  }
   padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
   border-radius: var(--mantine-radius-sm);
   font-weight: 500;
   &:hover {
     background-color: var(--mantine-color-gray-2);
-    color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+    color: var(--mantine-color-black);
+    [data-mantine-color-scheme="dark"] & {
+      color: var(--mantine-color-white);
+    }
     cursor: pointer;
   }
 
@@ -65,11 +74,14 @@
 }
 
 .linkIcon {
-  color: light-dark(var(--mantine-color-gray-6), var(--mantine-color-dark-2));
+  color: var(--mantine-color-gray-6);
+  [data-mantine-color-scheme="dark"] & {
+    color: var(--mantine-color-dark-2);
+  }
   width: 25px;
   height: 25px;
 }
 
 .unstyledButtonClick {
-  min-width: '--webkit-fill-available'
+  min-width: 100%
 }

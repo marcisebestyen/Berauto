@@ -7,7 +7,9 @@ interface User {
     id: string;
     email: string;
     role: string;
-    username?: string;
+    username: string;
+    firstName?: string;
+    lastName?: string;
 }
 
 interface DecodedJwtPayload {
@@ -21,26 +23,16 @@ interface DecodedJwtPayload {
 const useAuth = () => {
     const [user, setUser] = useState<User | null>(() => {
         const token = localStorage.getItem('token');
-        if (token) {
+        const storedUser = localStorage.getItem('user');
+
+        if (token && storedUser) {
             try {
-                const decoded = jwtDecode<DecodedJwtPayload>(token);
-
-                const mappedUser: User = {
-                    id: decoded.nameid || '',
-                    email: decoded.email || '',
-                    role: decoded.role || '',
-                    username: decoded.unique_name || ''
-                };
-
-                if (mappedUser.id && mappedUser.email) {
-                    return mappedUser;
-                }
-
-                localStorage.removeItem('token');
-                return null;
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                return JSON.parse(storedUser);
             } catch (error) {
-                console.error("Initial token decode failed:", error);
+                console.error("Token vagy user parse hiba:", error);
                 localStorage.removeItem('token');
+                localStorage.removeItem('user');
                 return null;
             }
         }
@@ -50,12 +42,13 @@ const useAuth = () => {
 
     const login = async (email: string, password: string): Promise<void> => {
         try {
-            const response = await axiosInstance.post<{ token: string; user: any }>('/api/users/login', {
+            const response = await axiosInstance.post<{ token: string; user: any }>('/users/login', {
                 identifier: email,
                 password
             });
 
             const token = response.data.token;
+            const userDto = response.data.user;
 
             if (token && typeof token === 'string') {
                 localStorage.setItem('token', token);
@@ -68,48 +61,53 @@ const useAuth = () => {
                         id: decodedPayload.nameid || 'defaultIdOnError',
                         email: decodedPayload.email || 'defaultEmailOnError',
                         role: decodedPayload.role || 'defaultRoleOnError',
-                        username: decodedPayload.unique_name || 'defaultUsernameOnError'
+                        username: decodedPayload.unique_name || 'defaultUsernameOnError',
+                        firstName: userDto.firstName || '',
+                        lastName: userDto.lastName || ''
                     };
 
                     if (mappedUser.id !== 'defaultIdOnError' && mappedUser.email !== 'defaultEmailOnError') {
+                        localStorage.setItem('user', JSON.stringify(mappedUser));
                         setUser(mappedUser);
                     } else {
                         throw new Error('User data incomplete in token.');
                     }
                 } catch (e) {
-                    console.error('Failed to decode token after login:', e);
+                    console.error('Token decode hiba:', e);
                     localStorage.removeItem('token');
                     delete axios.defaults.headers.common['Authorization'];
                     setUser(null);
-                    throw new Error('Login successful, but failed to process user data from token.');
+                    throw new Error('Sikeres bejelentkezés, de a token feldolgozása nem sikerült.');
                 }
             } else {
-                throw new Error('Token not found or is invalid in server response.');
+                throw new Error('Hiányzik vagy hibás a token a válaszban.');
             }
         } catch (error: any) {
-            console.error('Error in useAuth login:', error.message, error);
+            console.error('Login hiba:', error.message, error);
             if (error.response?.status === 401) {
                 throw new Error('Hibás email cím vagy jelszó!');
             } else if (error.response?.status === 404) {
                 throw new Error('A felhasználó nem található!');
+            } else if (error.response?.status === 400) {
+                throw new Error('Hibás adatok – ellenőrizd a mezőket!');
             } else if (error instanceof Error) {
                 throw error;
             } else {
-                throw new Error('Hiba történt a bejelentkezés során. Kérjük próbálja újra később!');
+                throw new Error('Ismeretlen hiba a bejelentkezés során.');
             }
         }
     };
 
     const logout = (onLogout?: () => void) => {
         localStorage.removeItem('token');
-        setUser(null);
+        localStorage.removeItem('user');
         delete axios.defaults.headers.common['Authorization'];
+        setUser(null);
 
         if (onLogout) {
             onLogout();
         }
     };
-
 
     return {
         user,
