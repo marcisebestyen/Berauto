@@ -10,6 +10,7 @@ interface User {
     username: string;
     firstName?: string;
     lastName?: string;
+    licenceId?: string;
 }
 
 interface DecodedJwtPayload {
