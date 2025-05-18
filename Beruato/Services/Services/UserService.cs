@@ -19,6 +19,8 @@ public interface IUserService
     Task<ServiceResult> UpdateUserAsync(int userId, UserUpdateDto userUpdateDto);
     Task<LoginResult> LoginAsync(UserLoginDto loginDto);
     Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto);
+    Task<bool> CheckEmailExistsAndRegisteredAsync(string email);
+    Task<ServiceResult> ResetPasswordAsync(string email, string newPassword);
 }
 
 public class UserService : IUserService
@@ -163,24 +165,13 @@ public class UserService : IUserService
             var usersGetDto = _mapper.Map<UserGetDto>(user);
             return LoginResult.Success(usersGetDto, token: "");
         }
+
         if (string.IsNullOrWhiteSpace(loginDto.Password))
         {
             return LoginResult.Failure("A jelszó megadása kötelező.");
         }
 
-
-        // !!! FONTOS BIZTONSÁGI FIGYELMEZTETÉS !!!
-        // Az alábbi jelszó-ellenőrzés NEM BIZTONSÁGOS és csak demonstrációs célokat szolgál!
-        // Éles környezetben SOHA ne tárolj plain text jelszavakat és ne így ellenőrizd őket!
-        // Használj biztonságos jelszó hash-elési eljárást (pl. BCrypt, Argon2).
-        // Regisztrációkor a jelszót hash-elni kell, és itt a kapott jelszót kell összehasonlítani a tárolt hash-sel.
-        // Példa (feltételezve, hogy user.Password a hash, és van egy _passwordHasherService.VerifyPassword metódusod):
-        // bool isPasswordValid = _passwordHasherService.VerifyPassword(user.Password, loginDto.Password);
-
-        // Jelenlegi egyszerűsített (ÉS NEM BIZTONSÁGOS) ellenőrzés:
         bool isPasswordValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.Password);
-        // Ha a fentebbi feltételezett _passwordHasherService-t használnád:
-        // bool isPasswordValid = _passwordHasherService.Verify(user.PasswordHash, loginDto.Password); // Vagy valami hasonló
 
         if (!isPasswordValid)
         {
@@ -281,5 +272,60 @@ public class UserService : IUserService
         var userGetDto = _mapper.Map<UserGetDto>(newUser);
 
         return RegistrationResult.Success(userGetDto);
+    }
+
+    public async Task<bool> CheckEmailExistsAndRegisteredAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            _logger.LogWarning("CheckEmailExistsAndRegisteredAsync called with empty email.");
+            return false;
+        }
+
+        var user =
+            (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email && u.RegisteredUser)).FirstOrDefault();
+
+        return user != null;
+    }
+
+    public async Task<ServiceResult> ResetPasswordAsync(string email, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(newPassword))
+        {
+            _logger.LogWarning("ResetPasswordAsync called with empty email and password.");
+            return ServiceResult.Failed("Az e-mail cím és az új jelszó megadása kötelező.");
+        }
+
+        var user =
+            (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email && u.RegisteredUser)).FirstOrDefault();
+
+        if (user == null)
+        {
+            _logger.LogWarning("DirectResetPasswordAsync called for non-existent or non-registered user email: {Email}",
+                email);
+            return ServiceResult.Failed("A megadott e-mail címmel nem található regisztrált felhasználó.");
+        }
+
+        user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+        try
+        {
+            await _unitOfWork.UserRepository.UpdateAsync(user);
+            await _unitOfWork.SaveAsync();
+            _logger.LogInformation(
+                "Password directly reset for user {UserId} (Email: {Email}) in university project mode.", user.Id,
+                email);
+            return ServiceResult.Success("A jelszó sikeresen megváltoztatva.");
+        }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "Database error during direct password reset for email {Email}", email);
+            return ServiceResult.Failed($"Adatbázis hiba történt: {dbEx.InnerException?.Message ?? dbEx.Message}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during direct password reset for email {Email}", email);
+            return ServiceResult.Failed("Váratlan hiba történt a jelszó módosítása közben.");
+        }
     }
 }
