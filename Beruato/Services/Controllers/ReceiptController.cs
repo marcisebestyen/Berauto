@@ -19,6 +19,11 @@ public class ReceiptController : Controller
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    /// <summary>
+    /// Lekérdezi egy számla adatait az azonosítója alapján.
+    /// </summary>
+    /// <param name="receiptId">A lekérdezendő számla azonosítója.</param>
+    /// <returns>A számla adatai (ReceiptGetDto), ha létezik.</returns>
     [HttpGet("{receiptId}")] // Az userId-t az útvonalból kapja
     [ProducesResponseType(typeof(ReceiptGetDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -35,7 +40,16 @@ public class ReceiptController : Controller
         
         return Ok(receiptDto);
     }
-    
+
+    /// <summary>
+    /// Létrehoz egy új számlát a megadott adatok alapján.
+    /// </summary>
+    /// <param name="createDto">A létrehozandó számla adatait tartalmazó objektum (ReceiptCreateDto).</param>
+    /// <returns>
+    /// HTTP 201 Created státuszkód és a létrehozott számla adatai (ReceiptGetDto), ha a létrehozás sikeres.
+    /// HTTP 400 BadRequest státuszkód, ha a bemeneti adatok érvénytelenek vagy üzleti logikai hiba lép fel.
+    /// HTTP 500 InternalServerError státuszkód váratlan szerverhiba esetén.
+    /// </returns>
     [HttpPost]
     [ProducesResponseType(typeof(ReceiptGetDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)] // Validációs vagy üzleti logikai hibák

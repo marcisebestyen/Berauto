@@ -47,7 +47,7 @@ namespace Beruato
             builder.Services.AddScoped<ICarService, CarService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRentService, RentService>();
-            builder.Services.AddScoped<IStaffService, StaffServise>();
+            builder.Services.AddScoped<IStaffService, StaffService>();
             builder.Services.AddScoped<IReceiptService, ReceiptService>();
             
             var jwtSettings = builder.Configuration.GetSection("Jwt");

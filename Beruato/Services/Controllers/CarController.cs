@@ -96,8 +96,7 @@ namespace Berauto.Controllers
         /// <response code="409">Konkurrens módosítási ütközés történt.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
         [HttpPatch("{carId:int}")]
-        public async Task<IActionResult> UpdateCar([FromRoute(Name = "carId")] int id,
-                                                   [FromBody] JsonPatchDocument<Car> patchDocument)
+        public async Task<IActionResult> UpdateCar([FromRoute(Name = "carId")] int id, [FromBody] JsonPatchDocument<Car> patchDocument)
         {
             // Ellenőrizzük, hogy maga a patchDocument objektum létrejött-e (nem null-e).
             // Ha a kliens pl. üres body-t küld, vagy nem valid JSON Patch formátumot,

@@ -78,11 +78,11 @@ namespace Services.Controllers
         /// <response code="404">A megadott azonosítóval nem található bérlés, vagy a felhasználó nem személyzeti tag.</response>
         /// (Rental not found with the given ID, or the user is not a staff member.)
         [HttpPatch("update-IssuedBy")]
-        public async Task<IActionResult> IssuedBy(int staffId, int rentId, DateTime actualStart, decimal startingKilometer)
+        public async Task<IActionResult> IssuedBy(int staffId, int rentId, DateTime actualStart)
         {
             try
             {
-                var rent = await _staffService.IssuedBy(staffId, rentId, actualStart, startingKilometer);
+                var rent = await _staffService.IssuedBy(staffId, rentId, actualStart);
                 return Ok(rent);
             }
             catch (KeyNotFoundException ex)

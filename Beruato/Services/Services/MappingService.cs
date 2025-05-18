@@ -52,15 +52,17 @@ public class MappingService : Profile
             .ForMember(dest => dest.IssuedBy, opt => opt.MapFrom(src => src.IssuedById))
             .ForMember(dest => dest.TakenBackBy, opt => opt.MapFrom(src => src.TakenBackById))
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-        
-        // Receipt mappings 
+
+
+        //Receipt mappings
+        CreateMap<ReceiptCreateDto, Receipt>()
+            .ForMember(dest => dest.IssuedBy, opt => opt.MapFrom(src => src.IssuedById));
 
         CreateMap<Receipt, ReceiptGetDto>()
             .ForMember(dest => dest.IssuedById, opt => opt.MapFrom(src => src.IssuedBy));
-        
-        CreateMap<ReceiptCreateDto, Receipt>();
-        
+
         CreateMap<UpdateReceiptDto, Receipt>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+ 
     }
 }
