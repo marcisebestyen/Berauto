@@ -1,15 +1,31 @@
-import axios from 'axios';
+import axios, { InternalAxiosRequestConfig } from 'axios';
 
-// Az eredeti környezeti változóból kiolvasott URL
+import { tokenKeyName } from '../constants/constants';
+
 const rootApiUrl = import.meta.env.VITE_REST_API_URL;
-
-// Biztonsági ellenőrzés és az '/api' hozzáfűzése
-// Eltávolítjuk a végéről a perjelet, ha van, hogy ne legyen dupla perjel (pl. http://localhost:7205//api)
 const cleanRootApiUrl = rootApiUrl ? rootApiUrl.replace(/\/$/, '') : '';
 
 const axiosInstance = axios.create({
-    baseURL: `${cleanRootApiUrl}/api`, // Itt fűzzük hozzá az /api-t
-    withCredentials: true // EZ FONTOS, ha van token / auth
+    baseURL: `${cleanRootApiUrl}/api`,
+    withCredentials: true,
 });
+
+// Request Interceptor hozzáadása
+axiosInstance.interceptors.request.use(
+    (config: InternalAxiosRequestConfig) => {
+        // Token lekérése a localStorage-ból a konstansban megadott kulccsal
+        const token = localStorage.getItem(tokenKeyName); // <-- KONSTANS HASZNÁLATA ITT
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        } else {
+        }
+        return config;
+    },
+    (error) => {
+        // Kérés konfigurációs hiba esetén
+        return Promise.reject(error);
+    }
+);
 
 export default axiosInstance;

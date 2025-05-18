@@ -14,6 +14,7 @@ const AuthenticatedRedirect = ({ element }: { element: ReactElement }) => {
 // PrivateRoute: teljes jogosultságot igénylő útvonalakhoz (ha szükséges)
 const PrivateRoute = ({ element }: { element: ReactElement }) => {
     const { isAuthenticated } = useAuth();
+    console.log("PrivateRoute - isAuthenticated:", isAuthenticated); // IDEIGLENES LOG
     return isAuthenticated ? element : <Navigate to="/login" replace />;
 };
 

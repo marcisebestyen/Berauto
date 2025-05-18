@@ -14,9 +14,37 @@ const Cars = {
         axiosInstance.put(`/Car/UpdateCar/${carId}`, { isAvailable }),
 };
 
+import { IUserProfile, IUserUpdateDto } from "../interfaces/IUser"; // Új import
+import { ISimpleRent } from "../interfaces/IRent"; // Új import
+
 const Users = {
-    getUserRents: (userid: string | undefined) => axiosInstance.get(`/User/GetUserRents/${userid}`),
-    getActiveRents: (userid: string | undefined) => axiosInstance.get(`/User/GetActiveRents/${userid}`),
+    // Profiladatok lekérdezése
+    getProfileDetails: (userId: string | number) => // Az ID típusa a backendtől függ
+        axiosInstance.get<IUserProfile>(`/users/getProfile`), // Módosítsd a valós végpontra!
+
+    // Profiladatok frissítése
+    updateProfile: (userId: string | number, data: IUserUpdateDto) =>
+        axiosInstance.patch<IUserProfile>(`/users/updateProfile`, data), // Módosítsd a valós végpontra!
+
+    getUserRents: (userId: string | number | undefined) => {
+        if (userId === undefined) {
+            console.warn("getUserRents: userId is undefined. Returning empty array.");
+            return Promise.resolve({ data: [] as ISimpleRent[] });
+        }
+
+        return axiosInstance.get<ISimpleRent[]>(`/Rent?userId=${userId}`);
+    },
+
+    // JAVÍTOTT RÉSZ: Aktív bérlések lekérdezése
+    getActiveRents: (userId: string | number | undefined) => {
+        if (userId === undefined) {
+            console.warn("getActiveRents: userId is undefined. Returning empty array.");
+            return Promise.resolve({ data: [] as ISimpleRent[] });
+        }
+
+        return axiosInstance.get<ISimpleRent[]>(`/Rent?userId=${userId}&filter=Running`);
+    }
+
 };
 
 const api = { Cars, Users };

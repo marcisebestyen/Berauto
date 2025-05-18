@@ -20,9 +20,10 @@ public class MappingService : Profile
         
         CreateMap<UserUpdateDto, User>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-        
+        CreateMap<UserGetDto, UserUpdateDto>();
+
         //Car mappings
-        
+
         CreateMap<Car,  CarGetDto>();
         CreateMap<Car, CarSimpleGetDto>();
         
@@ -39,11 +40,14 @@ public class MappingService : Profile
              .ForMember(dest => dest.ActualEnd, opt => opt.MapFrom(src => src.ActualEnd == DateTime.MinValue ? (DateTime?)null : src.ActualEnd))
              .ForMember(dest => dest.IssuedAt, opt => opt.MapFrom(src => src.IssuedAt == DateTime.MinValue ? (DateTime?)null : src.IssuedAt))
              .ForMember(dest => dest.RenterId, opt => opt.MapFrom(src => src.RenterId))
-             .ForMember(dest => dest.CarId, opt => opt.MapFrom(src => src.CarId))             
-             .ForMember(dest => dest.ApproverId, opt => opt.MapFrom(src => src.ApprovedBy))   
-             .ForMember(dest => dest.IssuerId, opt => opt.MapFrom(src => src.IssuedBy))       
-             .ForMember(dest => dest.RecipientId, opt => opt.MapFrom(src => src.TakenBackBy)); 
-                                                                                              
+             .ForMember(dest => dest.CarId, opt => opt.MapFrom(src => src.CarId))
+             .ForMember(dest => dest.ApproverId, opt => opt.MapFrom(src => src.ApprovedBy))
+             .ForMember(dest => dest.IssuerId, opt => opt.MapFrom(src => src.IssuedBy))
+             .ForMember(dest => dest.RecipientId, opt => opt.MapFrom(src => src.TakenBackBy))
+             .ForMember(dest => dest.CarBrand, opt => opt.MapFrom(src => src.Car != null ? src.Car.Brand : null))
+             .ForMember(dest => dest.CarModel, opt => opt.MapFrom(src => src.Car != null ? src.Car.Model : null));
+
+
 
         CreateMap<RentCreateDto, Rent>();
         

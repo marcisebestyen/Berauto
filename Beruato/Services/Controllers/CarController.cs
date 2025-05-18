@@ -252,7 +252,7 @@ namespace Berauto.Controllers
         [HttpGet("available")]
         [AllowAnonymous]
         public async Task<IActionResult> GetAvailableCars([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
-        {
+        { 
             DateTime today = DateTime.Today; // A szerver mai napja, éjfél
             if (startDate < today)
             {
