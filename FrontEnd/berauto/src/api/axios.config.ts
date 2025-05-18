@@ -1,9 +1,8 @@
 import axios from 'axios';
 
-const baseURL = `${import.meta.env.VITE_REST_API_URL}`;
-
 const axiosInstance = axios.create({
-    baseURL
-})
+    baseURL: import.meta.env.VITE_REST_API_URL,
+    withCredentials: true // EZ FONTOS, ha van token / auth
+});
 
 export default axiosInstance;

@@ -159,8 +159,15 @@ public class UserService : IUserService
 
         if (!user.RegisteredUser)
         {
-            return LoginResult.Failure("Ez a felhasználói fiók nem aktív vagy nem regisztrált.");
+            // Vendégfelhasználó: jelszó nem szükséges, token sem kell
+            var usersGetDto = _mapper.Map<UserGetDto>(user);
+            return LoginResult.Success(usersGetDto, token: "");
         }
+        if (string.IsNullOrWhiteSpace(loginDto.Password))
+        {
+            return LoginResult.Failure("A jelszó megadása kötelező.");
+        }
+
 
         // !!! FONTOS BIZTONSÁGI FIGYELMEZTETÉS !!!
         // Az alábbi jelszó-ellenőrzés NEM BIZTONSÁGOS és csak demonstrációs célokat szolgál!

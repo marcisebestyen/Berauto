@@ -16,11 +16,11 @@ export const routes = [
     {
         path: "dashboard",
         component: <Dashboard/>,
-        isPrivate: true
+        isPrivate: false
     },
     {
         path: "cars",
         component: <Cars/>,
-        isPrivate: true
+        isPrivate: false
     },
 ]

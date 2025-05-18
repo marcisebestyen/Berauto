@@ -20,7 +20,6 @@ namespace Beruato
             var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 
-            var frontendOrigin = "http://localhost:7285";
 
             builder.Services.AddControllers();
             builder.Services.AddControllers().AddNewtonsoftJson();
@@ -30,9 +29,10 @@ namespace Beruato
                 options.AddPolicy(name: MyAllowSpecificOrigins,
                     policy =>
                     {
-                        policy.WithOrigins(frontendOrigin)
+                        policy.WithOrigins("http://localhost:7285")
                             .AllowAnyHeader()
-                            .AllowAnyMethod();
+                            .AllowAnyMethod()
+                            .AllowCredentials();
                     });
             });
 

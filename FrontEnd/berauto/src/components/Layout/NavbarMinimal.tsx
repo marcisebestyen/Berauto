@@ -66,11 +66,10 @@ export function NavbarMinimal({toggle}: any) {
     ];
 
     const handleLogout = () => {
-        logout(() => {
-            toggle();
-            navigate('/login');
-        });
+        logout();
+        toggle();
     };
+
 
     useEffect(() => {
         setActive(menuItems.findIndex(m => location.pathname === m.url));

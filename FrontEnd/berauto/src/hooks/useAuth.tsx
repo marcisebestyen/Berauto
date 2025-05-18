@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import axiosInstance from "../api/axios.config.ts";
-
+import axiosInstance from '../api/axios.config.ts';
 
 interface User {
     id: string;
@@ -12,21 +11,12 @@ interface User {
 }
 
 interface DecodedJwtPayload {
-    sub?: string;
-
-    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'?: string;
-    name?: string;
-
-    'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'?: string;
+    nameid?: string;
+    unique_name?: string;
     email?: string;
-
-    'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'?: string;
     role?: string;
-
     [key: string]: any;
 }
-
-
 
 const useAuth = () => {
     const [user, setUser] = useState<User | null>(() => {
@@ -36,17 +26,18 @@ const useAuth = () => {
                 const decoded = jwtDecode<DecodedJwtPayload>(token);
 
                 const mappedUser: User = {
-                    id: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || '',
-                    email: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || decoded.email || '',
-                    role: decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role || '',
-                    username: decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || decoded['preferred_username'] || ''
+                    id: decoded.nameid || '',
+                    email: decoded.email || '',
+                    role: decoded.role || '',
+                    username: decoded.unique_name || ''
                 };
+
                 if (mappedUser.id && mappedUser.email) {
                     return mappedUser;
                 }
+
                 localStorage.removeItem('token');
                 return null;
-
             } catch (error) {
                 console.error("Initial token decode failed:", error);
                 localStorage.removeItem('token');
@@ -57,46 +48,37 @@ const useAuth = () => {
         return null;
     });
 
-
     const login = async (email: string, password: string): Promise<void> => {
         try {
-            const response = await axiosInstance.post<string>('/User/Login', {
-                email,
+            const response = await axiosInstance.post<{ token: string; user: any }>('/api/users/login', {
+                identifier: email,
                 password
             });
 
-
-            const token  = response.data;
-
+            const token = response.data.token;
 
             if (token && typeof token === 'string') {
                 localStorage.setItem('token', token);
-
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
                 try {
                     const decodedPayload = jwtDecode<DecodedJwtPayload>(token);
 
                     const mappedUser: User = {
-                        id: decodedPayload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || "defaultIdOnError",
-                        email: decodedPayload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || decodedPayload.email || "defaultEmailOnError",
-                        role: decodedPayload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decodedPayload.role || "defaultRoleOnError",
-                        username: decodedPayload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || decodedPayload['preferred_username'] || "defaultUsernameOnError"
+                        id: decodedPayload.nameid || 'defaultIdOnError',
+                        email: decodedPayload.email || 'defaultEmailOnError',
+                        role: decodedPayload.role || 'defaultRoleOnError',
+                        username: decodedPayload.unique_name || 'defaultUsernameOnError'
                     };
 
-                    if (mappedUser.id !== "defaultIdOnError" && mappedUser.email !== "defaultEmailOnError") {
+                    if (mappedUser.id !== 'defaultIdOnError' && mappedUser.email !== 'defaultEmailOnError') {
                         setUser(mappedUser);
                     } else {
-                        console.error("Critical user information (ID or Email) missing in JWT claims.");
-                        localStorage.removeItem('token'); // Remove invalid token
-                        delete axios.defaults.headers.common['Authorization'];
-                        setUser(null);
-                        throw new Error("User data incomplete in token.");
+                        throw new Error('User data incomplete in token.');
                     }
-
                 } catch (e) {
-                    console.error("Failed to decode token after login:", e);
-                    localStorage.removeItem('token'); // Remove bad token
+                    console.error('Failed to decode token after login:', e);
+                    localStorage.removeItem('token');
                     delete axios.defaults.headers.common['Authorization'];
                     setUser(null);
                     throw new Error('Login successful, but failed to process user data from token.');
@@ -104,22 +86,19 @@ const useAuth = () => {
             } else {
                 throw new Error('Token not found or is invalid in server response.');
             }
-
         } catch (error: any) {
-            console.error("Error in useAuth login:", error.message, error);
+            console.error('Error in useAuth login:', error.message, error);
             if (error.response?.status === 401) {
                 throw new Error('Hibás email cím vagy jelszó!');
             } else if (error.response?.status === 404) {
                 throw new Error('A felhasználó nem található!');
             } else if (error instanceof Error) {
                 throw error;
-            }
-            else {
+            } else {
                 throw new Error('Hiba történt a bejelentkezés során. Kérjük próbálja újra később!');
             }
         }
     };
-
 
     const logout = (onLogout?: () => void) => {
         localStorage.removeItem('token');
@@ -129,10 +108,10 @@ const useAuth = () => {
         if (onLogout) {
             onLogout();
         }
-
     };
 
-        return {
+
+    return {
         user,
         login,
         logout,

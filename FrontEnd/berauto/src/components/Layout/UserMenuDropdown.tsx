@@ -1,17 +1,28 @@
-import {Avatar, Text, Group, Menu, rem, UnstyledButton, useMantineTheme, Flex, Center} from "@mantine/core";
-import {IconChevronDown, IconLogout, IconUserCircle} from "@tabler/icons-react";
-import {useNavigate} from "react-router-dom";
-import {useMediaQuery} from "@mantine/hooks";
+import {
+    Avatar,
+    Text,
+    Group,
+    Menu,
+    rem,
+    UnstyledButton,
+    useMantineTheme,
+    Flex,
+    Center
+} from "@mantine/core";
+import { IconChevronDown, IconLogout, IconUserCircle } from "@tabler/icons-react";
+import { useNavigate } from "react-router-dom";
+import { useMediaQuery } from "@mantine/hooks";
 import useAuth from "../../hooks/useAuth.tsx";
 
 const UserMenuDropdown = () => {
     const navigate = useNavigate();
     const theme = useMantineTheme();
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
-    const {logout, user} = useAuth();
+    const { logout, user } = useAuth();
 
+    // 🔁 Kijelentkezés: csak user kiürítés, nincs redirect
     const handleLogout = () => {
-        logout(() => navigate('/login'));
+        logout(); // NE legyen benne navigate
     };
 
     const items = [
@@ -29,53 +40,52 @@ const UserMenuDropdown = () => {
             onClick: handleLogout,
             icon: IconLogout
         }
-    ]
+    ];
 
-    const profileName = <>{user?.email}</>
+    const profileName = <>{user?.email}</>;
 
-    return <>
+    return (
         <Menu
             width={260}
             position="bottom-start"
-            transitionProps={{transition: 'pop-top-right'}}
+            transitionProps={{ transition: 'pop-top-right' }}
             withinPortal
         >
             <Menu.Target>
                 <UnstyledButton>
                     <Group gap={7}>
-                       <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20}/>
+                        <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20} />
                         <Text fw={500} size="sm" lh={1} mr={3}>
                             {profileName}
                         </Text>
-                        <IconChevronDown style={{width: rem(12), height: rem(12)}} stroke={1.5}/>
+                        <IconChevronDown style={{ width: rem(12), height: rem(12) }} stroke={1.5} />
                     </Group>
                 </UnstyledButton>
             </Menu.Target>
 
             <Menu.Dropdown>
-                {isMobile &&
+                {isMobile && (
                     <Menu.Item
                         onClick={undefined}
                         leftSection={
                             <Flex>
                                 <Center>
-                                   <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20}/>
+                                    <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20} />
                                     <Text fw={500} size="sm" lh={1} mr={3}>
                                         {profileName}
                                     </Text>
                                 </Center>
                             </Flex>
                         }
-                    >
-                    </Menu.Item>
-                }
-                {items.map(item =>
+                    />
+                )}
+                {items.map(item => (
                     <Menu.Item
                         key={item.url}
                         onClick={item.onClick}
                         leftSection={
                             <item.icon
-                                style={{width: rem(16), height: rem(16)}}
+                                style={{ width: rem(16), height: rem(16) }}
                                 color="purple"
                                 stroke={1}
                             />
@@ -83,10 +93,10 @@ const UserMenuDropdown = () => {
                     >
                         {item.label}
                     </Menu.Item>
-                )}
+                ))}
             </Menu.Dropdown>
         </Menu>
-    </>
-}
+    );
+};
 
 export default UserMenuDropdown;
