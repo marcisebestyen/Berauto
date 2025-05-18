@@ -49,8 +49,15 @@ namespace Beruato
             builder.Services.AddScoped<IRentService, RentService>();
             builder.Services.AddScoped<IStaffService, StaffServise>();
             builder.Services.AddScoped<IReceiptService, ReceiptService>();
+            
+            var jwtSettings = builder.Configuration.GetSection("Jwt");
+            var secretKey = jwtSettings["Key"];
 
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            builder.Services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
@@ -59,21 +66,23 @@ namespace Beruato
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        ValidIssuer = jwtSettings["Issuer"],
+                        ValidAudience = jwtSettings["Audience"],
                         IssuerSigningKey =
-                            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+                            new SymmetricSecurityKey(Encoding.UTF8
+                                .GetBytes(secretKey ?? throw new InvalidOperationException("JWT key not configured")))
                     };
                 });
+            
+            builder.Services.AddAuthorization();
 
-
-            builder.Services.AddAuthorization(options =>
-            {
-                options.AddPolicy("GuestPolicy", policy => policy.RequireRole("Guest"));
-                options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
-                options.AddPolicy("UserPolicy", policy => policy.RequireRole("User"));
-                options.AddPolicy("DirectorPolicy", policy => policy.RequireRole("Director"));
-            });
+            // builder.Services.AddAuthorization(options =>
+            // {
+            //     options.AddPolicy("GuestPolicy", policy => policy.RequireRole("Guest"));
+            //     options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
+            //     options.AddPolicy("UserPolicy", policy => policy.RequireRole("User"));
+            //     options.AddPolicy("DirectorPolicy", policy => policy.RequireRole("Director"));
+            // });
 
             builder.Services.AddAutoMapper(typeof(Services.Services.MappingService).Assembly);
 

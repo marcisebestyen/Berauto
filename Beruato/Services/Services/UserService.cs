@@ -1,9 +1,14 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using AutoMapper;
 using Database.Dtos.UserDtos;
 using Database.Models;
 using Database.Results;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Services.Repositories;
 
 namespace Services.Services;
@@ -21,12 +26,15 @@ public class UserService : IUserService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<UserService> _logger;
+    private readonly IConfiguration _configuration;
 
-    public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger)
+    public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger,
+        IConfiguration configuration)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     public async Task<UserGetDto?> GetUserByIdAsync(int userId)
@@ -37,6 +45,7 @@ public class UserService : IUserService
         {
             return null;
         }
+
         return _mapper.Map<UserGetDto>(user);
     }
 
@@ -162,7 +171,7 @@ public class UserService : IUserService
         // bool isPasswordValid = _passwordHasherService.VerifyPassword(user.Password, loginDto.Password);
 
         // Jelenlegi egyszerűsített (ÉS NEM BIZTONSÁGOS) ellenőrzés:
-        bool isPasswordValid = user.Password == loginDto.Password;
+        bool isPasswordValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.Password);
         // Ha a fentebbi feltételezett _passwordHasherService-t használnád:
         // bool isPasswordValid = _passwordHasherService.Verify(user.PasswordHash, loginDto.Password); // Vagy valami hasonló
 
@@ -171,22 +180,35 @@ public class UserService : IUserService
             return LoginResult.Failure("Hibás e-mail cím vagy jelszó.");
         }
 
-        // Sikeres hitelesítés
-        var userGetDto = new UserGetDto
+        // Sikeres hitelesítés, JWT token generálása
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var jwtSettings = _configuration.GetSection("Jwt");
+        var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ??
+                                          throw new InvalidOperationException("JWT Key not configured."));
+
+        var claims = new List<Claim>
         {
-            Id = user.Id,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            PhoneNumber = user.PhoneNumber,
-            RegisteredUser = user.RegisteredUser,
-            LicenceId = user.LicenceId,
-            Email = user.Email
-            // A Name property a UserGetDto-ban automatikusan képződik.
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
-        // Mivel egyelőre nincs JWT, itt nem generálunk tokent.
-        // A sikeres bejelentkezés eredményeként visszaadjuk a felhasználó adatait.
-        return LoginResult.Success(userGetDto);
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.AddDays(Convert.ToDouble(jwtSettings["ExpireDays"])),
+            Issuer = jwtSettings["Issuer"],
+            Audience = jwtSettings["Audience"],
+            SigningCredentials =
+                new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        var tokenString = tokenHandler.WriteToken(token);
+
+        var userGetDto = _mapper.Map<UserGetDto>(user);
+
+        return LoginResult.Success(userGetDto, tokenString);
     }
 
     public async Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto)
@@ -214,12 +236,13 @@ public class UserService : IUserService
             // Ha az email egyedi, de a UserName (ami itt ugyanaz) valahogy mégis foglalt, az adatbázis anomália
             // vagy a UserName generálási logika bonyolultabb és ütközést okozott.
             // Egyedi UserName-t kell biztosítani. Lehet pl. egyedi stringet generálni.
-            return RegistrationResult.Failure("A felhasználónév már foglalt. Próbálkozzon másikkal, vagy ez az email már használatban van felhasználónévként.");
+            return RegistrationResult.Failure(
+                "A felhasználónév már foglalt. Próbálkozzon másikkal, vagy ez az email már használatban van felhasználónévként.");
         }
-        
-        // string hashedPassword = _passwordHasher.HashPassword(registrationDto.Password);
-        string hashedPassword = registrationDto.Password; 
-        
+
+        string hashedPassword = BCrypt.Net.BCrypt.HashPassword(registrationDto.Password);
+        // string hashedPassword = registrationDto.Password; 
+
         var newUser = new User
         {
             FirstName = registrationDto.FirstName,
@@ -227,10 +250,10 @@ public class UserService : IUserService
             PhoneNumber = registrationDto.PhoneNumber,
             LicenceId = registrationDto.LicenceId,
             Email = registrationDto.Email,
-            UserName = userNameToRegister, 
-            Password = hashedPassword, // A HASH-elt jelszót kellene itt tárolni!
-            RegisteredUser = true, 
-            Role = Role.Renter 
+            UserName = userNameToRegister,
+            Password = hashedPassword,
+            RegisteredUser = true,
+            Role = Role.Renter
         };
 
         try
@@ -240,24 +263,15 @@ public class UserService : IUserService
         }
         catch (DbUpdateException ex) // Általános adatbázis hiba, pl. unique constraint sérülés, amit fent nem kezeltünk
         {
-            return RegistrationResult.Failure($"Adatbázis hiba történt a regisztráció során: {ex.InnerException?.Message ?? ex.Message}");
+            return RegistrationResult.Failure(
+                $"Adatbázis hiba történt a regisztráció során: {ex.InnerException?.Message ?? ex.Message}");
         }
         catch (Exception ex) // Egyéb váratlan hibák
         {
             return RegistrationResult.Failure($"Váratlan hiba történt a regisztráció során: {ex.Message}");
         }
-        
-        var userGetDto = new UserGetDto
-        {
-            Id = newUser.Id,
-            FirstName = newUser.FirstName,
-            LastName = newUser.LastName,
-            UserName = newUser.UserName,
-            PhoneNumber = newUser.PhoneNumber,
-            RegisteredUser = newUser.RegisteredUser,
-            LicenceId = newUser.LicenceId,
-            Email = newUser.Email,
-        };
+
+        var userGetDto = _mapper.Map<UserGetDto>(newUser);
 
         return RegistrationResult.Success(userGetDto);
     }
