@@ -1,14 +1,15 @@
+export type FuelType = "Diesel" | "Petrol" | "Hybrid" | "Electric";
+export type RequiredLicenceType = "AM" | "A1" | "A2" | "A" | "B";
+
 export interface ICar {
     id: number;
-    isAvailable: boolean;
-    licence: string;
     brand: string;
     model: string;
+    fuelType: FuelType;
+    requiredLicence: RequiredLicenceType;
     licencePlate: string;
-    haveValidVignette: boolean;
-    price: number;
-    seats: number;
-    fuelType: string;
-    isAutomaticTransmission: boolean;
-    trunk: number;
+    hasValidVignette: boolean;
+    pricePerKilometer: number;
+    isAutomatic: boolean;
+    actualKilometers: number;
 }

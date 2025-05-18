@@ -5,14 +5,20 @@ import {
     Center,
     Stack
 } from '@mantine/core';
-import {IconLogin } from '@tabler/icons-react';
+import { IconLogin } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom'; // <-- IMPORTÁLD A useNavigate HOOKOT
 import useAuth from '../hooks/useAuth';
-
 
 const Dashboard = () => {
     const { user } = useAuth();
+    const navigate = useNavigate(); // <-- INICIALIZÁLD A useNavigate HOOKOT
 
     if (!user) {
+        // Funkció a bejelentkezési oldalra navigáláshoz
+        const handleLoginRedirect = () => {
+            navigate('/login'); // <-- ITT TÖRTÉNIK A NAVIGÁCIÓ
+        };
+
         return (
             <Center style={{ minHeight: '80vh' }}>
                 <Stack align="center">
@@ -22,6 +28,7 @@ const Dashboard = () => {
                         leftSection={<IconLogin size={18} />}
                         variant="outline"
                         size="md"
+                        onClick={handleLoginRedirect} // <-- onClick ESEMÉNY HOZZÁADVA
                     >
                         Bejelentkezés
                     </Button>
@@ -30,12 +37,12 @@ const Dashboard = () => {
         );
     }
 
-
-
     return (
         <>
-            <Title order={2} mb="md">Üdvözlünk, {user.username}!</Title>
-
+            {/* Feltételezve, hogy a user objektumodon van 'username' vagy hasonló property */}
+            {/* Ha pl. user.email-t szeretnél kiírni: user.email */}
+            <Title order={2} mb="md">Üdvözlünk, {user.email || user.username || 'Felhasználó'}!</Title>
+            {/* Ide jöhet a bejelentkezett felhasználóknak szóló dashboard tartalom */}
         </>
     );
 };

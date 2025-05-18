@@ -1,5 +1,6 @@
-import '@mantine/core/styles.css';
-import '@mantine/notifications/styles.css'; // Ezt is hozzá kell adni
+import '@mantine/core/styles.css';      // Mantine alap stílusok (ez valószínűleg már megvan)
+import '@mantine/dates/styles.css';   // <-- DÁTUMKOMPONENSEK STÍLUSAI (EZ LEHET, HOGY HIÁNYZIK)
+import '@mantine/notifications/styles.css';// Ezt is hozzá kell adni
 import { useState } from 'react';
 import { BrowserRouter} from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';

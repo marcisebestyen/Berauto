@@ -60,7 +60,7 @@ export function NavbarMinimal({toggle}: any) {
         },
         {
             icon: IconCar,
-            label: "Autók",
+            label: "Autó bérlése",
             url: "cars",
         }
     ];

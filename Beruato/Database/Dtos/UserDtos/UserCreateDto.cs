@@ -15,8 +15,6 @@ public class UserCreateDto
     [StringLength(30, ErrorMessage = "A telefonszám maximum 30 karakter hosszú lehet.")]
     public string PhoneNumber { get; set; } 
 
-    public bool RegisteredUser { get; set; } = false;
-
     [StringLength(30, ErrorMessage = "A jogosítvány azonosító maximum 30 karakter hosszú lehet.")]
     public string LicenceId { get; set; } 
 
