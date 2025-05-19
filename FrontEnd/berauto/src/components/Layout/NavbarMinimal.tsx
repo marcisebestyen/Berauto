@@ -85,25 +85,25 @@ export function NavbarMinimal({toggle}: {toggle: () => void}) {
             {
                 icon: IconListCheck,
                 label: "Igények Kezelése",
-                url: "/clerk/pending-rents",
+                url: "/staff/pending-rents",
                 color: "violet" as MantineColor,
             },
             {
                 icon: IconTransferOut,
                 label: "Autóátadások",
-                url: "/clerk/handovers",
+                url: "/staff/handovers",
                 color: "grape" as MantineColor,
             },
             {
                 icon: IconRun,
                 label: "Futó Kölcsönzések",
-                url: "/clerk/running-rents",
+                url: "/staff/running-rents",
                 color: "orange" as MantineColor,
             },
             {
                 icon: IconLockCheck,
                 label: "Lezárt Kölcsönzések",
-                url: "/clerk/completed-rents",
+                url: "/staff/completed-rents",
                 color: "lime" as MantineColor,
             },
         ];
@@ -120,13 +120,13 @@ export function NavbarMinimal({toggle}: {toggle: () => void}) {
     const menuItems = getMenuItems();
 
     const handleLogout = () => {
-        logout();
-        navigate('/login');
+        logout(() => {
+            window.location.href = '/';
+        });
     };
 
     useEffect(() => {
         const currentPath = location.pathname;
-        // Az útvonalak most már abszolútak a menuItems-ben
         const activeItem = menuItems.find(item => currentPath.startsWith(item.url) && item.url !== "/");
 
         if (activeItem) {

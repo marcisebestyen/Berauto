@@ -3,13 +3,13 @@ import ForgotPassword from "../pages/ForgotPassword.tsx";
 import Dashboard from "../pages/Dashboard.tsx";
 import Cars from "../pages/Cars.tsx";
 import ProfilePage from "../pages/ProfilePage.tsx";
-import RegisterPage from "../pages/Register.tsx"; // Visszaállítva/Hozzáadva
+import RegisterPage from "../pages/Register.tsx";
 import PendingRentPage from "../pages/PendingRentPage.tsx";
-import CarHandoverPage from "../pages/CarHandoverPage.tsx"; // Feltételezve, hogy van ilyen
+import CarHandoverPage from "../pages/CarHandoverPage.tsx";
+import RunningRents from "../pages/RunningRents.tsx";
+import {CompletedRents} from "../pages/CompletedRents.tsx";
 
 
-// Definiáld a ROLES konstanst itt, vagy importáld egy közös helyről, pl. constants.ts
-// Példa:
 export const ROLES = {
     ADMIN: 'Admin',
     STAFF: 'Staff',
@@ -45,7 +45,7 @@ export const routes = [
     {
         path: "profile",
         component: <ProfilePage />,
-        isPrivate: true, // A profil oldal tipikusan privát
+        isPrivate: true,
     },
     {
         path: "staff/pending-rents",
@@ -54,7 +54,17 @@ export const routes = [
     },
     {
         path: "staff/handovers",
-        component: <CarHandoverPage />, // Használja a korábban generált CarHandoverPage-et
+        component: <CarHandoverPage />,
+        isPrivate: true,
+    },
+    {
+        path: "staff/running-rents",
+        component: <RunningRents />,
+        isPrivate: true,
+    },
+    {
+        path: "staff/completed-rents",
+        component: <CompletedRents />,
         isPrivate: true,
     },
 
