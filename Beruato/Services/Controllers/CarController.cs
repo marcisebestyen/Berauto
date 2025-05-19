@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Database.Models;
 using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Berauto.Controllers
 {
@@ -13,6 +14,7 @@ namespace Berauto.Controllers
     /// </summary>
     [ApiController]
     [Route("api/cars")]
+    [Authorize(Roles = "Admin")]
     public class CarsController : Controller
     {
         private readonly ICarService _carService;
@@ -48,6 +50,7 @@ namespace Berauto.Controllers
         /// <response code="404">A megadott azonosítóval nem található autó.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
         [HttpGet("{carId:int}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetCarById(int carId)
         {
             var car = await _carService.GetCarByIdAsync(carId);
@@ -247,8 +250,14 @@ namespace Berauto.Controllers
         /// <response code="400">Érvénytelen dátumformátum vagy időintervallum.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
         [HttpGet("available")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAvailableCars([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
-        {
+        { 
+            DateTime today = DateTime.Today; // A szerver mai napja, éjfél
+            if (startDate < today)
+            {
+                return BadRequest("A kezdő dátum nem lehet korábbi a mai napnál.");
+            }
             if (startDate >= endDate)
             {
                 return BadRequest("Start date must be before end date.");

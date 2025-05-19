@@ -6,19 +6,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Services.Services
 {
     public enum RentStatusFilter
     {
-        All,    
-        Open,  
-        Closed,  
-        Running 
+        All,
+        Open,
+        Closed,
+        Running
     }
-
 
     public interface IRentService
     {
@@ -44,16 +42,16 @@ namespace Services.Services
 
             await _unitOfWork.RentRepository.InsertAsync(rent);
             await _unitOfWork.SaveAsync();
-            
+
             return _mapper.Map<RentGetDto>(rent);
         }
 
         public async Task<IEnumerable<RentGetDto>> GetAllRentsAsync(RentStatusFilter statusFilter = RentStatusFilter.All, int? userId = null)
         {
-            Expression<Func<Rent, bool>>? predicate = null; // Nullable expression
-            bool useGenericGetAsync = true; // Jelzi, hogy a GetAsync-ot vagy a GetAllAsync-ot hívjuk-e
+            Expression<Func<Rent, bool>>? predicate = null;
+            bool useGenericGetAsync = true;
 
-            // Predikátum összeállítása a statusFilter alapján
+            // Predikátum összeállítása a statusFilter alapján (ez a rész változatlan)
             switch (statusFilter)
             {
                 case RentStatusFilter.Open:
@@ -88,13 +86,18 @@ namespace Services.Services
             }
 
             IEnumerable<Rent> rentsFromDb;
+            // Definiáljuk a betöltendő navigációs property-t
+            string[] includeProps = { "Car" }; // Feltételezve, hogy a Rent entitáson 'Car' a navigációs property neve
+
             if (useGenericGetAsync && predicate != null)
             {
-                rentsFromDb = await _unitOfWork.RentRepository.GetAsync(predicate);
+                // Átadjuk az includeProperties paramétert a GetAsync hívásnak
+                rentsFromDb = await _unitOfWork.RentRepository.GetAsync(predicate, includeProperties: includeProps);
             }
             else if (!useGenericGetAsync) // Ez csak akkor igaz, ha statusFilter=All ÉS userId=null
             {
-                rentsFromDb = await _unitOfWork.RentRepository.GetAllAsync();
+                // Átadjuk az includeProperties paramétert a GetAllAsync hívásnak
+                rentsFromDb = await _unitOfWork.RentRepository.GetAllAsync(includeProperties: includeProps);
             }
             else
             {
@@ -104,9 +107,12 @@ namespace Services.Services
             return _mapper.Map<IEnumerable<RentGetDto>>(rentsFromDb);
         }
 
-        public async Task<RentGetDto?> GetRentByIdAsync(int id) 
+        public async Task<RentGetDto?> GetRentByIdAsync(int id)
         {
-            var rent = await _unitOfWork.RentRepository.GetByIdAsync(new object[] { id });
+            string[] includeProps = { "Car" }; // Feltételezve, hogy a Rent entitáson 'Car' a navigációs property neve
+
+            var rents = await _unitOfWork.RentRepository.GetAsync(r => r.Id == id, includeProperties: includeProps);
+            var rent = rents.FirstOrDefault();
 
             if (rent == null)
             {

@@ -60,15 +60,18 @@ export function NavbarMinimal({toggle}: any) {
         },
         {
             icon: IconCar,
-            label: "Autók",
+            label: "Autó bérlése",
             url: "cars",
         }
     ];
 
     const handleLogout = () => {
-        logout();
-        toggle();
+        logout(); // Törli a tokent, usert stb.
+        window.location.reload(); // Teljes oldal újratöltés
     };
+
+
+
 
 
     useEffect(() => {

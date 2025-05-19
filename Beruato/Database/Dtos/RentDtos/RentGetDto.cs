@@ -21,4 +21,8 @@ public class RentGetDto
     public int? ApproverId { get; set; } // Lehet null, ha még nincs jóváhagyva
     public int? IssuerId { get; set; }   // Lehet null, ha még nincs kiadva
     public int? RecipientId { get; set; } // Lehet null, ha még nincs visszavéve
+
+    //autó adatok
+    public string CarBrand { get; set; }
+    public string CarModel { get; set; }
 }
