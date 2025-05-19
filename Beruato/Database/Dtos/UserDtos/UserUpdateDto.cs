@@ -19,4 +19,5 @@ public class UserUpdateDto
     [EmailAddress(ErrorMessage = "Érvénytelen e-mail cím formátum.")]
     [StringLength(255, ErrorMessage = "Az e-mail cím maximum 255 karakter hosszú lehet.")]
     public string? Email { get; set; }
+    public string? Address { get; set; } 
 }

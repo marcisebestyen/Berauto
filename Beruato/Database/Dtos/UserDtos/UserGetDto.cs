@@ -10,5 +10,6 @@ public class UserGetDto
     public string PhoneNumber { get; set; }
     public bool RegisteredUser { get; set; }
     public string LicenceId { get; set; }
-    public string Email { get; set; } 
+    public string Email { get; set; }
+    public string Address { get; set; }
 }

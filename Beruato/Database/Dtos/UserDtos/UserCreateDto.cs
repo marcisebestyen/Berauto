@@ -24,4 +24,5 @@ public class UserCreateDto
 
     [StringLength(255, MinimumLength = 6, ErrorMessage = "A jelszónak legalább 6 karakter hosszúnak kell lennie.")]
     public string Password { get; set; } // Nullázható, de regisztrált felhasználónál érdemes megkövetelni
+    public string Address { get; set; } // Nullázható, de regisztrált felhasználónál érdemes megkövetelni
 }
