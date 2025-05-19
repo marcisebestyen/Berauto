@@ -6,16 +6,15 @@ import {
     Box,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { useState } from 'react'; // useEffect itt nem volt használva, kivettem
+import { useState } from 'react';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import 'dayjs/locale/hu';
 
 import api from '../api/api.ts';
 import { ICar } from '../interfaces/ICar.ts';
-import useAuth from '../hooks/useAuth.tsx'; // useAuth importálása
 import { notifications } from '@mantine/notifications';
-import BookingModal from '../modals/BookingModal'; // BookingModal importálása
+import BookingModal from '../modals/BookingModal';
 
 dayjs.extend(customParseFormat);
 dayjs.locale('hu');
@@ -27,7 +26,6 @@ const Cars = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
     const [bookingOpen, setBookingOpen] = useState(false);
-    const { user } = useAuth(); // <-- JAVÍTVA: user objektum kinyerése
 
     const fetchAvailableCars = async () => {
         if (!startDate || !endDate) {
@@ -71,7 +69,7 @@ const Cars = () => {
         } catch (error: any) {
             notifications.show({
                 title: 'Hiba',
-                message: 'Nem sikerült betölteni az autókat.', // Általánosabb hibaüzenet
+                message: 'Nem sikerült betölteni az autókat.',
                 color: 'red',
             });
             setItems([]);
@@ -81,7 +79,16 @@ const Cars = () => {
     };
 
     const openBookingModal = (carId: number) => {
-        console.log("Cars.tsx: openBookingModal, user állapota itt:", user); // Logoljuk a user állapotát a modal nyitásakor
+        // Csak akkor nyitjuk meg a modalt, ha a startDate és endDate ki van választva
+        if (!startDate || !endDate) {
+            notifications.show({
+                title: 'Hiányzó dátumok',
+                message: 'Kérlek, először válassz kezdő és befejező dátumot a kereséshez, mielőtt foglalnál.',
+                color: 'orange',
+            });
+            return;
+        }
+        console.log("Cars.tsx: openBookingModal, átadott startDate:", startDate, "endDate:", endDate);
         setSelectedCarId(carId);
         setBookingOpen(true);
     };
@@ -92,6 +99,11 @@ const Cars = () => {
         if (dateString) {
             const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
             setStartDate(parsedDate);
+            // Ha a kezdő dátum megváltozik és későbbi, mint a jelenlegi végdátum,
+            // akkor a végdátumot is érdemes lehet nullázni vagy a kezdő dátumra állítani.
+            if (endDate && parsedDate > endDate) {
+                setEndDate(null); // Vagy setEndDate(parsedDate);
+            }
         } else {
             setStartDate(null);
         }
@@ -113,8 +125,11 @@ const Cars = () => {
             <Table.Td>{element.pricePerKilometer} Ft/km</Table.Td>
             <Table.Td>{element.isAutomatic ? 'Automata' : 'Manuális'}</Table.Td>
             <Table.Td>
-                {/* A gomb mindig látszik, a kérésednek megfelelően */}
-                <Button size="xs" onClick={() => openBookingModal(element.id)}>
+                <Button
+                    size="xs"
+                    onClick={() => openBookingModal(element.id)}
+                    disabled={!startDate || !endDate} // Gomb letiltása, ha nincs dátum kiválasztva
+                >
                     Foglalás
                 </Button>
             </Table.Td>
@@ -133,6 +148,7 @@ const Cars = () => {
                         locale="hu"
                         valueFormat={dateFormat}
                         clearable
+                        minDate={new Date()} // Mai naptól lehet választani
                     />
                     <DatePickerInput
                         label="Bérlés vége"
@@ -142,7 +158,7 @@ const Cars = () => {
                         locale="hu"
                         valueFormat={dateFormat}
                         clearable
-                        minDate={startDate || undefined} // MinDate beállítása a startDate alapján
+                        minDate={startDate ? dayjs(startDate).add(0, 'day').toDate() : new Date()} // Minimum a kezdési dátum vagy a mai nap
                     />
                 </Group>
                 <Button onClick={fetchAvailableCars} mt="md" loading={isLoading} disabled={!startDate || !endDate}>
@@ -182,10 +198,11 @@ const Cars = () => {
                     onClose={() => {
                         setBookingOpen(false);
                         setSelectedCarId(null);
-                        // Opcionális: frissíthetjük az autók listáját a modal bezárása után,
-                        // ha a foglalás befolyásolhatja az elérhetőséget a listában.
-                        // fetchAvailableCars(); // Ezt csak akkor, ha releváns
+                        // fetchAvailableCars(); // Csak akkor, ha a foglalás befolyásolja a listát
                     }}
+                    // ÚJ PROPOK ÁTADÁSA:
+                    initialStartDate={startDate}
+                    initialEndDate={endDate}
                 />
             )}
         </div>

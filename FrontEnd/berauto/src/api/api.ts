@@ -3,7 +3,6 @@ import { ICar } from "../interfaces/ICar.ts";
 import { IUserProfile} from "../interfaces/IUser.ts";
 import { ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto } from "../interfaces/IRent.ts";
 
-// JSON Patch művelet interfésze
 interface JsonPatchOperation {
     op: "replace" | "add" | "remove" | "copy" | "move" | "test";
     path: string;
@@ -15,30 +14,19 @@ const Cars = {
     getAvailableCars: (startDate: Date, endDate: Date) => {
         const formattedStartDate = startDate.toISOString();
         const formattedEndDate = endDate.toISOString();
-        // Feltételezve, hogy az axiosInstance.baseURL már '/api'-ra végződik
-        // (pl. http://localhost:7205/api).
-        // Ha a C# CarsController [Route("api/cars")] attribútummal rendelkezik,
-        // akkor a relatív útvonal itt '/cars/available' lesz.
         return axiosInstance.get<ICar[]>(
             `/cars/available?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
         );
     },
     updateCarAvailability: (carId: number, isAvailable: boolean) =>
-        // Feltételezve, hogy az axiosInstance.baseURL már '/api'-ra végződik.
-        // Az útvonalnak meg kell egyeznie a backend controllerével.
-        // A backend CarsController-ben kell lennie egy megfelelő PUT végpontnak.
         axiosInstance.put(`/cars/${carId}/availability`, { isAvailable }),
 };
 
 const Users = {
     getProfileDetails: () =>
-        // Feltételezve, hogy az axiosInstance.baseURL már '/api'-ra végződik.
-        // A C# UserController [Route("api/users")] és [HttpGet("getProfile")] alapján:
         axiosInstance.get<IUserProfile>(`/users/getProfile`),
 
     updateProfile: (patchDocument: JsonPatchOperation[]) =>
-        // Feltételezve, hogy az axiosInstance.baseURL már '/api'-ra végződik.
-        // A C# UserController [Route("api/users")] és [HttpPatch("updateProfile")] alapján:
         axiosInstance.patch<IUserProfile>(
             `/users/updateProfile`,
             patchDocument,
@@ -54,8 +42,6 @@ const Users = {
             console.warn("getUserRents: userId is undefined. Returning empty array.");
             return Promise.resolve({ data: [] as ISimpleRent[] });
         }
-        // Feltételezve, hogy az axiosInstance.baseURL már '/api'-ra végződik.
-        // A backend RentController [Route("api/Rent")] és GetRents actionje alapján:
         return axiosInstance.get<ISimpleRent[]>(`/Rent?userId=${userId}`);
     },
 
@@ -64,33 +50,56 @@ const Users = {
             console.warn("getActiveRents: userId is undefined. Returning empty array.");
             return Promise.resolve({ data: [] as ISimpleRent[] });
         }
-        // Feltételezve, hogy az axiosInstance.baseURL már '/api'-ra végződik.
-        // A backend RentController [Route("api/Rent")] és GetRents actionje alapján, filterrel:
         return axiosInstance.get<ISimpleRent[]>(`/Rent?userId=${userId}&filter=Running`);
     }
 };
 
 const Rents = {
-    /**
-     * Új foglalást hoz létre vendég felhasználóként.
-     * A backend RentController [Route("api/Rent")] és [HttpPost("guest-create")] alapján.
-     * @param data A vendég foglalási adatai (IGuestRentCreateDto)
-     * @returns A létrehozott foglalás adatai (IRentGetDto)
-     */
     createGuestRent: (data: IGuestRentCreateDto) =>
         axiosInstance.post<IRentGetDto>('/Rent/guest-create', data),
 
-    /**
-     * Új foglalást hoz létre authentikált (bejelentkezett) felhasználóként.
-     * A backend RentController [Route("api/Rent")] és [HttpPost("createRent")] alapján.
-     * @param data A foglalási adatok (IRentCreateDto)
-     * @returns A létrehozott foglalás adatai (IRentGetDto)
-     */
     createAuthenticatedRent: (data: IRentCreateDto) =>
         axiosInstance.post<IRentGetDto>('/Rent/createRent', data),
+
+    getRentsGloballyByFilter: (filter: "Open" | "Closed" | "Running" | "All" | "ApprovedForHandover") => {
+        return axiosInstance.get<IRentGetDto[]>(`/Rent?filter=${filter}`);
+    }
 };
 
-// Frissítjük az exportált api objektumot, hogy tartalmazza a Rents-et is
-const api = { Cars, Users, Rents };
+const Staff = {
+    approveRent: (rentId: number) =>
+        axiosInstance.post<IRentGetDto>(`/Staff/approve?rentId=${rentId}`), // rentId query paraméterként
+
+    /**
+     * Egy bérléshez tartozó autó átadásának rögzítése.
+     * A backend StaffController [Route("api/Staff")] és [HttpPost("hand_over")] alapján.
+     * A rentId és actualStart query paraméterként kerül elküldésre.
+     * @param rentId Az átadandó bérlés ID-ja.
+     * @param actualStart A tényleges átadás dátuma és ideje (Date objektum).
+     * @returns A frissített bérlés adatai.
+     */
+    handOverCar: (rentId: number, actualStart: Date) => {
+        // A dátumot ISO stringgé alakítjuk, ami általában jól működik query paraméterként is.
+        // Az URL kódolást (pl. szóközök %20-ra cserélése) az Axios automatikusan elvégzi.
+        const formattedActualStart = actualStart.toISOString();
+        // POST kérés üres body-val (vagy null), a paraméterek az URL-ben vannak.
+        return axiosInstance.post<IRentGetDto>(`/Staff/hand_over?rentId=${rentId}&actualStart=${formattedActualStart}`);
+    },
+
+    takeBackCar: (rentId: number, actualEnd: Date, endingKilometer: number) => {
+        // Ennél a végpontnál a C# controller paraméterei (rentId, actualEnd, endingKilometer)
+        // valószínűleg a request body-ból várják az adatokat, ha nincsenek [FromQuery] attribútummal ellátva.
+        // Ha a Swagger ezt is query paraméterekkel mutatja, akkor ezt is át kellene alakítani.
+        // Most feltételezzük, hogy ez body-ban megy, ahogy korábban volt.
+        const payload = {
+            rentId,
+            actualEnd: actualEnd.toISOString(),
+            endingKilometer,
+        };
+        return axiosInstance.post<IRentGetDto>(`/Staff/take_back`, payload);
+    },
+};
+
+const api = { Cars, Users, Rents, Staff };
 
 export default api;

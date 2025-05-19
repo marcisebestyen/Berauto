@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace Services.Controllers
 {
@@ -45,9 +46,10 @@ namespace Services.Controllers
         /// (Successfully approved the rental. Response body: RentGetDto.)
         /// <response code="404">A megadott azonosítóval nem található bérlés, vagy a felhasználó nem személyzeti tag.</response>
         /// (Rental not found with the given ID, or the user is not a staff member.)
-        [HttpPatch("approved-by")]
-        public async Task<IActionResult> ApprovedBy(int staffId, int rentId)
+        [HttpPost("approve")]
+        public async Task<IActionResult> Approve(int rentId)
         {
+            var staffId = GetCurrentStaffIdFromToken();
             try
             {
                 var rent = await _staffService.ApprovedBy(staffId, rentId);
@@ -77,9 +79,10 @@ namespace Services.Controllers
         /// (Successfully updated the rental. Response body: RentGetDto.)
         /// <response code="404">A megadott azonosítóval nem található bérlés, vagy a felhasználó nem személyzeti tag.</response>
         /// (Rental not found with the given ID, or the user is not a staff member.)
-        [HttpPatch("update-IssuedBy")]
-        public async Task<IActionResult> IssuedBy(int staffId, int rentId, DateTime actualStart)
+        [HttpPost("hand_over")]
+        public async Task<IActionResult> HandOver(int rentId, DateTime actualStart)
         {
+            var staffId = GetCurrentStaffIdFromToken();
             try
             {
                 var rent = await _staffService.IssuedBy(staffId, rentId, actualStart);
@@ -109,9 +112,12 @@ namespace Services.Controllers
         /// (Successfully updated the rental. Response body: RentGetDto.)
         /// <response code="404">A megadott azonosítóval nem található bérlés, vagy a felhasználó nem személyzeti tag.</response>
         /// (Rental not found with the given ID, or the user is not a staff member.)
-        [HttpPatch("update-TakenBackBy")]
-        public async Task<IActionResult> TakenBackBy(int staffId, int rentId, DateTime actualEnd, decimal endingKilometer)
+        [HttpPost("take_back")]
+        public async Task<IActionResult> TakeBack(int rentId, DateTime actualEnd, decimal endingKilometer)
         {
+
+            var staffId = GetCurrentStaffIdFromToken();
+
             try
             {
                 var rent = await _staffService.TakenBackBy(staffId, rentId, actualEnd, endingKilometer);
@@ -121,6 +127,20 @@ namespace Services.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
+        }
+
+
+        private int GetCurrentStaffIdFromToken() // Hasonlóan a UserControllerben lévőhöz
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier); // Vagy egy specifikus StaffID claim
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                // Logolás és hiba
+                throw new UnauthorizedAccessException("Személyzeti azonosító nem található a tokenben.");
+            }
+            // Itt még ellenőrizhetnéd, hogy ez a userId valóban Staff szerepkörű-e,
+            // bár az [Authorize(Roles = "Staff")] ezt már megteszi.
+            return userId;
         }
     }
 }
