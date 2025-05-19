@@ -134,13 +134,13 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
     const menuItems = getMenuItems();
 
     const handleLogout = () => {
-        logout();
-        navigate('/login');
+        logout(() => {
+            window.location.href = '/';
+        });
     };
 
     useEffect(() => {
         const currentPath = location.pathname;
-        // Az útvonalak most már abszolútak a menuItems-ben
         const activeItem = menuItems.find(item => currentPath.startsWith(item.url) && item.url !== "/");
 
         if (activeItem) {

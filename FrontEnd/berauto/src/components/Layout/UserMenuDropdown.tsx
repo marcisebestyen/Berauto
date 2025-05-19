@@ -9,10 +9,10 @@ import {
     Flex,
     Button, // Button importálása a bejelentkezés gombhoz
 } from "@mantine/core";
-import { IconChevronDown, IconLogout, IconUserCircle, IconLogin } from "@tabler/icons-react"; // IconLogin importálása
+import { IconChevronDown, IconLogout, IconUserCircle, IconLogin } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useMediaQuery } from "@mantine/hooks";
-import useAuth from "../../hooks/useAuth.tsx"; // Ellenőrizd az útvonalat
+import useAuth from "../../hooks/useAuth.tsx";
 
 const UserMenuDropdown = () => {
     const navigate = useNavigate();
@@ -21,8 +21,9 @@ const UserMenuDropdown = () => {
     const { logout, user, isAuthenticated } = useAuth();
 
     const handleLogout = () => {
-        logout();
-        navigate('/login'); // Javasolt a teljes oldal újratöltés helyett
+        logout(() => {
+            window.location.href = '/';
+        });
     };
 
     const handleLogin = () => {

@@ -69,35 +69,27 @@ const Rents = {
 const Staff = {
     approveRent: (rentId: number) =>
         axiosInstance.post<IRentGetDto>(`/Staff/approve?rentId=${rentId}`), // rentId query paraméterként
-
-    /**
-     * Egy bérléshez tartozó autó átadásának rögzítése.
-     * A backend StaffController [Route("api/Staff")] és [HttpPost("hand_over")] alapján.
-     * A rentId és actualStart query paraméterként kerül elküldésre.
-     * @param rentId Az átadandó bérlés ID-ja.
-     * @param actualStart A tényleges átadás dátuma és ideje (Date objektum).
-     * @returns A frissített bérlés adatai.
-     */
+    
     handOverCar: (rentId: number, actualStart: Date) => {
-        // A dátumot ISO stringgé alakítjuk, ami általában jól működik query paraméterként is.
-        // Az URL kódolást (pl. szóközök %20-ra cserélése) az Axios automatikusan elvégzi.
+
         const formattedActualStart = actualStart.toISOString();
-        // POST kérés üres body-val (vagy null), a paraméterek az URL-ben vannak.
         return axiosInstance.post<IRentGetDto>(`/Staff/hand_over?rentId=${rentId}&actualStart=${formattedActualStart}`);
     },
 
     takeBackCar: (rentId: number, actualEnd: Date, endingKilometer: number) => {
-        // Ennél a végpontnál a C# controller paraméterei (rentId, actualEnd, endingKilometer)
-        // valószínűleg a request body-ból várják az adatokat, ha nincsenek [FromQuery] attribútummal ellátva.
-        // Ha a Swagger ezt is query paraméterekkel mutatja, akkor ezt is át kellene alakítani.
-        // Most feltételezzük, hogy ez body-ban megy, ahogy korábban volt.
-        const payload = {
-            rentId,
-            actualEnd: actualEnd.toISOString(),
-            endingKilometer,
-        };
-        return axiosInstance.post<IRentGetDto>(`/Staff/take_back`, payload);
+        const formattedEnd = encodeURIComponent(actualEnd.toISOString());
+        return axiosInstance.post<IRentGetDto>(
+            `/Staff/take_back?rentId=${rentId}&actualEnd=${formattedEnd}&endingKilometer=${endingKilometer}`
+        );
     },
+
+    runningRents: () => {
+    return axiosInstance.get<IRentGetDto[]>('/Rent?filter=Running');
+},
+
+completedRents: () => {
+    return axiosInstance.get<IRentGetDto[]>('/Rent?filter=Closed');
+}
 };
 
 const api = { Cars, Users, Rents, Staff };

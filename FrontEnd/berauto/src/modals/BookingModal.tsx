@@ -201,7 +201,7 @@ const BookingModal = ({ carId, opened, onClose, initialStartDate, initialEndDate
                     <TextInput label="Keresztnév" placeholder="István" {...form.getInputProps('firstName')} />
                     <TextInput label="Email" type="email" placeholder="email@example.com" {...form.getInputProps('email')} />
                     <TextInput label="Jogosítvány szám" placeholder="AB123456" {...form.getInputProps('licenceId')} />
-                    <TextInput label="Telefonszám" placeholder="+36 30 123 4567" {...form.getInputProps('phoneNumber')} />
+                    <TextInput label="Telefonszám" placeholder="06301234567" {...form.getInputProps('phoneNumber')} />
 
                     <DatePickerInput
                         label="Tervezett kezdés"
