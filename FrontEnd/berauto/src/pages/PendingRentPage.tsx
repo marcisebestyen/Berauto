@@ -23,7 +23,6 @@ import { IRentGetDto } from '../interfaces/IRent'; // Vagy a te IRentGetDto inte
 import dayjs from 'dayjs';
 import useAuth from '../hooks/useAuth'; // Szükséges lehet az ügyintéző azonosításához a műveleteknél
 
-// Definiáljuk a szerepköröket, ha ellenőrizni akarjuk, hogy tényleg staff/admin végzi-e a műveletet
 // const ROLES = {
 //     ADMIN: 'Admin',
 //     STAFF: 'Staff',
@@ -89,15 +88,15 @@ const PendingRentsPage = () => {
 
     const confirmApprove = async () => {
         console.log("confirmApprove - Kezdeti selectedRent állapot:", selectedRent); // DEBUG
-        if (!selectedRent || selectedRent.id == null || selectedRent.id === 0) { // Szigorúbb ellenőrzés az ID-ra
+        if (!selectedRent || selectedRent.id == null || selectedRent.id === 0) {
             notifications.show({
                 title: 'Hiba',
                 message: 'Nincs kiválasztott bérlés a jóváhagyáshoz, vagy az azonosító érvénytelen (null, undefined, vagy 0).',
                 color: 'red',
             });
             console.error("confirmApprove hiba: selectedRent null, vagy selectedRent.id érvénytelen. selectedRent:", selectedRent);
-            setIsLoading(false); // Fontos, hogy a loadingot itt is false-ra állítsuk
-            closeApproveModal(); // Zárd be a modalt hiba esetén is
+            setIsLoading(false);
+            closeApproveModal();
             return;
         }
         if (!user?.id) {

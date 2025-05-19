@@ -70,10 +70,8 @@ const CarHandoverPage = () => {
         fetchHandovers();
     }, []);
 
-    // MÓDOSÍTVA: A 'date' paraméter most 'dateString: string | null'
     const handleActualStartDateChange = (rentId: number, dateString: string | null) => {
         if (dateString) {
-            // A DatePickerInput a valueFormat miatt stringet ad vissza, ezt Date objektummá parsoljuk
             const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
             setSelectedActualStartDates(prevDates => ({
                 ...prevDates,
@@ -127,10 +125,7 @@ const CarHandoverPage = () => {
             <Table.Td style={{ minWidth: 180 }}>
                 <DatePickerInput
                     placeholder="Átadás dátuma"
-                    // A value prop stringet vár, ha valueFormat van, ezért formázzuk
                     value={selectedActualStartDates[rent.id] ? dayjs(selectedActualStartDates[rent.id]).format(dateFormat) : null}
-                    // Az onChange most a módosított handleActualStartDateChange-t hívja,
-                    // ami stringet vár a DatePickerInput-tól (a valueFormat miatt).
                     onChange={(dateString) => handleActualStartDateChange(rent.id, dateString)}
                     minDate={
                         rent.plannedStart
@@ -139,9 +134,9 @@ const CarHandoverPage = () => {
                                 : dayjs().startOf('day').toDate())
                             : dayjs().startOf('day').toDate()
                     }
-                    maxDate={new Date()} // Átadás legfeljebb ma történhet
+                    maxDate={new Date()}
                     locale="hu"
-                    valueFormat={dateFormat} // Ez okozza, hogy az onChange stringet ad vissza
+                    valueFormat={dateFormat}
                     disabled={!rent.approverId || !!rent.actualStart}
                     size="xs"
                 />

@@ -145,12 +145,8 @@ const ProfilePage = () => {
             return;
         }
 
-        // console.log("Küldendő JSON Patch dokumentum:", JSON.stringify(patchOps, null, 2));
-
         setIsLoading(true);
         try {
-            // MÓDOSÍTVA: A userId.toString() eltávolítva a hívásból,
-            // mivel az api.ts updateProfile függvénye már nem várja.
             await api.Users.updateProfile(patchOps);
 
             const updatedProfile: IUserProfile = {
@@ -193,7 +189,6 @@ const ProfilePage = () => {
         <Stack gap="lg">
             {profileData && (
                 <>
-                    {/* Profilom kártya (változatlan) */}
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Group justify="space-between" mb="md">
                             <Title order={3}>Profilom</Title>

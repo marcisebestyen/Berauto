@@ -12,7 +12,7 @@ import CarHandoverPage from "../pages/CarHandoverPage.tsx"; // Feltételezve, ho
 // Példa:
 export const ROLES = {
     ADMIN: 'Admin',
-    STAFF: 'Staff', // Vagy 'Clerk', 'Operator', ahogy a rendszeredben van
+    STAFF: 'Staff',
     RENTER: 'Renter',
 };
 
@@ -28,19 +28,19 @@ export const routes = [
         isPrivate: false,
     },
     {
-        path: "register", // Visszaállított register útvonal
+        path: "register",
         component: <RegisterPage/>,
-        isPrivate: false, // A regisztráció általában publikus
+        isPrivate: false,
     },
     {
         path: "dashboard",
         component: <Dashboard/>,
-        isPrivate: true, // Legyen privát, ha csak bejelentkezés után elérhető
+        isPrivate: false,
     },
     {
         path: "cars",
         component: <Cars/>,
-        isPrivate: false, 
+        isPrivate: false,
     },
     {
         path: "profile",
@@ -58,5 +58,4 @@ export const routes = [
         isPrivate: true,
     },
 
-    // Ide jöhetnek további útvonal definíciók
 ];

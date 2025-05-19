@@ -42,7 +42,6 @@ const Dashboard = () => {
     return (
         <>
             <Title order={2} mb="md">Üdvözlünk, {fullName}!</Title>
-            {/* dashboard tartalom */}
         </>
     );
 };

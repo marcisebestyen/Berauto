@@ -79,7 +79,6 @@ const Cars = () => {
     };
 
     const openBookingModal = (carId: number) => {
-        // Csak akkor nyitjuk meg a modalt, ha a startDate és endDate ki van választva
         if (!startDate || !endDate) {
             notifications.show({
                 title: 'Hiányzó dátumok',
@@ -99,8 +98,6 @@ const Cars = () => {
         if (dateString) {
             const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
             setStartDate(parsedDate);
-            // Ha a kezdő dátum megváltozik és későbbi, mint a jelenlegi végdátum,
-            // akkor a végdátumot is érdemes lehet nullázni vagy a kezdő dátumra állítani.
             if (endDate && parsedDate > endDate) {
                 setEndDate(null); // Vagy setEndDate(parsedDate);
             }
@@ -198,9 +195,7 @@ const Cars = () => {
                     onClose={() => {
                         setBookingOpen(false);
                         setSelectedCarId(null);
-                        // fetchAvailableCars(); // Csak akkor, ha a foglalás befolyásolja a listát
                     }}
-                    // ÚJ PROPOK ÁTADÁSA:
                     initialStartDate={startDate}
                     initialEndDate={endDate}
                 />
