@@ -1,5 +1,5 @@
 -- Adatbázis kiválasztása (opcionális, ha már a megfelelő kontextusban vagy)
-USE BerautoTestDb
+USE BerautoDb
 GO
 
 -- Tranzakció indítása az adatmanipulációkhoz
@@ -25,17 +25,17 @@ PRINT 'Identity magok visszaállítva.';
 -- Users tábla feltöltése (Id-t nem adunk meg)
 -- Role: Renter = 0, Staff = 1, Admin = 2
 -- UserName kötelező és egyedi. Email nullázható, de ha meg van adva, akkor egyedi.
-INSERT INTO [dbo].[Users] ([FirstName], [LastName], [UserName], [PhoneNumber], [RegisteredUser], [LicenceId], [Role], [Email], [Password])
+INSERT INTO [dbo].[Users] ([FirstName], [LastName], [UserName], [PhoneNumber], [RegisteredUser], [LicenceId], [Role], [Email], [Password], [Address])
 VALUES
-('Nagy', 'Eleonóra', 'nagy.eleonora', '06301234567', 1, 'AB12345', 0, 'nagy.eleonora@example.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2'), -- Várható ID: 1
-('Kis', 'Miklós', 'kis.miklos', '06707654321', 1, 'CD67890', 0, 'kis.miklos@example.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2'),    -- Várható ID: 2
-('Kovács', 'Béla', 'kovacs.bela', '06201112233', 0, 'EF54321', 0, 'kovacs.bela@example.com', NULL),                                                        -- Várható ID: 3
-('Szabó', 'Éva', 'szabo.eva', '06309876543', 1, 'GH09876', 0, 'szabo.eva@example.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2'),    -- Várható ID: 4
-('Horváth', 'János', 'horvath.janos', '06701231231', 0, 'IJ21098', 0, 'horvath.janos@example.com', NULL),                                                      -- Várható ID: 5
+('Nagy', 'Eleonóra', 'nagy.eleonora', '06301234567', 1, 'AB12345', 0, 'nagy.eleonora@example.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2','Budapest, Rákóczi út 76., 107'), -- Várható ID: 1
+('Kis', 'Miklós', 'kis.miklos', '06707654321', 1, 'CD67890', 0, 'kis.miklos@example.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2','Debrecen, Fő utca 2., 4029'),    -- Várható ID: 2
+('Kovács', 'Béla', 'kovacs.bela', '06201112233', 0, 'EF54321', 0, 'kovacs.bela@example.com', NULL,'Szeged, Kárász utca 9., 6720'),                                                        -- Várható ID: 3
+('Szabó', 'Éva', 'szabo.eva', '06309876543', 1, 'GH09876', 0, 'szabo.eva@example.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2','Pécs, Király utca 45., 7621'),    -- Várható ID: 4
+('Horváth', 'János', 'horvath.janos', '06701231231', 0, 'IJ21098', 0, 'horvath.janos@example.com', NULL,'Győr, Baross Gábor út 21., 9021'),                                                      -- Várható ID: 5
 -- Staff/Admin felhasználók
-('Admin', 'Felhasználó', 'admin', '06000000000', 1, NULL, 2, 'admin@berauto.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2'),          -- Várható ID: 6 (Admin)
-('Staff', 'Egy', 'staff1', '06000000001', 1, NULL, 1, 'staff1@berauto.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2'),         -- Várható ID: 7 (Staff)
-('Staff', 'Kettő', 'staff2', '06000000002', 1, NULL, 1, 'staff2@berauto.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2'); -- Várható ID: 8 (Staff)
+('Admin', 'Felhasználó', 'admin', '06000000000', 1, NULL, 2, 'admin@berauto.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2','Miskolc, Széchenyi utca 54., 3530'),          -- Várható ID: 6 (Admin)
+('Staff', 'Egy', 'staff1', '06000000001', 1, NULL, 1, 'staff1@berauto.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2','Székesfehérvár, Ady Endre utca 12., 8000'),         -- Várható ID: 7 (Staff)
+('Staff', 'Kettő', 'staff2', '06000000002', 1, NULL, 1, 'staff2@berauto.com', '$2b$10$C.QahImGvzeKclWeDZYxF.bbbrB1hyiq9X6.JdRA/.jYxPGxjLn.2','Eger, Széchenyi István utca 1., 3300'); -- Várható ID: 8 (Staff)
 
 PRINT 'Users tábla feltöltve.';
 

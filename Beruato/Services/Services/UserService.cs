@@ -107,6 +107,12 @@ public class UserService : IUserService
             changed = true;
         }
 
+        if(userUpdateDto.Address != null && user.Address != userUpdateDto.Address)
+        {
+            user.Address = userUpdateDto.Address;
+            changed = true;
+        }
+
         // Nem engedjük módosítani: Id, UserName, RegisteredUser, Role, Password ezen a végponton.
         // A jelszó módosítására külön funkció kell.
         // A UserName általában nem módosítható a regisztráció után.

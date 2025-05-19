@@ -45,6 +45,7 @@ const ProfilePage = () => {
             email: '',
             phoneNumber: '',
             licenceId: '',
+            address: '',
         },
         validate: {
             firstName: (value) => {
@@ -72,6 +73,7 @@ const ProfilePage = () => {
             email: data.email || '',
             phoneNumber: data.phoneNumber || null,
             licenceId: data.licenceId || null,
+            address: data.address || null,
         };
         setValues(currentFormValues);
         resetDirty(currentFormValues);
@@ -211,6 +213,7 @@ const ProfilePage = () => {
                                 <Text><strong>Email:</strong> {profileData.email}</Text>
                                 <Text><strong>Telefonszám:</strong> {profileData.phoneNumber || '-'}</Text>
                                 <Text><strong>Jogosítvány száma:</strong> {profileData.licenceId || '-'}</Text>
+                                <Text><strong>Lakcím:</strong> {profileData.address|| '-'}</Text>
                             </Stack>
                         ) : (
                             <form onSubmit={form.onSubmit(handleUpdateProfile)}>
@@ -227,6 +230,7 @@ const ProfilePage = () => {
                                     <TextInput label="Email cím" placeholder="Email" {...form.getInputProps('email')} />
                                     <TextInput label="Telefonszám" placeholder="Telefonszám" {...form.getInputProps('phoneNumber')} />
                                     <TextInput label="Jogosítvány száma" placeholder="Jogosítvány száma" {...form.getInputProps('licenceId')} />
+                                    <TextInput label="Lakcím" placeholder="Lakcím" {...form.getInputProps('address')} />
                                     <Group mt="md">
                                         <Button type="submit" leftSection={<IconDeviceFloppy size={16} />} loading={isLoading}>
                                             Mentés

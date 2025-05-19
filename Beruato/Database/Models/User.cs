@@ -20,6 +20,7 @@
         public string? LicenceId { get; set; } // pl. ABC123
         public Role Role { get; set; } = Role.Renter;
         public string? Email { get; set; }
+        public  string? Address { get; set; } 
 
         // regisztrált userekhez
         public string? Password { get; set; }
