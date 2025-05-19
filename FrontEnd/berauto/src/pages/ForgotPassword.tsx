@@ -1,9 +1,12 @@
-import {useState, FormEvent} from "react"; // Javítás 1: 'React' eltávolítva
+import { useState, FormEvent } from "react"; // Javítás 1: 'React' eltávolítva
+import { useNavigate } from 'react-router-dom'; // 1. Importáld a useNavigate-et
 import AuthContainer from "../components/AuthContainer.tsx";
 
 type ViewMode = 'enterEmail' | 'enterNewPassword' | 'success';
 
 const ForgotPassword = () => {
+    const navigate = useNavigate();
+
     const [viewMode, setViewMode] = useState<ViewMode>("enterEmail");
     const [email, setEmail] = useState<string>('');
     const [verifiedEmail, setVerifiedEmail] = useState<string>('');
@@ -90,6 +93,10 @@ const ForgotPassword = () => {
         }
     };
 
+    const handleGoToLogin = () => {
+      navigate('/login');
+    };
+
     return (
         <AuthContainer title="Elfelejtett jelszó (Egyszerűsített)">
             <>
@@ -132,7 +139,20 @@ const ForgotPassword = () => {
                 {viewMode === 'success' && (
                     <div style={{color: 'green', textAlign: 'center'}}>
                         <p>{message || 'A jelszó sikeresen módosítva!'}</p>
-                        {/* Ide tehetsz egy linket a bejelentkezési oldalra */}
+                        <button
+                            onClick={handleGoToLogin}
+                            style={{
+                                marginTop: '20px',
+                                padding: '10px 20px',
+                                cursor: 'pointer',
+                                backgroundColor: '#007bff',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px'
+                            }}
+                        >
+                             Vissza a bejelentkezéshez
+                        </button>
                     </div>
                 )}
 
