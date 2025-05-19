@@ -1,10 +1,13 @@
 using System.Security.Claims;
 using AutoMapper;
+using Database.Dtos;
 using Database.Dtos.UserDtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Services.Services;
 
@@ -18,7 +21,7 @@ public class UserController : Controller
     private readonly ILogger<UserController> _logger;
     private readonly IMapper _mapper;
 
-    public UserController(IUserService userService, ILogger<UserController> logger,  IMapper mapper)
+    public UserController(IUserService userService, ILogger<UserController> logger, IMapper mapper)
     {
         _userService = userService ?? throw new ArgumentNullException(nameof(userService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -30,8 +33,8 @@ public class UserController : Controller
     /// </summary>
     /// <param name="userId">A lekérdezendő felhasználó azonosítója.</param>
     /// <returns>A felhasználó profiladatai.</returns>
-    [Authorize] 
-    [HttpGet("getProfile")] 
+    [Authorize]
+    [HttpGet("getProfile")]
     [ProducesResponseType(typeof(UserGetDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -40,7 +43,7 @@ public class UserController : Controller
     {
         var userId = GetCurrentUserIdFromToken();
         var userDto = await _userService.GetUserByIdAsync(userId);
-        
+
         if (userDto == null)
         {
             _logger?.LogInformation("User profile not found for user ID: {RequestedUserId}", userId);
@@ -67,7 +70,7 @@ public class UserController : Controller
     public async Task<IActionResult> UpdateUserProfile([FromBody] JsonPatchDocument<UserUpdateDto> patchDoc)
     {
         var userId = GetCurrentUserIdFromToken();
-        
+
         if (patchDoc == null)
         {
             return BadRequest(new { Message = "A PATCH dokumentum nem lehet üres." });
@@ -80,7 +83,7 @@ public class UserController : Controller
             return NotFound(
                 new { Message = $"A(z) {userId} azonosítójú felhasználó nem található a PATCH művelethez." });
         }
-        
+
         var userToPatchDto = _mapper.Map<UserUpdateDto>(userGetDto);
 
         // A ModelState-et átadjuk, hogy az ApplyTo bele tudja írni a patch alkalmazása során keletkező hibákat
@@ -182,6 +185,43 @@ public class UserController : Controller
             registrationResult.User);
     }
 
+    [HttpPost("check-email-for-direct-reset")]
+    [ProducesResponseType(typeof(object),
+        StatusCodes.Status200OK)] // Egy objektumot ad vissza, pl. { emailExists: true/false }
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> CheckEmailForReset([FromBody] ForgotPasswordRequest req)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        bool emailExists = await _userService.CheckEmailExistsAndRegisteredAsync(req.Email);
+        return Ok(new { emailExists = emailExists });
+    }
+
+    [HttpPost("direct-reset-password")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _userService.ResetPasswordAsync(dto.Email, dto.NewPassword);
+
+        if (result.Succeeded)
+        {
+            string successMessage = result.Messages.FirstOrDefault() ?? "A jelszó sikeresen módosítva.";
+            return Ok(new { Message = successMessage });
+        }
+
+        return BadRequest(new
+            { Message = result.Errors.FirstOrDefault() ?? "A jelszó módosítása sikertelen.", Errors = result.Errors });
+    }
+
     /// <summary>
     /// Segédfüggvény a bejelentkezett felhasználó azonosítójának kinyerésére.
     /// </summary>
@@ -199,6 +239,7 @@ public class UserController : Controller
             throw new UnauthorizedAccessException(
                 "A felhasználói azonosító (ClaimTypes.NameIdentifier) nem található vagy érvénytelen a tokenben, annak ellenére, hogy a kérés authentikált.");
         }
+
         return userId;
     }
 }

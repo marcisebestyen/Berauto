@@ -1,5 +1,5 @@
 -- Adatbázis kiválasztása (opcionális, ha már a megfelelő kontextusban vagy)
-USE BerautoDb
+USE BerautoTestDb
 GO
 
 -- Tranzakció indítása az adatmanipulációkhoz
