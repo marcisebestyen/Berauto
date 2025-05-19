@@ -3,6 +3,8 @@ import ForgotPassword from "../pages/ForgotPassword.tsx";
 import Dashboard from "../pages/Dashboard.tsx";
 import Cars from "../pages/Cars.tsx";
 import ProfilePage from "../pages/ProfilePage.tsx";
+import Register from "../pages/Register.tsx";
+
 export const routes = [
     {
         path: "login",
@@ -29,4 +31,9 @@ export const routes = [
         component: <ProfilePage />,
         isPrivate: true
     },
+    {
+        path: "register",
+        component: <Register/>,
+        isPrivate: false
+    }
 ]

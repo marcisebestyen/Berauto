@@ -1,5 +1,6 @@
 import { Text, Title, Button, Center, Stack } from '@mantine/core';
 import { IconLogin } from '@tabler/icons-react';
+import { IconUserPlus } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 
@@ -20,6 +21,14 @@ const Dashboard = () => {
                         onClick={() => navigate('/login')}
                     >
                         Bejelentkezés
+                    </Button>
+                    <Button
+                        leftSection={<IconUserPlus size={18} />}
+                        variant="outline"
+                        size="md"
+                        onClick={() => navigate('/register')}
+                    >
+                        Regisztráció
                     </Button>
                 </Stack>
             </Center>
