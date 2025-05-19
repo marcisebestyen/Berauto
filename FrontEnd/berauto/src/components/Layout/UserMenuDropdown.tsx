@@ -7,9 +7,9 @@ import {
     UnstyledButton,
     useMantineTheme,
     Flex,
-    Center
+    Button, // Button importálása a bejelentkezés gombhoz
 } from "@mantine/core";
-import { IconChevronDown, IconLogout, IconUserCircle } from "@tabler/icons-react";
+import { IconChevronDown, IconLogout, IconUserCircle, IconLogin } from "@tabler/icons-react"; // IconLogin importálása
 import { useNavigate } from "react-router-dom";
 import { useMediaQuery } from "@mantine/hooks";
 import useAuth from "../../hooks/useAuth.tsx"; // Ellenőrizd az útvonalat
@@ -18,25 +18,23 @@ const UserMenuDropdown = () => {
     const navigate = useNavigate();
     const theme = useMantineTheme();
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
-    const { logout, user } = useAuth();
+    const { logout, user, isAuthenticated } = useAuth();
 
     const handleLogout = () => {
-        logout(); // Törli a tokent, usert stb.
-        // A window.location.reload() helyett érdemesebb lehet a navigate('/') vagy navigate('/login')
-        // használata a React Routerrel való konzisztens navigáció érdekében,
-        // és hogy elkerüld a teljes oldal újratöltést, ami elveszítheti a kliensoldali állapotot.
-        // Például: navigate('/login');
-        window.location.reload(); // Teljes oldal újratöltés
+        logout();
+        navigate('/login'); // Javasolt a teljes oldal újratöltés helyett
     };
 
+    const handleLogin = () => {
+        navigate('/login');
+    };
 
-    const items = [
+    const authenticatedUserItems = [
         {
-            url: 'profile',
+            url: '/profile',
             label: "Profil",
             onClick: () => {
-                console.log("UserMenuDropdown: Profilra navigálás..."); // Debug log
-                navigate('profile'); // <-- Ez a sor felel a profil oldalra navigálásért
+                navigate('/profile');
             },
             icon: IconUserCircle
         },
@@ -48,10 +46,22 @@ const UserMenuDropdown = () => {
         }
     ];
 
-    // Feltételezzük, hogy a user objektum tartalmaz egy 'email' property-t.
-    // Ha más a property neve (pl. username), akkor azt használd.
-    const profileName = <>{user?.email || 'Profil'}</>; // Fallback, ha nincs email
+    const profileName = <>{user?.email || 'Profil'}</>;
 
+    if (!isAuthenticated) {
+        // Ha a felhasználó nincs bejelentkezve, egy "Bejelentkezés" gombot jelenítünk meg
+        return (
+            <Button
+                variant="default" // Vagy "subtle", "outline", stb.
+                leftSection={<IconLogin size={rem(18)} />}
+                onClick={handleLogin}
+            >
+                Bejelentkezés
+            </Button>
+        );
+    }
+
+    // Ha a felhasználó be van jelentkezve, a menüt jelenítjük meg
     return (
         <Menu
             width={260}
@@ -64,36 +74,38 @@ const UserMenuDropdown = () => {
                     <Group gap={7}>
                         <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20} />
                         <Text fw={500} size="sm" lh={1} mr={3}>
-                            {profileName}
+                            {profileName} {/* Ez most már biztosan a user.email lesz, mert isAuthenticated true */}
                         </Text>
                         <IconChevronDown style={{ width: rem(12), height: rem(12) }} stroke={1.5} />
                     </Group>
                 </UnstyledButton>
             </Menu.Target>
 
+            {/* A Menu.Dropdown tartalma csak akkor jelenik meg, ha a felhasználó be van jelentkezve,
+                de ezt a külső if (!isAuthenticated) már kezeli, így itt a user biztosan létezik. */}
             <Menu.Dropdown>
-                {/* Mobil nézetben a profilnév megismétlése a menüben, ha szükséges */}
-                {isMobile && user?.email && ( // Csak akkor jelenjen meg, ha van user és email
+                {/* Mobil nézetben a profilnév és avatar megismétlése */}
+                {isMobile && user?.email && (
                     <Menu.Item
-                        disabled // Ez a menüpont nem kattintható, csak megjeleníti az adatokat
+                        disabled
                         leftSection={
-                            <Flex align="center"> {/* Flex és align="center" a jobb igazításért */}
+                            <Flex align="center">
                                 <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20} />
-                                <Text fw={500} size="sm" lh={1} ml="xs"> {/* Kis margó a szövegnek */}
-                                    {profileName}
+                                <Text fw={500} size="sm" lh={1} ml="xs">
+                                    {user.email}
                                 </Text>
                             </Flex>
                         }
                     />
                 )}
-                {items.map(item => (
+                {authenticatedUserItems.map(item => (
                     <Menu.Item
                         key={item.url}
                         onClick={item.onClick}
                         leftSection={
                             <item.icon
                                 style={{ width: rem(16), height: rem(16) }}
-                                color={theme.colors.grape[6]} // Használhatsz téma színeket
+                                color={theme.colors.grape[6]}
                                 stroke={1.5}
                             />
                         }

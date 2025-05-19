@@ -6,14 +6,23 @@ import {
     Group,
     Checkbox,
     LoadingOverlay,
-    Text,
+    Alert,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { DatePickerInput } from '@mantine/dates';
-import { useAuth } from '../context/AuthContext';
-import axiosInstance from '../api/axios.config.ts';
-import { useEffect, useState, useCallback } from 'react';
+import useAuth from '../hooks/useAuth'; // Ellenőrizd az útvonalat
+import api from '../api/api.ts';
+import { useEffect, useState } from 'react';
 import { notifications } from '@mantine/notifications';
+import { IconAlertCircle } from '@tabler/icons-react';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import 'dayjs/locale/hu';
+
+import { IGuestRentCreateDto, IRentCreateDto } from '../interfaces/IRent';
+
+dayjs.extend(customParseFormat);
+dayjs.locale('hu');
 
 interface BookingModalProps {
     carId: number;
@@ -21,11 +30,20 @@ interface BookingModalProps {
     onClose: () => void;
 }
 
+interface UserForBooking {
+    id?: string | number;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    licenceId?: string;
+    phoneNumber?: string; // Hozzáadva a phoneNumber
+}
+
 const BookingModal = ({ carId, opened, onClose }: BookingModalProps) => {
-    const { user } = useAuth();
+    const { user }: { user: UserForBooking | null | undefined } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [formFilled, setFormFilled] = useState(false);
-    console.log('BookingModal rendered, user:', user, 'opened:', opened);
+
+    const dateFormat = 'YYYY.MM.DD';
 
     const form = useForm({
         initialValues: {
@@ -33,94 +51,134 @@ const BookingModal = ({ carId, opened, onClose }: BookingModalProps) => {
             lastName: '',
             email: '',
             licenceId: '',
-            plannedStart: null,
-            plannedEnd: null,
+            phoneNumber: '', // Hozzáadva a phoneNumber
+            plannedStart: null as Date | null,
+            plannedEnd: null as Date | null,
             requiresReceipt: false,
         },
-        validate: {
-            firstName: (v: string) => (!v ? 'Keresztnév kötelező' : null),
-            lastName: (v: string) => (!v ? 'Vezetéknév kötelező' : null),
-            email: (v: string) => (/^\S+@\S+$/.test(v) ? null : 'Hibás email cím'),
-            licenceId: (v: string) => (!v ? 'Jogosítvány szám kötelező' : null),
-            plannedStart: (v: Date | null) => (!v ? 'Kezdési időpont kötelező' : null),
-            plannedEnd: (value: Date | null, values: { plannedStart: Date | null }) =>
-                !value
+        validate: (values) => { // Átállás függvényszerű validációra a dinamikus szabályokhoz
+            const errors: Record<string, string | null> = {
+                firstName: (!values.firstName || values.firstName.trim() === '') ? 'Keresztnév kötelező' : null,
+                lastName: (!values.lastName || values.lastName.trim() === '') ? 'Vezetéknév kötelező' : null,
+                email: (/^\S+@\S+$/.test(values.email) ? null : 'Hibás email cím'),
+                plannedStart: !values.plannedStart ? 'Kezdési időpont kötelező' : null,
+                plannedEnd: !values.plannedEnd
                     ? 'Befejezési időpont kötelező'
-                    : value && values.plannedStart && value < values.plannedStart
+                    : values.plannedStart && values.plannedEnd && values.plannedEnd < values.plannedStart
                         ? 'A befejezés nem lehet korábbi a kezdésnél'
                         : null,
+                // A licenceId és phoneNumber kötelező, ha nincs bejelentkezett felhasználó (vendég)
+                // Ha be van jelentkezve, akkor az ő adatai alapján töltődik, és lehet, hogy nem kötelező módosítani.
+                // Most egységesen kötelezővé tesszük őket a formon, a kitöltést a user adatai segítik.
+                licenceId: (!values.licenceId || values.licenceId.trim() === '') ? 'Jogosítvány szám kötelező' : null,
+                phoneNumber: (!values.phoneNumber || values.phoneNumber.trim() === '') ? 'Telefonszám kötelező' : null,
+            };
+            // Távolítsuk el a null értékű hibákat, hogy csak a tényleges hibák maradjanak
+            return Object.fromEntries(Object.entries(errors).filter(([_, v]) => v !== null));
         },
     });
 
-    // Az űrlap kitöltésének kezelése
-    const fillFormWithUserData = useCallback(() => {
-        if (user && Object.keys(user).length > 0) {
-            console.log('Filling form with user data:', user);
-
-            // Alapadatok beállítása a felhasználó adataival
-            form.setFieldValue('firstName', user.firstName || '');
-            form.setFieldValue('lastName', user.lastName || '');
-            form.setFieldValue('email', user.email || '');
-            form.setFieldValue('licenceId', user.licenceId || '');
-
-            // Jelezzük, hogy az űrlap kitöltése megtörtént
-            setFormFilled(true);
+    useEffect(() => {
+        if (opened) {
+            if (user && user.id) {
+                form.setValues({
+                    firstName: user.firstName || '',
+                    lastName: user.lastName || '',
+                    email: user.email || '',
+                    licenceId: user.licenceId || '',
+                    phoneNumber: user.phoneNumber || '', // phoneNumber hozzáadva
+                    plannedStart: form.values.plannedStart,
+                    plannedEnd: form.values.plannedEnd,
+                    requiresReceipt: form.values.requiresReceipt,
+                });
+            } else {
+                // Vendég esetén az initialValues (üres stringek) érvényesülnek.
+                // Ha a modal nyitva maradna és a user kijelentkezne, akkor reseteljük.
+                // A modal bezárásakor történő reset ezt általában lefedi.
+                if (form.values.firstName !== '' || form.values.lastName !== '' || form.values.email !== '') {
+                    // form.reset(); // Csak akkor reset, ha tényleg volt benne adat és kijelentkezett a user
+                }
+            }
         } else {
-            console.log('No user data available to fill the form');
-        }
-    }, [user, form]);
-
-    // A modális megnyitásakor töltsük ki az űrlapot
-    useEffect(() => {
-        if (opened && user && !formFilled) {
-            console.log('Modal opened, attempting to fill form with user data');
-            fillFormWithUserData();
-        }
-
-        // Ha a modális bezáródik, állítsuk vissza a formFilled állapotot
-        if (!opened) {
-            setFormFilled(false);
-        }
-    }, [opened, user, fillFormWithUserData, formFilled]);
-
-    // Ha a user adatok megváltoznak, miközben a modal nyitva van, frissítsük az űrlapot
-    useEffect(() => {
-        if (opened && user && !formFilled) {
-            console.log('User data changed while modal is open, updating form');
-            fillFormWithUserData();
-        }
-    }, [user, opened, fillFormWithUserData, formFilled]);
-
-    const handleSubmit = async (values: typeof form.values) => {
-        try {
-            setLoading(true);
-            console.log('Submitting booking form with values:', values);
-
-            await axiosInstance.post('/rent/create', {
-                carId,
-                firstName: values.firstName,
-                lastName: values.lastName,
-                email: values.email,
-                licenceId: values.licenceId,
-                plannedStart: values.plannedStart,
-                plannedEnd: values.plannedEnd,
-                requiresReceipt: values.requiresReceipt,
-            });
-
-            notifications.show({
-                title: 'Sikeres foglalás',
-                message: 'Az autó foglalása sikeresen rögzítve lett.',
-                color: 'green',
-            });
-
             form.reset();
-            setFormFilled(false);
-            onClose();
-        } catch (error) {
-            console.error('Foglalás hiba:', error);
+        }
+    }, [opened, user, form.setValues, form.reset]); // form.values kivéve a függőségekből
+
+
+    const handleSubmit = async (valuesToSubmit: typeof form.values) => {
+        // A form.onSubmit már lefuttatta a validációt.
+        // Ha ide eljut a kód, a mezőknek érvényesnek kell lenniük a 'validate' szabályok szerint.
+
+        if (!valuesToSubmit.plannedStart || !valuesToSubmit.plannedEnd) {
+            // Ez az ellenőrzés redundáns lehet, ha a validáció már kezeli, de biztonsági plusz.
             notifications.show({
                 title: 'Hiba',
-                message: 'Nem sikerült a foglalás. Kérlek próbáld újra.',
+                message: 'A kezdési és befejezési dátum megadása kötelező.',
+                color: 'red',
+            });
+            return;
+        }
+        if (!(valuesToSubmit.plannedStart instanceof Date) || !(valuesToSubmit.plannedEnd instanceof Date)) {
+            notifications.show({
+                title: 'Hiba',
+                message: 'Belső hiba: érvénytelen dátum objektumok a form állapotában.',
+                color: 'red',
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const plannedStartISO = valuesToSubmit.plannedStart.toISOString();
+            const plannedEndISO = valuesToSubmit.plannedEnd.toISOString();
+
+            if (user && user.id) {
+                const authenticatedRentData: IRentCreateDto = {
+                    carId: carId,
+                    renterId: typeof user.id === 'string' ? parseInt(user.id, 10) : user.id,
+                    plannedStart: plannedStartISO,
+                    plannedEnd: plannedEndISO,
+                    invoiceRequest: valuesToSubmit.requiresReceipt,
+                };
+                await api.Rents.createAuthenticatedRent(authenticatedRentData);
+                notifications.show({
+                    title: 'Sikeres foglalás',
+                    message: 'Foglalásodat rögzítettük.',
+                    color: 'green',
+                });
+            } else {
+                // Vendég felhasználó foglalása
+                // A validáció már biztosította, hogy a szükséges mezők ki vannak töltve.
+                const guestRentData: IGuestRentCreateDto = {
+                    firstName: valuesToSubmit.firstName,
+                    lastName: valuesToSubmit.lastName,
+                    email: valuesToSubmit.email,
+                    phoneNumber: valuesToSubmit.phoneNumber, // Itt már nem kell || null, mert a validáció miatt nem lehet üres
+                    licenceId: valuesToSubmit.licenceId,     // Itt már nem kell || null
+                    carId: carId,
+                    plannedStart: plannedStartISO,
+                    plannedEnd: plannedEndISO,
+                    invoiceRequest: valuesToSubmit.requiresReceipt,
+                };
+                await api.Rents.createGuestRent(guestRentData);
+                notifications.show({
+                    title: 'Sikeres foglalás (vendég)',
+                    message: 'Foglalásodat rögzítettük. Hamarosan felvesszük veled a kapcsolatot.',
+                    color: 'green',
+                });
+            }
+
+            form.reset();
+            onClose();
+        } catch (error: any) {
+            console.error('Foglalás hiba:', error);
+            const errorMsg = error.response?.data?.message ||
+                (error.response?.data?.errors ? Object.values(error.response.data.errors).flat().join('; ') : null) ||
+                error.message ||
+                'Nem sikerült a foglalás. Kérlek próbáld újra.';
+            notifications.show({
+                title: 'Hiba',
+                message: errorMsg,
                 color: 'red',
             });
         } finally {
@@ -128,66 +186,70 @@ const BookingModal = ({ carId, opened, onClose }: BookingModalProps) => {
         }
     };
 
-    // Segédfüggvény az űrlap állapotának ellenőrzésére
-    const isFormAutofilled = () => {
-        return (
-            form.values.firstName !== '' &&
-            form.values.lastName !== '' &&
-            form.values.email !== '' &&
-            form.values.licenceId !== ''
-        );
+    const handlePlannedStartChange = (dateString: string | null): void => {
+        if (dateString) {
+            const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
+            form.setFieldValue('plannedStart', parsedDate);
+        } else {
+            form.setFieldValue('plannedStart', null);
+        }
+    };
+
+    const handlePlannedEndChange = (dateString: string | null): void => {
+        if (dateString) {
+            const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
+            form.setFieldValue('plannedEnd', parsedDate);
+        } else {
+            form.setFieldValue('plannedEnd', null);
+        }
     };
 
     return (
-        <Modal opened={opened} onClose={onClose} title="Foglalási adatok" centered>
+        <Modal opened={opened} onClose={onClose} title="Foglalási adatok" centered size="md">
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <LoadingOverlay visible={loading} />
-
-                {user && !isFormAutofilled() && (
-                    <Button
-                        onClick={fillFormWithUserData}
-                        fullWidth
-                        variant="subtle"
-                        mb="md"
-                    >
-                        Adatok automatikus kitöltése
-                    </Button>
-                )}
-
                 {!user && (
-                    <Text color="dimmed" size="sm" mb="md">
-                        Bejelentkezés után az adataid automatikusan kitöltődnek
-                    </Text>
+                    <Alert icon={<IconAlertCircle size="1rem" />} title="Vendégként foglalsz" color="blue" variant="light" mb="md">
+                        Kérjük, add meg az adataidat a foglaláshoz. Adataidat csak a foglalás kezeléséhez használjuk.
+                    </Alert>
                 )}
-
                 <Stack>
-                    <TextInput label="Vezetéknév" {...form.getInputProps('lastName')} />
-                    <TextInput label="Keresztnév" {...form.getInputProps('firstName')} />
-                    <TextInput label="Email" {...form.getInputProps('email')} />
-                    <TextInput label="Jogosítvány szám" {...form.getInputProps('licenceId')} />
+                    <TextInput label="Vezetéknév" placeholder="Kovács" {...form.getInputProps('lastName')} />
+                    <TextInput label="Keresztnév" placeholder="István" {...form.getInputProps('firstName')} />
+                    <TextInput label="Email" type="email" placeholder="email@example.com" {...form.getInputProps('email')} />
+                    <TextInput label="Jogosítvány szám" placeholder="AB123456" {...form.getInputProps('licenceId')} />
+                    {/* Telefonszám TextInput hozzáadva */}
+                    <TextInput label="Telefonszám" placeholder="+36 30 123 4567" {...form.getInputProps('phoneNumber')} />
 
                     <DatePickerInput
                         label="Tervezett kezdés"
-                        valueFormat="YYYY.MM.DD"
-                        clearable={false}
-                        {...form.getInputProps('plannedStart')}
+                        placeholder="Válassz dátumot"
+                        value={form.values.plannedStart ? dayjs(form.values.plannedStart).format(dateFormat) : null}
+                        onChange={handlePlannedStartChange}
+                        valueFormat={dateFormat}
+                        error={form.errors.plannedStart}
+                        clearable={true}
+                        minDate={new Date()}
+                        locale="hu"
                     />
                     <DatePickerInput
                         label="Tervezett vége"
-                        valueFormat="YYYY.MM.DD"
-                        clearable={false}
-                        minDate={form.values.plannedStart || undefined}
-                        {...form.getInputProps('plannedEnd')}
+                        placeholder="Válassz dátumot"
+                        value={form.values.plannedEnd ? dayjs(form.values.plannedEnd).format(dateFormat) : null}
+                        onChange={handlePlannedEndChange}
+                        valueFormat={dateFormat}
+                        error={form.errors.plannedEnd}
+                        clearable={true}
+                        minDate={form.values.plannedStart ? dayjs(form.values.plannedStart).add(0, 'day').toDate() : new Date()}
+                        locale="hu"
                     />
-
                     <Checkbox
                         label="Számlát kérek"
                         {...form.getInputProps('requiresReceipt', { type: 'checkbox' })}
                     />
-
                     <Group justify="flex-end" mt="md">
                         <Button variant="outline" onClick={onClose} mr="sm">Mégsem</Button>
-                        <Button type="submit">Foglalás megerősítése</Button>
+                        <Button type="submit" loading={loading}>Foglalás megerősítése</Button>
                     </Group>
                 </Stack>
             </form>

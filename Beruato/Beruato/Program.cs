@@ -29,7 +29,7 @@ namespace Beruato
                 options.AddPolicy(name: MyAllowSpecificOrigins,
                     policy =>
                     {
-                        policy.WithOrigins("http://localhost:7286")
+                        policy.WithOrigins("http://localhost:7285")
                             .AllowAnyHeader()
                             .AllowAnyMethod()
                             .AllowCredentials();

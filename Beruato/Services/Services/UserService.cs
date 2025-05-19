@@ -19,6 +19,7 @@ public interface IUserService
     Task<ServiceResult> UpdateUserAsync(int userId, UserUpdateDto userUpdateDto);
     Task<LoginResult> LoginAsync(UserLoginDto loginDto);
     Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto);
+    Task<User> GetOrCreateGuestUserAsync(UserCreateGuestDto guestDto);
     Task<bool> CheckEmailExistsAndRegisteredAsync(string email);
     Task<ServiceResult> ResetPasswordAsync(string email, string newPassword);
 }
@@ -274,6 +275,46 @@ public class UserService : IUserService
 
         return RegistrationResult.Success(userGetDto);
     }
+
+    public async Task<User> GetOrCreateGuestUserAsync(UserCreateGuestDto guestDto)
+    {
+        if (guestDto == null || string.IsNullOrWhiteSpace(guestDto.Email))
+        {
+            throw new ArgumentException("Vendég adatok vagy email cím hiányzik.");
+        }
+
+        // Próbáljuk megkeresni a felhasználót email alapján
+        var existingUser = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == guestDto.Email)).FirstOrDefault();
+
+        if (existingUser != null)
+        {
+            // Ha létezik, és nem regisztrált, vagy ha regisztrált, de az adatok egyeznek (ezt finomítani kellhet)
+            // Most egyszerűen visszaadjuk, ha létezik. Fontold meg, mi történjen, ha már regisztrált felhasználó próbál vendégként foglalni.
+            // Lehet, hogy frissíteni kell a meglévő vendég adatait, ha változtak.
+            _logger.LogInformation("Guest user found with email: {Email}, ID: {UserId}", guestDto.Email, existingUser.Id);
+            return existingUser;
+        }
+
+        // Ha nem létezik, hozzunk létre egy újat
+        var newUser = new User
+        {
+            FirstName = guestDto.FirstName,
+            LastName = guestDto.LastName,
+            Email = guestDto.Email,
+            UserName = guestDto.Email, // Kezdetben az UserName lehet az Email
+            PhoneNumber = guestDto.PhoneNumber,
+            LicenceId = guestDto.LicenceId,
+            RegisteredUser = false, // Fontos: Ez egy vendég fiók
+            Password = null,        // Nincs jelszó, vagy egy nem használható placeholder
+            Role = Role.Renter      // Alapértelmezett szerepkör
+        };
+
+        await _unitOfWork.UserRepository.InsertAsync(newUser);
+        await _unitOfWork.SaveAsync();
+        _logger.LogInformation("New guest user created with email: {Email}, ID: {UserId}", guestDto.Email, newUser.Id);
+        return newUser;
+    }
+
 
     public async Task<bool> CheckEmailExistsAndRegisteredAsync(string email)
     {

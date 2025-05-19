@@ -68,7 +68,7 @@ namespace Services.Controllers // A megadott névtér alapján
         /// <response code="201">A kölcsönzés sikeresen létrehozva. A válasz tartalmazza a létrehozott kölcsönzést (RentGetDto) a 'Location' fejléc mellett.</response>
         /// <response code="400">Érvénytelen bemeneti adatok (pl. hiányzó kötelező mezők, vagy a DTO null).</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpPost]
+        [HttpPost("createRent")]
         public async Task<IActionResult> AddRent([FromBody] RentCreateDto createRentDto)
         {
             if (createRentDto == null) // Ezt az [ApiController] és a model binder is kezeli (400-at ad, ha a body üres és a paraméter nem nullable)
@@ -90,5 +90,38 @@ namespace Services.Controllers // A megadott névtér alapján
                 return StatusCode(StatusCodes.Status500InternalServerError, "Hiba történt a kölcsönzés feldolgozása közben.");
             }
         }
+        [HttpPost("guest-create")] // Új végpont
+        [ProducesResponseType(typeof(RentGetDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AddGuestRent([FromBody] GuestRentCreateDto createGuestRentDto)
+        {
+            if (createGuestRentDto == null)
+            {
+                return BadRequest("A foglalási adatok nem lehetnek üresek.");
+            }
+            if (!ModelState.IsValid) // Ellenőrzi a GuestRentCreateDto-n lévő DataAnnotation-öket
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var createdRent = await _rentService.AddGuestRentAsync(createGuestRentDto);
+                // A GetRentById action-t használjuk a Location header generálásához
+                return CreatedAtAction(nameof(GetRentById), new { id = createdRent.Id }, createdRent);
+            }
+            catch (ArgumentException ex) // Pl. ha a vendég adatok hiányosak a service-ben
+            {
+               
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+               
+                return StatusCode(StatusCodes.Status500InternalServerError, "Hiba történt a foglalás feldolgozása közben.");
+            }
+        }
+        
     }
 }

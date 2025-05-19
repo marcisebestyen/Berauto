@@ -9,7 +9,6 @@ import {
     Stack,
     Loader,
     Table,
-    Alert,
     Grid,
     Center,
 } from '@mantine/core';
@@ -17,9 +16,8 @@ import { useForm } from '@mantine/form';
 import { IconEdit, IconDeviceFloppy, IconX, IconAlertCircle } from '@tabler/icons-react';
 import useAuth from '../hooks/useAuth';
 import api from '../api/api';
-// Győződj meg róla, hogy az ISimpleRent interfész itt a helyeset importálja,
-// és hogy az tartalmazza az actualStart és actualEnd mezőket (lehetnek string | null).
-import { IUserProfile, IUserUpdateDto, ISimpleRent } from '../interfaces/IUser';
+import { IUserProfile, IUserUpdateDto } from '../interfaces/IUser';
+import {ISimpleRent} from '../interfaces/IRent';
 import { notifications } from '@mantine/notifications';
 import dayjs from 'dayjs';
 
@@ -86,12 +84,13 @@ const ProfilePage = () => {
                 setIsLoading(true);
                 setError(null);
                 try {
-                    const profileRes = await api.Users.getProfileDetails(user.id.toString());
+                    // Az api.Users.getProfileDetails már nem vár userId-t, ha a backend a tokenből veszi
+                    const profileRes = await api.Users.getProfileDetails();
                     setProfileData(profileRes.data);
                     setAndResetForm(profileRes.data);
 
                     const rentsRes = await api.Users.getUserRents(user.id.toString());
-                    console.log("Kapott bérlési adatok (userRents nyers):", rentsRes.data);
+                    // console.log("Kapott bérlési adatok (userRents nyers):", rentsRes.data);
                     setUserRents(rentsRes.data);
 
                 } catch (err: any) {
@@ -117,7 +116,14 @@ const ProfilePage = () => {
     }, [user?.id, setAndResetForm]);
 
     const handleUpdateProfile = async (currentFormValues: IUserUpdateDto) => {
-        if (!user?.id || !originalProfileDataForPatch) { /* ... */ return; }
+        if (!user?.id || !originalProfileDataForPatch) {
+            notifications.show({
+                title: 'Hiba',
+                message: 'A felhasználói adatok nem érhetők el a frissítéshez.',
+                color: 'red',
+            });
+            return;
+        }
         const patchOps: JsonPatchOperation[] = [];
         type UserUpdateDtoKey = keyof IUserUpdateDto;
         (Object.keys(currentFormValues) as UserUpdateDtoKey[]).forEach(key => {
@@ -130,20 +136,54 @@ const ProfilePage = () => {
                 patchOps.push({ op: "replace", path: path, value: currentValue });
             }
         });
-        if (patchOps.length === 0) { /* ... */ return; }
+
+        if (patchOps.length === 0) {
+            notifications.show({ title: "Nincs változás", message: "Nem történt módosítás a profiladatokban.", color: "blue" });
+            setIsEditing(false);
+            return;
+        }
+
+        // console.log("Küldendő JSON Patch dokumentum:", JSON.stringify(patchOps, null, 2));
+
         setIsLoading(true);
         try {
-            await api.Users.updateProfile(user.id.toString(), patchOps);
+            // MÓDOSÍTVA: A userId.toString() eltávolítva a hívásból,
+            // mivel az api.ts updateProfile függvénye már nem várja.
+            await api.Users.updateProfile(patchOps);
+
             const updatedProfile: IUserProfile = {
-                ...originalProfileDataForPatch, ...currentFormValues,
-                id: originalProfileDataForPatch.id, userName: originalProfileDataForPatch.userName,
+                ...originalProfileDataForPatch,
+                ...currentFormValues,
+                id: originalProfileDataForPatch.id,
+                userName: originalProfileDataForPatch.userName,
             };
-            setProfileData(updatedProfile); setAndResetForm(updatedProfile); setIsEditing(false);
-            notifications.show({ title: 'Sikeres Mentés', message: 'A profiladataid frissültek.', color: 'green', });
-        } catch (err: any) { /* ... hibaüzenet ... */ } finally { setIsLoading(false); }
+
+            setProfileData(updatedProfile);
+            setAndResetForm(updatedProfile);
+            setIsEditing(false);
+
+            notifications.show({
+                title: 'Sikeres Mentés',
+                message: 'A profiladataid frissültek.',
+                color: 'green',
+            });
+        } catch (err: any) {
+            console.error("Hiba profil mentése közben:", err, err.response?.data);
+            const errorMsg = err.response?.data?.errors
+                ? Object.values(err.response.data.errors).flat().join('; ')
+                : err.response?.data?.message || err.response?.data?.title || err.message || 'Hiba történt a profil mentése közben.';
+            notifications.show({
+                title: 'Mentési Hiba',
+                message: errorMsg,
+                color: 'red',
+                icon: <IconAlertCircle />,
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    if (isLoading && !profileData && !error && !isEditing) { /* ... Loader ... */ }
+    if (isLoading && !profileData && !error && !isEditing) { return <Center><Loader /></Center>; }
     if (error && !profileData) { /* ... Error Alert ... */ }
     if (!user || !profileData) { if(!error) { /* ... Profiladatok nem elérhetők ... */ } }
 
@@ -203,7 +243,7 @@ const ProfilePage = () => {
                         )}
                     </Card>
 
-                    {/* Korábbi Bérléseim kártya */}
+                    {/* Korábbi Bérléseim kártya (változatlan) */}
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Title order={4} mb="sm">Korábbi Bérléseim</Title>
                         {userRents.length > 0 ? (
@@ -211,42 +251,35 @@ const ProfilePage = () => {
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th>Autó</Table.Th>
-                                        <Table.Th>Bérlés Kezdete (Tényleges)</Table.Th> {/* Fejléc módosítva */}
-                                        <Table.Th>Bérlés Vége (Tényleges)</Table.Th>   {/* Fejléc módosítva */}
+                                        <Table.Th>Bérlés Kezdete (Tényleges)</Table.Th>
+                                        <Table.Th>Bérlés Vége (Tényleges)</Table.Th>
                                         <Table.Th>Költség</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {userRents.map(rent => {
-                                        // Logoljuk ki a nyers dátum stringeket minden egyes bérlésnél, beleértve az actual-okat
-                                        console.log(
-                                            `Rent ID: ${rent.id}, ` +
-                                            `Raw plannedStart: "${rent.plannedStart}", Raw plannedEnd: "${rent.plannedEnd}", ` +
-                                            `Raw actualStart: "${rent.actualStart}", Raw actualEnd: "${rent.actualEnd}"`
-                                        );
-
-                                        // Parsoljuk a TÉNYLEGES dátumokat
+                                        // console.log(
+                                        //     `Rent ID: ${rent.id}, ` +
+                                        //     `Raw plannedStart: "${rent.plannedStart}", Raw plannedEnd: "${rent.plannedEnd}", ` +
+                                        //     `Raw actualStart: "${rent.actualStart}", Raw actualEnd: "${rent.actualEnd}"`
+                                        // );
                                         const parsedActualStartDate = rent.actualStart ? dayjs(rent.actualStart) : null;
                                         const parsedActualEndDate = rent.actualEnd ? dayjs(rent.actualEnd) : null;
-
-                                        if (rent.actualStart && !parsedActualStartDate?.isValid()) {
-                                            console.warn(`Rent ID: ${rent.id}, Invalid actualStart: "${rent.actualStart}"`);
-                                        }
-                                        if (rent.actualEnd && !parsedActualEndDate?.isValid()) {
-                                            console.warn(`Rent ID: ${rent.id}, Invalid actualEnd: "${rent.actualEnd}"`);
-                                        }
-
+                                        // if (rent.actualStart && !parsedActualStartDate?.isValid()) {
+                                        //     console.warn(`Rent ID: ${rent.id}, Invalid actualStart: "${rent.actualStart}"`);
+                                        // }
+                                        // if (rent.actualEnd && !parsedActualEndDate?.isValid()) {
+                                        //     console.warn(`Rent ID: ${rent.id}, Invalid actualEnd: "${rent.actualEnd}"`);
+                                        // }
                                         return (
                                             <Table.Tr key={rent.id}>
                                                 <Table.Td>{rent.carBrand} {rent.carModel}</Table.Td>
                                                 <Table.Td>
-                                                    {/* MÓDOSÍTVA: actualStart használata */}
                                                     {parsedActualStartDate && parsedActualStartDate.isValid()
                                                         ? parsedActualStartDate.format('YYYY.MM.DD HH:mm')
                                                         : (rent.actualStart || 'Még nem indult')}
                                                 </Table.Td>
                                                 <Table.Td>
-                                                    {/* MÓDOSÍTVA: actualEnd használata */}
                                                     {parsedActualEndDate && parsedActualEndDate.isValid()
                                                         ? parsedActualEndDate.format('YYYY.MM.DD HH:mm')
                                                         : (rent.actualEnd || 'Még nem zárult le')}
