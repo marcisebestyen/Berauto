@@ -8,7 +8,8 @@ import {
     IconListCheck,     // Kölcsönzési Igények (Pending Rents)
     IconTransferOut,   // Átadandó Autók (Handovers)
     IconRun,           // Futó Kölcsönzések (Running Rents)
-    IconLockCheck,     // Lezárt Kölcsönzések (Completed Rents)
+    IconLockCheck,
+    IconPlus// Lezárt Kölcsönzések (Completed Rents)
 } from "@tabler/icons-react";
 import classes from "./NavbarMinimalColored.module.css"; // Győződj meg róla, hogy ez a CSS fájl létezik és helyes
 import {useNavigate, useLocation} from "react-router-dom";
@@ -20,6 +21,7 @@ interface NavbarLinkProps {
     label: string;
     color: MantineColor;
     active?: boolean;
+
     onClick?(): void;
 }
 
@@ -37,11 +39,11 @@ function NavbarLink({icon: Icon, label, color, active, onClick}: NavbarLinkProps
                 variant="light"
                 color={active ? color : theme.primaryColor} // Dinamikus szín
                 className={classes.iconButton}
-                style={{width: rem(40), height: rem(40), flexGrow: 0, flexShrink:0, flexBasis: rem(40)}}
+                style={{width: rem(40), height: rem(40), flexGrow: 0, flexShrink: 0, flexBasis: rem(40)}}
             >
                 <Icon
                     className={classes.linkIcon}
-                    style={{width: rem(25), height: rem(25), flexGrow: 0, flexShrink:0, flexBasis: rem(25)}}
+                    style={{width: rem(25), height: rem(25), flexGrow: 0, flexShrink: 0, flexBasis: rem(25)}}
                     stroke={1.8}
                 />
             </Button>
@@ -56,13 +58,13 @@ const ROLES = {
     RENTER: 'Renter',
 };
 
-export function NavbarMinimal({toggle}: {toggle: () => void}) {
+export function NavbarMinimal({toggle}: { toggle: () => void }) {
     const theme = useMantineTheme();
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
     const [activeLink, setActiveLink] = useState<string | null>(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const {logout, isAuthenticated, user } = useAuth(); // user.role-t fogjuk használni
+    const {logout, isAuthenticated, user} = useAuth(); // user.role-t fogjuk használni
 
     const getMenuItems = () => {
         // Alap menüpontok, amik vendégeknek is látszanak
@@ -85,33 +87,45 @@ export function NavbarMinimal({toggle}: {toggle: () => void}) {
             {
                 icon: IconListCheck,
                 label: "Igények Kezelése",
-                url: "/clerk/pending-rents",
+                url: "/staff/pending-rents",
                 color: "violet" as MantineColor,
             },
             {
                 icon: IconTransferOut,
                 label: "Autóátadások",
-                url: "/clerk/handovers",
+                url: "/staff/handovers",
                 color: "grape" as MantineColor,
             },
             {
                 icon: IconRun,
                 label: "Futó Kölcsönzések",
-                url: "/clerk/running-rents",
+                url: "/staff/running-rents",
                 color: "orange" as MantineColor,
             },
             {
                 icon: IconLockCheck,
                 label: "Lezárt Kölcsönzések",
-                url: "/clerk/completed-rents",
+                url: "/staff/completed-rents",
                 color: "lime" as MantineColor,
             },
         ];
 
+        const adminSpecificItems = [
+            {
+                icon: IconPlus,
+                label: "Autó hozzáadása",
+                url: "/admin/add-car",
+                color: "green" as MantineColor,
+            }
+        ];
+
         let visibleItems = [...basePublicItems]; // Kezdjük a publikus linkekkel
 
-        if (isAuthenticated && user?.role && (user.role === ROLES.STAFF || user.role === ROLES.ADMIN)) {
+        if (isAuthenticated && user?.role && (user.role === ROLES.STAFF)) {
             visibleItems = [...visibleItems, ...staffSpecificItems];
+        } else if (isAuthenticated && user?.role && (user.role === ROLES.ADMIN)) {
+            visibleItems =
+                [...visibleItems, ...adminSpecificItems];
         }
 
         return visibleItems;
@@ -135,7 +149,7 @@ export function NavbarMinimal({toggle}: {toggle: () => void}) {
             setActiveLink("/profile");
         } else if (currentPath === "/" || currentPath === "/dashboard") {
             const dashboardItem = menuItems.find(item => item.url === "/dashboard");
-            if(dashboardItem) setActiveLink(dashboardItem.url);
+            if (dashboardItem) setActiveLink(dashboardItem.url);
         } else {
             setActiveLink(null);
         }

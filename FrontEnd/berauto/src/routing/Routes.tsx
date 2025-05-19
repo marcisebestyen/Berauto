@@ -6,7 +6,7 @@ import ProfilePage from "../pages/ProfilePage.tsx";
 import RegisterPage from "../pages/Register.tsx"; // Visszaállítva/Hozzáadva
 import PendingRentPage from "../pages/PendingRentPage.tsx";
 import CarHandoverPage from "../pages/CarHandoverPage.tsx"; // Feltételezve, hogy van ilyen
-
+import AddCar from "../pages/AddCar";
 
 // Definiáld a ROLES konstanst itt, vagy importáld egy közös helyről, pl. constants.ts
 // Példa:
@@ -57,5 +57,9 @@ export const routes = [
         component: <CarHandoverPage />, // Használja a korábban generált CarHandoverPage-et
         isPrivate: true,
     },
-
+    {
+        path: "admin/add-car",
+        component: <AddCar/>,
+        isPrivate: true,
+    },
 ];

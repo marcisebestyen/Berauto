@@ -14,7 +14,7 @@ namespace Berauto.Controllers
     /// </summary>
     [ApiController]
     [Route("api/cars")]
-    [Authorize(Roles = "Admin")]
+    // [Authorize(Roles = "Admin")]
     public class CarsController : Controller
     {
         private readonly ICarService _carService;
@@ -70,7 +70,7 @@ namespace Berauto.Controllers
         /// <response code="201">Az autó sikeresen létrehozva. A válasz tartalmazza a létrehozott autót (CarDto) a 'Location' fejléc mellett.</response>
         /// <response code="400">Érvénytelen bemeneti adatok.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpPost]
+        [HttpPost("createCar")]
         public async Task<IActionResult> AddCar([FromBody] CarCreateDto createCarDto)
         {
             if (!ModelState.IsValid)
