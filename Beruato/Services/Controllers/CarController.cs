@@ -78,7 +78,7 @@ namespace Berauto.Controllers
                 return BadRequest(ModelState);
             }
             var newCar = await _carService.AddCarAsync(createCarDto);
-            return CreatedAtAction(nameof(GetCarById), new { id = newCar.Id }, newCar);
+            return CreatedAtAction(nameof(GetCarById), new { carId = newCar.Id }, newCar);
         }
 
         /// <summary>

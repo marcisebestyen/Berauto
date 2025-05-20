@@ -1,6 +1,5 @@
-// src/pages/admin/AddCarPage.tsx (vagy ahova szeretnéd helyezni)
+
 import React, { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
     TextInput,
     NumberInput,
@@ -34,7 +33,6 @@ const requiredLicenceOptions = [
 ];
 
 const AddCarPage = () => {
-    const navigate = useNavigate();
     const [formData, setFormData] = useState<CarFormData>({
         Brand: '',
         Model: '',
@@ -69,10 +67,21 @@ const AddCarPage = () => {
         }));
     };
 
-    const handleNumberChange = (name: keyof CarFormData, value: number | '') => {
+    const handleNumberChange = (name: keyof CarFormData, value: string | number) => {
+        let processedValue: number | '';
+        if (typeof value === 'string') {
+            if (value === '') {
+                processedValue = '';
+            } else {
+                const num = parseFloat(value);
+                processedValue = isNaN(num) ? '' : num;
+            }
+        } else {
+            processedValue = value;
+        }
         setFormData(prevData => ({
             ...prevData,
-            [name]: value,
+            [name]: processedValue,
         }));
     };
 
@@ -136,16 +145,12 @@ const AddCarPage = () => {
                     setError(`Hiba történt a szerveroldalon: ${response.statusText} (Státusz: ${response.status})`);
                 }
             } else {
-                // Sikeres létrehozás (HTTP 201)
                 setSuccessMessage(`Az autó sikeresen hozzáadva! Azonosító: ${responseData.id}`);
-                // Ürlap ürítése
                 setFormData({
                     Brand: '', Model: '', FuelType: '', RequiredLicence: '', LicencePlate: '',
                     HasValidVignette: true, PricePerKilometer: '', IsAutomatic: false,
                     ActualKilometers: '', InProperCondition: true,
                 });
-                // Opcionálisan átirányíthatsz, pl. az autók listájára vagy a részletező oldalra
-                // setTimeout(() => navigate(`/cars/${responseData.id}`), 2000);
             }
         } catch (err) {
             console.error("Autó hozzáadása API hiba:", err);
@@ -204,10 +209,9 @@ const AddCarPage = () => {
                         label="Ár / km (Ft)"
                         name="PricePerKilometer"
                         value={formData.PricePerKilometer}
-                        onChange={(value) => handleNumberChange('PricePerKilometer', value)}
+                        onChange={(value) => handleNumberChange('PricePerKilometer', value as number | '')}
                         min={0}
                         step={0.1}
-                        precision={2}
                         required
                         withAsterisk
                         disabled={isLoading}

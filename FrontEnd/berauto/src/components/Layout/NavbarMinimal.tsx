@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {rem, Button, useMantineTheme, MantineColor, Stack} from "@mantine/core";
+import {rem, Button, useMantineTheme, DefaultMantineColor, Stack} from "@mantine/core";
 import {
     IconUserCircle,
     IconLogout,
@@ -19,7 +19,7 @@ import useAuth from "../../hooks/useAuth.tsx";
 interface NavbarLinkProps {
     icon: typeof IconHome; // Vagy egy általánosabb Icon típus
     label: string;
-    color: MantineColor;
+    color: DefaultMantineColor;
     active?: boolean;
 
     onClick?(): void;
@@ -73,13 +73,13 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
                 icon: IconHome,
                 label: "Kezdőlap",
                 url: "/dashboard",
-                color: "blue" as MantineColor,
+                color: "blue" as DefaultMantineColor,
             },
             {
                 icon: IconCar,
                 label: "Autó bérlése",
                 url: "/cars",
-                color: "teal" as MantineColor,
+                color: "teal" as DefaultMantineColor,
             }
         ];
 
@@ -88,25 +88,25 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
                 icon: IconListCheck,
                 label: "Igények Kezelése",
                 url: "/staff/pending-rents",
-                color: "violet" as MantineColor,
+                color: "violet" as DefaultMantineColor,
             },
             {
                 icon: IconTransferOut,
                 label: "Autóátadások",
                 url: "/staff/handovers",
-                color: "grape" as MantineColor,
+                color: "grape" as DefaultMantineColor,
             },
             {
                 icon: IconRun,
                 label: "Futó Kölcsönzések",
                 url: "/staff/running-rents",
-                color: "orange" as MantineColor,
+                color: "orange" as DefaultMantineColor,
             },
             {
                 icon: IconLockCheck,
                 label: "Lezárt Kölcsönzések",
                 url: "/staff/completed-rents",
-                color: "lime" as MantineColor,
+                color: "lime" as DefaultMantineColor,
             },
         ];
 
@@ -115,7 +115,7 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
                 icon: IconPlus,
                 label: "Autó hozzáadása",
                 url: "/admin/add-car",
-                color: "green" as MantineColor,
+                color: "green" as DefaultMantineColor,
             }
         ];
 

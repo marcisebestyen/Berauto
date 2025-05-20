@@ -6,6 +6,10 @@ import ProfilePage from "../pages/ProfilePage.tsx";
 import RegisterPage from "../pages/Register.tsx";
 import PendingRentPage from "../pages/PendingRentPage.tsx";
 import CarHandoverPage from "../pages/CarHandoverPage.tsx"; // Feltételezve, hogy van ilyen
+import RunningRents from "../pages/RunningRents.tsx";
+import AddCar from "../pages/AddCar.tsx";
+import {CompletedRents} from "../pages/CompletedRents.tsx";
+
 
 
 export const ROLES = {

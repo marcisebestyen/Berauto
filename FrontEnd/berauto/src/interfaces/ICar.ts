@@ -14,7 +14,7 @@ export interface ICar {
     actualKilometers: number;
 }
 
-interface CarFormData {
+export interface CarFormData {
     Brand: string;
     Model: string;
     FuelType: string; // Stringként kezeljük a Select miatt, a backend konvertálja enumra
