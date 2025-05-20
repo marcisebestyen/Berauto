@@ -82,7 +82,7 @@ const Rents = {
 
 const Staff = {
     approveRent: (rentId: number) =>
-        axiosInstance.post<IRentGetDto>(`/Staff/approve?rentId=${rentId}`), // rentId query paraméterként
+        axiosInstance.post<IRentGetDto>(`/Staff/approve?rentId=${rentId}`),
     
     handOverCar: (rentId: number, actualStart: Date) => {
 
@@ -106,6 +106,7 @@ completedRents: () => {
 }
 };
 
-const api = { Cars, Users, Rents, Staff };
+
+const api = { Cars, Users, Rents, Staff};
 
 export default api;

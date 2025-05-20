@@ -26,7 +26,3 @@
         public string? Password { get; set; }
     }
 }
-/*
- * Address-t adhatunk hozzá, ha nagyon akarunk, de mivel nem írták
- * sehol, ezért szerintem nem releváns
- */

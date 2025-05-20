@@ -21,7 +21,6 @@ import {ISimpleRent} from '../interfaces/IRent';
 import { notifications } from '@mantine/notifications';
 import dayjs from 'dayjs';
 
-// JSON Patch művelet interfésze (egyszerűsített)
 interface JsonPatchOperation {
     op: "replace" | "add" | "remove" | "copy" | "move" | "test";
     path: string;
@@ -86,13 +85,11 @@ const ProfilePage = () => {
                 setIsLoading(true);
                 setError(null);
                 try {
-                    // Az api.Users.getProfileDetails már nem vár userId-t, ha a backend a tokenből veszi
                     const profileRes = await api.Users.getProfileDetails();
                     setProfileData(profileRes.data);
                     setAndResetForm(profileRes.data);
 
                     const rentsRes = await api.Users.getUserRents(user.id.toString());
-                    // console.log("Kapott bérlési adatok (userRents nyers):", rentsRes.data);
                     setUserRents(rentsRes.data);
 
                 } catch (err: any) {
@@ -213,7 +210,6 @@ const ProfilePage = () => {
                         ) : (
                             <form onSubmit={form.onSubmit(handleUpdateProfile)}>
                                 <Stack>
-                                    {/* Form mezők (változatlanok) */}
                                     <Grid>
                                         <Grid.Col span={{ base: 12, md: 6 }}>
                                             <TextInput label="Vezetéknév" placeholder="Vezetéknév" {...form.getInputProps('lastName')} />
@@ -242,7 +238,6 @@ const ProfilePage = () => {
                         )}
                     </Card>
 
-                    {/* Korábbi Bérléseim kártya (változatlan) */}
                     <Card shadow="sm" padding="lg" radius="md" withBorder>
                         <Title order={4} mb="sm">Korábbi Bérléseim</Title>
                         {userRents.length > 0 ? (
@@ -257,19 +252,8 @@ const ProfilePage = () => {
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {userRents.map(rent => {
-                                        // console.log(
-                                        //     `Rent ID: ${rent.id}, ` +
-                                        //     `Raw plannedStart: "${rent.plannedStart}", Raw plannedEnd: "${rent.plannedEnd}", ` +
-                                        //     `Raw actualStart: "${rent.actualStart}", Raw actualEnd: "${rent.actualEnd}"`
-                                        // );
                                         const parsedActualStartDate = rent.actualStart ? dayjs(rent.actualStart) : null;
                                         const parsedActualEndDate = rent.actualEnd ? dayjs(rent.actualEnd) : null;
-                                        // if (rent.actualStart && !parsedActualStartDate?.isValid()) {
-                                        //     console.warn(`Rent ID: ${rent.id}, Invalid actualStart: "${rent.actualStart}"`);
-                                        // }
-                                        // if (rent.actualEnd && !parsedActualEndDate?.isValid()) {
-                                        //     console.warn(`Rent ID: ${rent.id}, Invalid actualEnd: "${rent.actualEnd}"`);
-                                        // }
                                         return (
                                             <Table.Tr key={rent.id}>
                                                 <Table.Td>{rent.carBrand} {rent.carModel}</Table.Td>

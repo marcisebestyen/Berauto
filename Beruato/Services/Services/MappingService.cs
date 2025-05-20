@@ -45,7 +45,8 @@ public class MappingService : Profile
              .ForMember(dest => dest.IssuerId, opt => opt.MapFrom(src => src.IssuedBy))
              .ForMember(dest => dest.RecipientId, opt => opt.MapFrom(src => src.TakenBackBy))
              .ForMember(dest => dest.CarBrand, opt => opt.MapFrom(src => src.Car != null ? src.Car.Brand : null))
-             .ForMember(dest => dest.CarModel, opt => opt.MapFrom(src => src.Car != null ? src.Car.Model : null));
+             .ForMember(dest => dest.CarModel, opt => opt.MapFrom(src => src.Car != null ? src.Car.Model : null))
+             .ForMember(dest => dest.RenterName, opt => opt.MapFrom(src => src.Renter.UserName));
 
 
 

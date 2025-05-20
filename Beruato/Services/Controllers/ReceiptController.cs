@@ -1,4 +1,5 @@
 using Database.Dtos.ReceiptDtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -8,6 +9,7 @@ namespace Services.Controllers;
 
 [ApiController]
 [Route("api/receipts")]
+[Authorize(Roles = "Staff,Admin")]
 public class ReceiptController : Controller
 {
     private readonly IReceiptService _receiptService;
@@ -24,7 +26,8 @@ public class ReceiptController : Controller
     /// </summary>
     /// <param name="receiptId">A lekérdezendő számla azonosítója.</param>
     /// <returns>A számla adatai (ReceiptGetDto), ha létezik.</returns>
-    [HttpGet("{receiptId}")] // Az userId-t az útvonalból kapja
+    [HttpGet("{receiptId}")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(ReceiptGetDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -52,7 +55,7 @@ public class ReceiptController : Controller
     /// </returns>
     [HttpPost]
     [ProducesResponseType(typeof(ReceiptGetDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)] // Validációs vagy üzleti logikai hibák
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateReceipt([FromBody] ReceiptCreateDto createDto)
     {

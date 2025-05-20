@@ -14,7 +14,7 @@ namespace Berauto.Controllers
     /// </summary>
     [ApiController]
     [Route("api/cars")]
-    // [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public class CarsController : Controller
     {
         private readonly ICarService _carService;
@@ -35,6 +35,7 @@ namespace Berauto.Controllers
         /// <response code="200">Sikeresen visszaadja az autók listáját. A válasz teste: IEnumerable&lt;CarDto&gt;</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
         [HttpGet("get-all")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllCars()
         {
             var cars = await _carService.GetAllCarsAsync();
@@ -101,16 +102,12 @@ namespace Berauto.Controllers
         [HttpPatch("update/{carId:int}")]
         public async Task<IActionResult> UpdateCar([FromRoute(Name = "carId")] int id, [FromBody] JsonPatchDocument<Car> patchDocument)
         {
-            // Ellenőrizzük, hogy maga a patchDocument objektum létrejött-e (nem null-e).
-            // Ha a kliens pl. üres body-t küld, vagy nem valid JSON Patch formátumot,
-            // a patchDocument null lehet, vagy a ModelState már itt tartalmazhat hibát.
+
             if (patchDocument == null)
             {
                 return BadRequest("A patch dokumentum nem lehet null, vagy érvénytelen formátumú.");
             }
 
-            // Az alap ModelState validáció (pl. ha a JSON deszerializáció során hiba történt)
-            // Mielőtt a service-t hívnánk, érdemes lehet ellenőrizni.
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -118,47 +115,35 @@ namespace Berauto.Controllers
 
             try
             {
-                // Hívjuk a service metódust, átadva a controller saját ModelState objektumát.
-                // A service metódus ebbe fogja beleírni a patchDocument.ApplyTo() során keletkező hibákat.
                 await _carService.UpdateCarAsync(id, patchDocument, ModelState);
-
-
-
-                return NoContent(); // Sikeres frissítés
+                return NoContent(); 
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (ArgumentException ex) // Elkapja a service-ből dobott hibát, ha a ModelState érvénytelen lett a patch miatt
+            catch (ArgumentException ex) 
             {
-                // Ha az ArgumentException azért jött, mert a ModelState hibás (az ApplyTo miatt),
-                // akkor a ModelState itt már tartalmazza a részletes hibákat.
-                if (ModelState.ErrorCount > 0) // Győződjünk meg róla, hogy tényleg a ModelState miatt van
+                if (ModelState.ErrorCount > 0) 
                 {
                     return BadRequest(ModelState);
                 }
-                return BadRequest(new { message = ex.Message }); // Általánosabb BadRequest, ha a ModelState üres
+                return BadRequest(new { message = ex.Message }); 
             }
-            catch (InvalidOperationException ex) // Egyéb, üzleti logikai hibák a service-ből (pl. a te rendszám ellenőrzésed)
+            catch (InvalidOperationException ex) 
             {
-                // Az InvalidOperationException gyakran 409 Conflict vagy 400 BadRequest.
-                // A rendszám ütközés inkább 409 Conflict.
                 return Conflict(new { message = ex.Message });
             }
             catch (DbUpdateConcurrencyException /* ex */)
             {
-                // Ide logolhatnánk az ex-et
                 return Conflict(new { message = "Az adatokat időközben valaki más módosította. Kérjük, próbálja újra." });
             }
             catch (DbUpdateException /* ex */)
             {
-                // Ide logolhatnánk az ex-et
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Hiba történt az adatok frissítése közben." });
             }
-            catch (Exception /* ex */) // Egyéb, nem várt hibákra
+            catch (Exception /* ex */)
             {
-                // Ide logolhatnánk az ex-et
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Váratlan hiba történt." });
             }
         }

@@ -38,7 +38,7 @@ const CarHandoverPage = () => {
 
     const [handoverModalOpened, { open: openHandoverModal, close: closeHandoverModal }] = useDisclosure(false);
 
-    const dateFormat = "YYYY.MM.DD"; // Konstans a dátumformátumhoz
+    const dateFormat = "YYYY.MM.DD";
 
     const fetchHandovers = async () => {
         setIsLoading(true);

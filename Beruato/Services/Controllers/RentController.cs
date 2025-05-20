@@ -1,17 +1,19 @@
 ﻿using Database.Dtos.RentDtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Services.Services; // Feltételezve, hogy az IRentService és RentStatusFilter itt van, vagy a usingok megfelelőek
+using Services.Services; 
 
 
-namespace Services.Controllers // A megadott névtér alapján
+namespace Services.Controllers 
 {
     /// <summary>
     /// Kölcsönzésekkel (Rent) kapcsolatos műveletek végrehajtására szolgáló végpontok.
     /// </summary>
     [ApiController]
     [Route("api/Rent")]
-    public class RentController : Controller // API Controllereknél ControllerBase is gyakori
+    [AllowAnonymous]
+    public class RentController : Controller 
     {
         private readonly IRentService _rentService;
 
@@ -90,7 +92,7 @@ namespace Services.Controllers // A megadott névtér alapján
                 return StatusCode(StatusCodes.Status500InternalServerError, "Hiba történt a kölcsönzés feldolgozása közben.");
             }
         }
-        [HttpPost("guest-create")] // Új végpont
+        [HttpPost("guest-create")] 
         [ProducesResponseType(typeof(RentGetDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
@@ -100,7 +102,7 @@ namespace Services.Controllers // A megadott névtér alapján
             {
                 return BadRequest("A foglalási adatok nem lehetnek üresek.");
             }
-            if (!ModelState.IsValid) // Ellenőrzi a GuestRentCreateDto-n lévő DataAnnotation-öket
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
@@ -108,10 +110,9 @@ namespace Services.Controllers // A megadott névtér alapján
             try
             {
                 var createdRent = await _rentService.AddGuestRentAsync(createGuestRentDto);
-                // A GetRentById action-t használjuk a Location header generálásához
                 return CreatedAtAction(nameof(GetRentById), new { id = createdRent.Id }, createdRent);
             }
-            catch (ArgumentException ex) // Pl. ha a vendég adatok hiányosak a service-ben
+            catch (ArgumentException ex)
             {
                
                 return BadRequest(new { Message = ex.Message });

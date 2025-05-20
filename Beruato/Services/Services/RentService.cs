@@ -7,8 +7,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-// Hozzáadva, ha a UserCreateGuestDto és IUserService a Services.Services névtérben van
-// vagy a megfelelő névtér, ahol ezek definiálva vannak.
 using Database.Dtos.UserDtos;
 
 
@@ -51,7 +49,6 @@ namespace Services.Services
             await _unitOfWork.RentRepository.InsertAsync(rent);
             await _unitOfWork.SaveAsync();
 
-            // A részletekkel (pl. Car) való visszatéréshez jobb lehet újra lekérdezni.
             var createdRentWithDetails = await GetRentByIdAsync(rent.Id);
             return createdRentWithDetails ?? throw new InvalidOperationException("Failed to retrieve created rent with details.");
         }
@@ -80,9 +77,6 @@ namespace Services.Services
                 PlannedStart = createGuestRentDto.PlannedStart,
                 PlannedEnd = createGuestRentDto.PlannedEnd,
                 InvoiceRequest = createGuestRentDto.InvoiceRequest,
-                // Itt a StartDate és EndDate property-ket kellene használni, ha a Rent modellen azok vannak
-                // StartDate = createGuestRentDto.PlannedStart, 
-                // EndDate = createGuestRentDto.PlannedEnd,
             };
 
             await _unitOfWork.RentRepository.InsertAsync(rent);
@@ -96,31 +90,29 @@ namespace Services.Services
         public async Task<IEnumerable<RentGetDto>> GetAllRentsAsync(RentStatusFilter statusFilter = RentStatusFilter.All, int? userId = null)
         {
             Expression<Func<Rent, bool>>? predicate = null;
-            bool useGenericGetAsync = true; // Ez a változó eldönti, hogy kell-e a predicate (GetAsync) vagy sem (GetAllAsync)
+            bool useGenericGetAsync = true; 
 
             switch (statusFilter)
             {
-                case RentStatusFilter.Open: // Jóváhagyásra vár
+                case RentStatusFilter.Open: 
                     if (userId.HasValue)
-                        predicate = r => r.RenterId == userId.Value && r.ApprovedBy == null && !r.ActualStart.HasValue; // Még nem is lett átadva
+                        predicate = r => r.RenterId == userId.Value && r.ApprovedBy == null && !r.ActualStart.HasValue;
                     else
-                        predicate = r => r.ApprovedBy == null && !r.ActualStart.HasValue; // Még nem is lett átadva
+                        predicate = r => r.ApprovedBy == null && !r.ActualStart.HasValue; 
                     break;
-                case RentStatusFilter.ApprovedForHandover: // ÚJ: Jóváhagyva, átadásra vár
+                case RentStatusFilter.ApprovedForHandover: 
                     if (userId.HasValue)
-                        // A felhasználóhoz kötött, jóváhagyott, de még át nem vett bérlések
                         predicate = r => r.RenterId == userId.Value && r.ApprovedBy != null && !r.ActualStart.HasValue;
                     else
-                        // Az összes jóváhagyott, de még át nem vett bérlés (ügyintézői nézet)
                         predicate = r => r.ApprovedBy != null && !r.ActualStart.HasValue;
                     break;
-                case RentStatusFilter.Running: // Futó
+                case RentStatusFilter.Running:
                     if (userId.HasValue)
                         predicate = r => r.RenterId == userId.Value && r.ActualStart.HasValue && !r.ActualEnd.HasValue;
                     else
                         predicate = r => r.ActualStart.HasValue && !r.ActualEnd.HasValue;
                     break;
-                case RentStatusFilter.Closed: // Lezárt
+                case RentStatusFilter.Closed:
                     if (userId.HasValue)
                         predicate = r => r.RenterId == userId.Value && r.ActualEnd.HasValue;
                     else
@@ -134,29 +126,25 @@ namespace Services.Services
                     }
                     else
                     {
-                        // Ha nincs userId és 'All' a filter, akkor minden bérlést lekérünk
-                        useGenericGetAsync = false; // Ez jelzi, hogy a GetAllAsync() kell predicate nélkül
+                        useGenericGetAsync = false;
                     }
                     break;
             }
 
             IEnumerable<Rent> rentsFromDb;
-            string[] includeProps = { "Car" }; // Mindig töltsük be az autó adatait
+            string[] includeProps = { "Car", "Renter" }; 
 
             if (useGenericGetAsync && predicate != null)
             {
                 rentsFromDb = await _unitOfWork.RentRepository.GetAsync(predicate, includeProperties: includeProps);
             }
-            else if (!useGenericGetAsync) // Ez akkor igaz, ha statusFilter=All ÉS userId=null
+            else if (!useGenericGetAsync)
             {
                 rentsFromDb = await _unitOfWork.RentRepository.GetAllAsync(includeProperties: includeProps);
             }
             else
             {
-                // Ez az ág elvileg nem kellene, hogy lefusson, ha a logika helyes,
-                // de biztonsági tartalékként üres listát adunk.
-                // Vagy ha van userId, de nincs más filter (predicate null maradna), akkor az All + userId esetet fedi le.
-                // A jelenlegi 'All' + 'userId.HasValue' eset már predicate-et generál.
+               
                 rentsFromDb = Enumerable.Empty<Rent>();
             }
 

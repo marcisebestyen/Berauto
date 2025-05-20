@@ -6,6 +6,7 @@ namespace Database.Dtos.RentDtos;
 public class RentGetDto
 {
     public int Id { get; set; }
+    public string RenterName { get; set; }
     public DateTime PlannedStart { get; set; }
     public DateTime PlannedEnd { get; set; }
     public DateTime? ActualStart { get; set; }

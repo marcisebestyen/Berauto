@@ -7,6 +7,7 @@ using Services.Repositories;
 using Services.Services;
 using Services.Services.Services.Services;
 using System.Text;
+using System.Text.Json.Serialization;
 
 
 namespace Beruato
@@ -23,6 +24,11 @@ namespace Beruato
 
             builder.Services.AddControllers();
             builder.Services.AddControllers().AddNewtonsoftJson();
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
 
             builder.Services.AddCors(options =>
             {

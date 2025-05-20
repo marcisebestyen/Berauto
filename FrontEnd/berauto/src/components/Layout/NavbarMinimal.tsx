@@ -11,13 +11,13 @@ import {
     IconLockCheck,
     IconPlus// Lezárt Kölcsönzések (Completed Rents)
 } from "@tabler/icons-react";
-import classes from "./NavbarMinimalColored.module.css"; // Győződj meg róla, hogy ez a CSS fájl létezik és helyes
+import classes from "./NavbarMinimalColored.module.css";
 import {useNavigate, useLocation} from "react-router-dom";
 import {useMediaQuery} from "@mantine/hooks";
 import useAuth from "../../hooks/useAuth.tsx";
 
 interface NavbarLinkProps {
-    icon: typeof IconHome; // Vagy egy általánosabb Icon típus
+    icon: typeof IconHome;
     label: string;
     color: DefaultMantineColor;
     active?: boolean;
@@ -25,19 +25,18 @@ interface NavbarLinkProps {
     onClick?(): void;
 }
 
-// NavbarLink alkomponens
 function NavbarLink({icon: Icon, label, color, active, onClick}: NavbarLinkProps) {
     const theme = useMantineTheme();
     return (
         <div
             role="button"
-            className={`${classes.link} ${active ? classes.activeLink : ''}`} // CSS osztály az aktív állapothoz
+            className={`${classes.link} ${active ? classes.activeLink : ''}`}
             onClick={onClick}
             data-active={active || undefined}
         >
             <Button
                 variant="light"
-                color={active ? color : theme.primaryColor} // Dinamikus szín
+                color={active ? color : theme.primaryColor}
                 className={classes.iconButton}
                 style={{width: rem(40), height: rem(40), flexGrow: 0, flexShrink: 0, flexBasis: rem(40)}}
             >
@@ -64,78 +63,39 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
     const [activeLink, setActiveLink] = useState<string | null>(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const {logout, isAuthenticated, user} = useAuth(); // user.role-t fogjuk használni
+    const {logout, isAuthenticated, user} = useAuth();
 
     const getMenuItems = () => {
-        // Alap menüpontok, amik vendégeknek is látszanak
         const basePublicItems = [
-            {
-                icon: IconHome,
-                label: "Kezdőlap",
-                url: "/dashboard",
-                color: "blue" as DefaultMantineColor,
-            },
-            {
-                icon: IconCar,
-                label: "Autó bérlése",
-                url: "/cars",
-                color: "teal" as DefaultMantineColor,
-            }
+            { icon: IconHome, label: "Kezdőlap", url: "/dashboard", color: "blue" },
+            { icon: IconCar, label: "Autó bérlése", url: "/cars", color: "teal" },
         ];
 
         const staffSpecificItems = [
-            {
-                icon: IconListCheck,
-                label: "Igények Kezelése",
-                url: "/staff/pending-rents",
-                color: "violet" as DefaultMantineColor,
-            },
-            {
-                icon: IconTransferOut,
-                label: "Autóátadások",
-                url: "/staff/handovers",
-                color: "grape" as DefaultMantineColor,
-            },
-            {
-                icon: IconRun,
-                label: "Futó Kölcsönzések",
-                url: "/staff/running-rents",
-                color: "orange" as DefaultMantineColor,
-            },
-            {
-                icon: IconLockCheck,
-                label: "Lezárt Kölcsönzések",
-                url: "/staff/completed-rents",
-                color: "lime" as DefaultMantineColor,
-            },
+            { icon: IconListCheck, label: "Igények Kezelése", url: "/staff/pending-rents", color: "violet" },
+            { icon: IconTransferOut, label: "Autóátadások", url: "/staff/handovers", color: "grape" },
+            { icon: IconRun, label: "Futó Kölcsönzések", url: "/staff/running-rents", color: "orange" },
+            { icon: IconLockCheck, label: "Lezárt Kölcsönzések", url: "/staff/completed-rents", color: "lime" },
         ];
 
         const adminSpecificItems = [
-            {
-                icon: IconPlus,
-                label: "Autó hozzáadása",
-                url: "/admin/add-car",
-                color: "green" as DefaultMantineColor,
-            },
-            {
-                icon: IconCar,
-                label: "Autó adatok szerkesztése",
-                url: "/admin/update",
-                color: "green" as DefaultMantineColor,
-            }
+            { icon: IconPlus, label: "Autó hozzáadása", url: "/admin/add-car", color: "green" },
+            { icon: IconCar, label: "Autó adatok szerkesztése", url: "/admin/update", color: "green" },
         ];
 
-        let visibleItems = [...basePublicItems]; // Kezdjük a publikus linkekkel
+        let visibleItems = [...basePublicItems];
 
-        if (isAuthenticated && user?.role && (user.role === ROLES.STAFF)) {
+        if (isAuthenticated && user?.role === ROLES.STAFF) {
             visibleItems = [...visibleItems, ...staffSpecificItems];
-        } else if (isAuthenticated && user?.role && (user.role === ROLES.ADMIN)) {
-            visibleItems =
-                [...visibleItems, ...adminSpecificItems];
+        }
+
+        if (isAuthenticated && user?.role === ROLES.ADMIN) {
+            visibleItems = [...visibleItems, ...staffSpecificItems, ...adminSpecificItems];
         }
 
         return visibleItems;
     };
+
 
     const menuItems = getMenuItems();
 

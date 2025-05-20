@@ -1,5 +1,5 @@
-import { useState, FormEvent } from "react"; // Javítás 1: 'React' eltávolítva
-import { useNavigate } from 'react-router-dom'; // 1. Importáld a useNavigate-et
+import { useState, FormEvent } from "react";
+import { useNavigate } from 'react-router-dom';
 import AuthContainer from "../components/AuthContainer.tsx";
 
 type ViewMode = 'enterEmail' | 'enterNewPassword' | 'success';
@@ -16,9 +16,8 @@ const ForgotPassword = () => {
 
     const [message, setMessage] = useState<string>('');
     const [error, setError] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false); // Ezt használod, rendben
+    const [loading, setLoading] = useState<boolean>(false);
 
-    // Javítás 2: Az 'event' típusa FormEvent<HTMLFormElement>
     const handleEmailCheck = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setLoading(true);
@@ -51,7 +50,6 @@ const ForgotPassword = () => {
         }
     };
 
-    // Javítás 2: Az 'event' típusa FormEvent<HTMLFormElement>
     const handlePasswordReset = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (newPassword !== confirmNewPassword) {
@@ -72,7 +70,6 @@ const ForgotPassword = () => {
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                // Figyelj, itt a newPassword state változót használtam, ahogy a te kódodban is van
                 body: JSON.stringify({email: verifiedEmail, newPassword: newPassword}),
             });
             const data = await response.json();
@@ -98,7 +95,7 @@ const ForgotPassword = () => {
     };
 
     return (
-        <AuthContainer title="Elfelejtett jelszó (Egyszerűsített)">
+        <AuthContainer title="Elfelejtett jelszó">
             <>
                 {viewMode === 'enterEmail' && (
                     <form onSubmit={handleEmailCheck}>

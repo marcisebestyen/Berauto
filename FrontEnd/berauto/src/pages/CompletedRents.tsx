@@ -32,6 +32,7 @@ export function CompletedRents() {
         <Table.Tr key={rent.id}>
             <Table.Td>{rent.carModel}</Table.Td>
             <Table.Td>{rent.renterId}</Table.Td>
+            <Table.Td>{rent.renterName}</Table.Td>
             <Table.Td>{new Date(rent.plannedStart).toLocaleDateString('hu-HU')}</Table.Td>
             <Table.Td>{new Date(rent.plannedEnd).toLocaleDateString('hu-HU')}</Table.Td>
             <Table.Td>{rent.actualStart ? new Date(rent.actualStart).toLocaleDateString('hu-HU') : '-'}</Table.Td>
@@ -50,6 +51,7 @@ export function CompletedRents() {
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>Autó</Table.Th>
+                            <Table.Th>Id</Table.Th>
                             <Table.Th>Bérlő</Table.Th>
                             <Table.Th>Tervezett kezdés</Table.Th>
                             <Table.Th>Tervezett befejezés</Table.Th>

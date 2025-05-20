@@ -6,7 +6,7 @@ public class UserGetDto
     public string FirstName { get; set; }
     public string LastName { get; set; }
     public string UserName { get; set; }
-    public string Name => $"{FirstName} {LastName}"; // Kliens oldalon is képezhető
+    public string Name => $"{FirstName} {LastName}"; 
     public string PhoneNumber { get; set; }
     public bool RegisteredUser { get; set; }
     public string LicenceId { get; set; }

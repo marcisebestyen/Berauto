@@ -63,7 +63,6 @@ const Cars = () => {
 
         setIsLoading(true);
         try {
-            // Feltételezve, hogy az api.ts Date objektumokat vár és belül kezeli a formázást:
             const res = await api.Cars.getAvailableCars(startDate, endDate);
             setItems(res.data);
         } catch (error: any) {
@@ -99,7 +98,7 @@ const Cars = () => {
             const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
             setStartDate(parsedDate);
             if (endDate && parsedDate > endDate) {
-                setEndDate(null); // Vagy setEndDate(parsedDate);
+                setEndDate(null);
             }
         } else {
             setStartDate(null);
@@ -125,7 +124,7 @@ const Cars = () => {
                 <Button
                     size="xs"
                     onClick={() => openBookingModal(element.id)}
-                    disabled={!startDate || !endDate} // Gomb letiltása, ha nincs dátum kiválasztva
+                    disabled={!startDate || !endDate}
                 >
                     Foglalás
                 </Button>
@@ -145,7 +144,7 @@ const Cars = () => {
                         locale="hu"
                         valueFormat={dateFormat}
                         clearable
-                        minDate={new Date()} // Mai naptól lehet választani
+                        minDate={new Date()}
                     />
                     <DatePickerInput
                         label="Bérlés vége"
@@ -155,7 +154,7 @@ const Cars = () => {
                         locale="hu"
                         valueFormat={dateFormat}
                         clearable
-                        minDate={startDate ? dayjs(startDate).add(0, 'day').toDate() : new Date()} // Minimum a kezdési dátum vagy a mai nap
+                        minDate={startDate ? dayjs(startDate).add(0, 'day').toDate() : new Date()}
                     />
                 </Group>
                 <Button onClick={fetchAvailableCars} mt="md" loading={isLoading} disabled={!startDate || !endDate}>

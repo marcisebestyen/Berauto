@@ -50,10 +50,9 @@ const UserMenuDropdown = () => {
     const profileName = <>{user?.email || 'Profil'}</>;
 
     if (!isAuthenticated) {
-        // Ha a felhasználó nincs bejelentkezve, egy "Bejelentkezés" gombot jelenítünk meg
         return (
             <Button
-                variant="default" // Vagy "subtle", "outline", stb.
+                variant="default"
                 leftSection={<IconLogin size={rem(18)} />}
                 onClick={handleLogin}
             >
@@ -62,7 +61,6 @@ const UserMenuDropdown = () => {
         );
     }
 
-    // Ha a felhasználó be van jelentkezve, a menüt jelenítjük meg
     return (
         <Menu
             width={260}
@@ -75,17 +73,14 @@ const UserMenuDropdown = () => {
                     <Group gap={7}>
                         <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20} />
                         <Text fw={500} size="sm" lh={1} mr={3}>
-                            {profileName} {/* Ez most már biztosan a user.email lesz, mert isAuthenticated true */}
+                            {profileName}
                         </Text>
                         <IconChevronDown style={{ width: rem(12), height: rem(12) }} stroke={1.5} />
                     </Group>
                 </UnstyledButton>
             </Menu.Target>
 
-            {/* A Menu.Dropdown tartalma csak akkor jelenik meg, ha a felhasználó be van jelentkezve,
-                de ezt a külső if (!isAuthenticated) már kezeli, így itt a user biztosan létezik. */}
             <Menu.Dropdown>
-                {/* Mobil nézetben a profilnév és avatar megismétlése */}
                 {isMobile && user?.email && (
                     <Menu.Item
                         disabled

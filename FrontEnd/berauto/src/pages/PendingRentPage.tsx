@@ -18,15 +18,10 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconCheck, IconX, IconAlertCircle } from '@tabler/icons-react';
-import api from '../api/api'; // Feltételezve, hogy az api.ts a ../api/api.ts útvonalon van
-import { IRentGetDto } from '../interfaces/IRent'; // Vagy a te IRentGetDto interfészed
+import api from '../api/api';
+import { IRentGetDto } from '../interfaces/IRent';
 import dayjs from 'dayjs';
-import useAuth from '../hooks/useAuth'; // Szükséges lehet az ügyintéző azonosításához a műveleteknél
-
-// const ROLES = {
-//     ADMIN: 'Admin',
-//     STAFF: 'Staff',
-// };
+import useAuth from '../hooks/useAuth';
 
 const PendingRentsPage = () => {
     const [pendingRents, setPendingRents] = useState<IRentGetDto[]>([]);
@@ -38,18 +33,17 @@ const PendingRentsPage = () => {
     const [rejectModalOpened, { open: openRejectModal, close: closeRejectModal }] = useDisclosure(false);
     const [rejectionReason, setRejectionReason] = useState('');
 
-    const { user } = useAuth(); // Az aktuális felhasználó (ügyintéző) adatainak lekérése
+    const { user } = useAuth();
 
     const fetchPendingRents = async () => {
         setIsLoading(true);
         setError(null);
         try {
-            // Az api.ts-ben definiált metódus hívása az "Open" filterrel
             const response = await api.Rents.getRentsGloballyByFilter("Open");
-            console.log("Lekérdezett függőben lévő bérlések (nyers adat fetchPendingRents-ben):", response.data); // DEBUG
+            console.log("Lekérdezett függőben lévő bérlések (nyers adat fetchPendingRents-ben):", response.data);
             if (response.data && Array.isArray(response.data)) {
                 response.data.forEach(rent => {
-                    console.log(`Bérlés ID a fetchPendingRents-ben (response.data map): ${rent.id}, Típus: ${typeof rent.id}`); // DEBUG
+                    console.log(`Bérlés ID a fetchPendingRents-ben (response.data map): ${rent.id}, Típus: ${typeof rent.id}`);
                 });
             }
             setPendingRents(response.data || []);
@@ -72,22 +66,22 @@ const PendingRentsPage = () => {
     }, []);
 
     const handleApproveClick = (rent: IRentGetDto) => {
-        console.log("handleApproveClick - Kiválasztott bérlés objektum:", rent); // DEBUG
-        console.log(`handleApproveClick - Kiválasztott bérlés ID-ja: ${rent.id}, Típusa: ${typeof rent.id}`); // DEBUG
+        console.log("handleApproveClick - Kiválasztott bérlés objektum:", rent);
+        console.log(`handleApproveClick - Kiválasztott bérlés ID-ja: ${rent.id}, Típusa: ${typeof rent.id}`);
         setSelectedRent(rent);
         openApproveModal();
     };
 
     const handleRejectClick = (rent: IRentGetDto) => {
-        console.log("handleRejectClick - Kiválasztott bérlés objektum:", rent); // DEBUG
-        console.log(`handleRejectClick - Kiválasztott bérlés ID-ja: ${rent.id}, Típusa: ${typeof rent.id}`); // DEBUG
+        console.log("handleRejectClick - Kiválasztott bérlés objektum:", rent);
+        console.log(`handleRejectClick - Kiválasztott bérlés ID-ja: ${rent.id}, Típusa: ${typeof rent.id}`);
         setSelectedRent(rent);
-        setRejectionReason(''); // Ürítjük az előző indoklást
+        setRejectionReason('');
         openRejectModal();
     };
 
     const confirmApprove = async () => {
-        console.log("confirmApprove - Kezdeti selectedRent állapot:", selectedRent); // DEBUG
+        console.log("confirmApprove - Kezdeti selectedRent állapot:", selectedRent);
         if (!selectedRent || selectedRent.id == null || selectedRent.id === 0) {
             notifications.show({
                 title: 'Hiba',
@@ -110,7 +104,7 @@ const PendingRentsPage = () => {
             return;
         }
 
-        console.log(`confirmApprove - API hívás indítása. Rent ID: ${selectedRent.id}, Staff ID (tokenből jön): ${user.id}`); // DEBUG
+        console.log(`confirmApprove - API hívás indítása. Rent ID: ${selectedRent.id}, Staff ID (tokenből jön): ${user.id}`);
 
         setIsLoading(true);
         try {
@@ -122,7 +116,7 @@ const PendingRentsPage = () => {
                 color: 'green',
                 icon: <IconCheck />,
             });
-            fetchPendingRents(); // Lista frissítése
+            fetchPendingRents();
         } catch (err: any) {
             console.error("Hiba a jóváhagyás során:", err);
             notifications.show({
@@ -138,7 +132,7 @@ const PendingRentsPage = () => {
     };
 
     const confirmReject = async () => {
-        console.log("confirmReject - Kezdeti selectedRent állapot:", selectedRent); // DEBUG
+        console.log("confirmReject - Kezdeti selectedRent állapot:", selectedRent);
         if (!selectedRent || selectedRent.id == null || selectedRent.id === 0) {
             notifications.show({
                 title: 'Hiba',
@@ -156,12 +150,10 @@ const PendingRentsPage = () => {
             return;
         }
 
-        console.log(`confirmReject - API hívás indítása. Rent ID: ${selectedRent.id}, Staff ID (tokenből jön): ${user.id}, Indok: ${rejectionReason}`); // DEBUG
+        console.log(`confirmReject - API hívás indítása. Rent ID: ${selectedRent.id}, Staff ID (tokenből jön): ${user.id}, Indok: ${rejectionReason}`);
 
         setIsLoading(true);
         try {
-            // TODO: Backend API hívás az elutasításhoz, elküldve a rejectionReason-t is
-            // await api.Staff.rejectRent(selectedRent.id, rejectionReason); // Feltételezve, hogy van ilyen API metódus
             console.log(`Bérlés ${selectedRent.id} elutasítva. Indok: ${rejectionReason}. Ügyintéző ID: ${user.id}`);
             notifications.show({
                 title: 'Sikeres Elutasítás (Szimulált)',
@@ -169,7 +161,7 @@ const PendingRentsPage = () => {
                 color: 'orange',
                 icon: <IconX />,
             });
-            fetchPendingRents(); // Lista frissítése
+            fetchPendingRents();
         } catch (err: any) {
             console.error("Hiba az elutasítás során:", err);
             notifications.show({
@@ -246,7 +238,6 @@ const PendingRentsPage = () => {
                 <Text>Nincsenek jóváhagyásra váró kölcsönzési igények.</Text>
             ) : null }
 
-            {/* Jóváhagyás Modális Ablak */}
             <Modal opened={approveModalOpened} onClose={closeApproveModal} title="Jóváhagyás Megerősítése" centered>
                 <Stack>
                     <Text>Biztosan jóváhagyod a(z) {selectedRent?.id} azonosítójú kölcsönzési igényt?</Text>
@@ -259,7 +250,6 @@ const PendingRentsPage = () => {
                 </Stack>
             </Modal>
 
-            {/* Elutasítás Modális Ablak */}
             <Modal opened={rejectModalOpened} onClose={closeRejectModal} title="Elutasítás Megerősítése" centered>
                 <Stack>
                     <Text>Biztosan elutasítod a(z) {selectedRent?.id} azonosítójú kölcsönzési igényt?</Text>

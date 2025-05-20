@@ -5,7 +5,7 @@ import Cars from "../pages/Cars.tsx";
 import ProfilePage from "../pages/ProfilePage.tsx";
 import RegisterPage from "../pages/Register.tsx";
 import PendingRentPage from "../pages/PendingRentPage.tsx";
-import CarHandoverPage from "../pages/CarHandoverPage.tsx"; // Feltételezve, hogy van ilyen
+import CarHandoverPage from "../pages/CarHandoverPage.tsx";
 import RunningRents from "../pages/RunningRents.tsx";
 import AddCar from "../pages/AddCar.tsx";
 import {CompletedRents} from "../pages/CompletedRents.tsx";
@@ -49,35 +49,42 @@ export const routes = [
         path: "profile",
         component: <ProfilePage />,
         isPrivate: true,
+        roles: [ROLES.STAFF, ROLES.ADMIN, ROLES.RENTER],
     },
     {
         path: "staff/pending-rents",
         component: <PendingRentPage />,
         isPrivate: true,
+        roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
         path: "staff/handovers",
         component: <CarHandoverPage />,
         isPrivate: true,
+        roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
         path: "staff/running-rents",
         component: <RunningRents />,
         isPrivate: true,
+        roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
         path: "staff/completed-rents",
         component: <CompletedRents />,
         isPrivate: true,
+        roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
         path: "admin/add-car",
         component: <AddCar/>,
         isPrivate: true,
+        roles: [ROLES.ADMIN],
     },
     {
         path: "admin/update",
         component: <UpdateCar/>,
         isPrivate: true,
+        roles: [ROLES.ADMIN],
     }
 ];

@@ -20,13 +20,12 @@ interface JsonPatchOperation {
 
 type CarPatchData = Partial<{ [K in keyof Omit<ICar, 'id'>]: ICar[K] | null }>;
 
-// Segédfüggvény a patch dokumentum létrehozásához (változatlan)
 const createPatchDocument = (originalCar: ICar, updatedFields: CarPatchData): JsonPatchOperation[] => {
     const patchDoc: JsonPatchOperation[] = [];
     for (const key in updatedFields) {
         if (Object.prototype.hasOwnProperty.call(updatedFields, key)) {
             const typedKey = key as keyof Omit<ICar, 'id'>;
-            if (originalCar[typedKey] !== (updatedFields as CarPatchData)[typedKey]) { // Biztosítjuk a típust
+            if (originalCar[typedKey] !== (updatedFields as CarPatchData)[typedKey]) {
                 patchDoc.push({
                     op: "replace",
                     path: `/${typedKey}`,
@@ -38,7 +37,6 @@ const createPatchDocument = (originalCar: ICar, updatedFields: CarPatchData): Js
     return patchDoc;
 };
 
-// Segédfüggvény a problémás hozzárendeléshez (ÚJ)
 function assignToCarPatchData<K extends keyof Omit<ICar, 'id'>>(
     patchData: CarPatchData,
     key: K,
@@ -46,6 +44,42 @@ function assignToCarPatchData<K extends keyof Omit<ICar, 'id'>>(
 ) {
     patchData[key] = value;
 }
+
+const fuelTypesData: { value: FuelType; label: string }[] = [
+    { value: "Diesel", label: "Dízel" },
+    { value: "Petrol", label: "Benzin" },
+    { value: "Hybrid", label: "Hibrid" },
+    { value: "Electric", label: "Elektromos" },
+];
+
+const licenceTypesData: { value: RequiredLicenceType; label: string }[] = [
+    { value: "AM", label: "AM" },
+    { value: "A1", label: "A1" },
+    { value: "A2", label: "A2" },
+    { value: "A", label: "A" },
+    { value: "B", label: "B" },
+];
+
+const getFuelTypeLabel = (fuelType: number): string => {
+    switch (fuelType) {
+        case 0: return 'Dízel';
+        case 1: return 'Benzin';
+        case 2: return 'Hibrid';
+        case 3: return 'Elektromos';
+        default: return 'Ismeretlen';
+    }
+}
+const getLicenceTypeLabel = (licence: number): string => {
+    switch (licence) {
+        case 0: return 'AM';
+        case 1: return 'A1';
+        case 2: return 'A2';
+        case 3: return 'A';
+        case 4: return 'B';
+        default: return 'Ismeretlen';
+    }
+}
+
 
 const UpdateCar: React.FC = () => {
     const [cars, setCars] = useState<ICar[]>([]);
@@ -118,8 +152,6 @@ const UpdateCar: React.FC = () => {
         const formKeys = Object.keys(formData) as Array<keyof typeof formData>;
 
         for (const formKey of formKeys) {
-            // A TS2367 hibát okozó feltétel eltávolítva/módosítva.
-            // A formKey itt már a formData egyik kulcsa, ami az ICar (id nélküli) kulcsaira épül.
             const carKey = formKey as keyof Omit<ICar, 'id'>;
             const formValue = formData[formKey];
             const originalCarValue = editingCar[carKey];
@@ -155,7 +187,6 @@ const UpdateCar: React.FC = () => {
             const comparableOriginalValue = (originalCarValue === undefined && !(carKey in editingCar)) ? null : originalCarValue;
 
             if (comparableOriginalValue !== valueToPatch) {
-                // A TS2322 hibás sort cseréljük a segédfüggvény hívására:
                 assignToCarPatchData(changedValuesForPatch, carKey, valueToPatch);
             }
         }
@@ -186,15 +217,6 @@ const UpdateCar: React.FC = () => {
         }
     };
 
-    const fuelTypesData: { value: FuelType; label: string }[] = [
-        { value: "Diesel", label: "Dízel" }, { value: "Petrol", label: "Benzin" },
-        { value: "Hybrid", label: "Hibrid" }, { value: "Electric", label: "Elektromos" },
-    ];
-    const licenceTypesData: { value: RequiredLicenceType; label: string }[] = [
-        { value: "AM", label: "AM" }, { value: "A1", label: "A1" }, { value: "A2", label: "A2" },
-        { value: "A", label: "A" }, { value: "B", label: "B" },
-    ];
-
     if (isLoading && !cars.length) {
         return <Container style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 200px)' }}><Loader size="xl" /></Container>;
     }
@@ -215,10 +237,10 @@ const UpdateCar: React.FC = () => {
                                     <Text c="dimmed" size="sm" mb="sm">{car.licencePlate}</Text>
                                     <List spacing={6} size="sm" center>
                                         <List.Item icon={<ThemeIcon color="teal" size={20} radius="xl"><IconGasStation size={12} /></ThemeIcon>}>
-                                            Üzemanyag: {fuelTypesData.find(ft => ft.value === car.fuelType)?.label || car.fuelType}
+                                            Üzemanyag: {getFuelTypeLabel(parseInt(car.fuelType))}
                                         </List.Item>
                                         <List.Item icon={<ThemeIcon color="grape" size={20} radius="xl"><IconLicense size={12} /></ThemeIcon>}>
-                                            Jogosítvány: {licenceTypesData.find(lt => lt.value === car.requiredLicence)?.label || car.requiredLicence}
+                                            Jogosítvány: {getLicenceTypeLabel(parseInt(car.requiredLicence))}
                                         </List.Item>
                                         <List.Item icon={<ThemeIcon color="orange" size={20} radius="xl"><IconCurrencyDollar size={12} /></ThemeIcon>}>
                                             Ár/km: {car.pricePerKilometer} Ft

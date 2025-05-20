@@ -17,12 +17,12 @@ export interface ICar {
 export interface CarFormData {
     Brand: string;
     Model: string;
-    FuelType: string; // Stringként kezeljük a Select miatt, a backend konvertálja enumra
-    RequiredLicence: string; // Stringként kezeljük, a backend konvertálja enumra
+    FuelType: string;
+    RequiredLicence: string;
     LicencePlate: string;
     HasValidVignette: boolean;
-    PricePerKilometer: number | ''; // Lehet üres string a NumberInput miatt
+    PricePerKilometer: number | '';
     IsAutomatic: boolean;
-    ActualKilometers: number | ''; // Lehet üres string a NumberInput miatt
+    ActualKilometers: number | '';
     InProperCondition: boolean;
 }

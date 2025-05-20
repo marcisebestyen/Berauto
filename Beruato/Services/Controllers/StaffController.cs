@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Services.Services; // Ensure this points to the correct namespace for IStaffService
-using Services.Services.Services.Services; // This looks like a nested namespace, adjust if needed for your project structure
-using Database.Dtos.RentDtos; // Assuming RentGetDto is here
+using Services.Services; 
+using Services.Services.Services.Services; 
+using Database.Dtos.RentDtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Services.Controllers
 {
@@ -47,6 +48,7 @@ namespace Services.Controllers
         /// <response code="404">A megadott azonosítóval nem található bérlés, vagy a felhasználó nem személyzeti tag.</response>
         /// (Rental not found with the given ID, or the user is not a staff member.)
         [HttpPost("approve")]
+        [Authorize(Roles = "Staff,Admin")]
         public async Task<IActionResult> Approve(int rentId)
         {
             var staffId = GetCurrentStaffIdFromToken();
@@ -80,6 +82,7 @@ namespace Services.Controllers
         /// <response code="404">A megadott azonosítóval nem található bérlés, vagy a felhasználó nem személyzeti tag.</response>
         /// (Rental not found with the given ID, or the user is not a staff member.)
         [HttpPost("hand_over")]
+        [Authorize(Roles = "Staff,Admin")]
         public async Task<IActionResult> HandOver(int rentId, DateTime actualStart)
         {
             var staffId = GetCurrentStaffIdFromToken();
@@ -113,6 +116,7 @@ namespace Services.Controllers
         /// <response code="404">A megadott azonosítóval nem található bérlés, vagy a felhasználó nem személyzeti tag.</response>
         /// (Rental not found with the given ID, or the user is not a staff member.)
         [HttpPost("take_back")]
+        [Authorize(Roles = "Staff,Admin")]
         public async Task<IActionResult> TakeBack(int rentId, DateTime actualEnd, decimal endingKilometer)
         {
 
@@ -130,16 +134,14 @@ namespace Services.Controllers
         }
 
 
-        private int GetCurrentStaffIdFromToken() // Hasonlóan a UserControllerben lévőhöz
+        private int GetCurrentStaffIdFromToken() 
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier); // Vagy egy specifikus StaffID claim
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier); 
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
             {
-                // Logolás és hiba
                 throw new UnauthorizedAccessException("Személyzeti azonosító nem található a tokenben.");
             }
-            // Itt még ellenőrizhetnéd, hogy ez a userId valóban Staff szerepkörű-e,
-            // bár az [Authorize(Roles = "Staff")] ezt már megteszi.
+
             return userId;
         }
     }

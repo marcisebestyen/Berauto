@@ -11,7 +11,7 @@ import { useForm } from '@mantine/form';
 import { DatePickerInput } from '@mantine/dates';
 import useAuth from '../hooks/useAuth';
 import api from '../api/api.ts';
-import { useEffect, useState } from 'react'; // useCallback és useRef kivéve, ha később kellenek
+import { useEffect, useState } from 'react';
 import { notifications } from '@mantine/notifications';
 
 import dayjs from 'dayjs';
@@ -23,13 +23,12 @@ import { IGuestRentCreateDto, IRentCreateDto } from '../interfaces/IRent';
 dayjs.extend(customParseFormat);
 dayjs.locale('hu');
 
-// Props interfész kiegészítése az initialStartDate és initialEndDate mezőkkel
 interface BookingModalProps {
     carId: number;
     opened: boolean;
     onClose: () => void;
-    initialStartDate: Date | null; // <-- HOZZÁADVA
-    initialEndDate: Date | null;   // <-- HOZZÁADVA
+    initialStartDate: Date | null;
+    initialEndDate: Date | null;
 }
 
 interface UserForBooking {
@@ -54,7 +53,6 @@ const BookingModal = ({ carId, opened, onClose, initialStartDate, initialEndDate
             email: '',
             licenceId: '',
             phoneNumber: '',
-            // A form kezdeti értékei null-ok, a useEffect tölti fel őket az initial propokból, ha vannak
             plannedStart: null as Date | null,
             plannedEnd: null as Date | null,
             requiresReceipt: false,
@@ -88,44 +86,42 @@ const BookingModal = ({ carId, opened, onClose, initialStartDate, initialEndDate
         },
     });
 
-    // useEffect a form kitöltésére/resetelésére és a kezdeti dátumok beállítására
     useEffect(() => {
         if (opened) {
             let startToSet = initialStartDate;
             let endToSet = initialEndDate;
 
-            // Ha a startToSet későbbi, mint az endToSet (az initial értékek miatt), akkor az endToSet-et is a startToSet-re állítjuk.
+
             if (startToSet && endToSet && startToSet > endToSet) {
                 endToSet = startToSet;
             }
 
-            if (user && user.id) { // Ha be van jelentkezve felhasználó
+            if (user && user.id) {
                 form.setValues({
                     firstName: user.firstName || '',
                     lastName: user.lastName || '',
                     email: user.email || '',
                     licenceId: user.licenceId || '',
                     phoneNumber: user.phoneNumber || '',
-                    plannedStart: startToSet, // Az átvett érték
-                    plannedEnd: endToSet,     // Az átvett érték
-                    requiresReceipt: form.values.requiresReceipt, // Megtartjuk a checkbox állapotát
-                });
-            } else { // Ha vendég
-                form.setValues({
-                    ...form.setInitialValues, // Visszaállítjuk a szöveges mezőket az alapra
-                    plannedStart: startToSet, // De a dátumokat az átvett értékekre állítjuk
+                    plannedStart: startToSet,
                     plannedEnd: endToSet,
-                    requiresReceipt: false, // Alapértelmezett a checkbox-ra
+                    requiresReceipt: form.values.requiresReceipt,
+                });
+            } else {
+                form.setValues({
+                    ...form.setInitialValues,
+                    plannedStart: startToSet,
+                    plannedEnd: endToSet,
+                    requiresReceipt: false,
                 });
             }
         } else {
-            form.reset(); // Modal bezárásakor ürítjük a formot
+            form.reset();
         }
     }, [opened, user, initialStartDate, initialEndDate, form.setValues, form.reset]);
 
 
     const handleSubmit = async (valuesToSubmit: typeof form.values) => {
-        // ... (handleSubmit logika változatlan)
         if (!valuesToSubmit.plannedStart || !valuesToSubmit.plannedEnd) {
             notifications.show({ title: 'Hiba', message: 'A kezdési és befejezési dátum megadása kötelező.', color: 'red', });
             return;
@@ -196,7 +192,6 @@ const BookingModal = ({ carId, opened, onClose, initialStartDate, initialEndDate
             <form onSubmit={form.onSubmit(handleSubmit)}>
                 <LoadingOverlay visible={loading} />
                 <Stack>
-                    {/* ... TextInput mezők ... */}
                     <TextInput label="Vezetéknév" placeholder="Kovács" {...form.getInputProps('lastName')} />
                     <TextInput label="Keresztnév" placeholder="István" {...form.getInputProps('firstName')} />
                     <TextInput label="Email" type="email" placeholder="email@example.com" {...form.getInputProps('email')} />
@@ -223,10 +218,9 @@ const BookingModal = ({ carId, opened, onClose, initialStartDate, initialEndDate
                         error={form.errors.plannedEnd}
                         clearable={true}
                         minDate={form.values.plannedStart ? dayjs(form.values.plannedStart).startOf('day').toDate() : (initialStartDate ? dayjs(initialStartDate).startOf('day').toDate() : dayjs().startOf('day').toDate())}
-                        maxDate={initialEndDate ? dayjs(initialEndDate).endOf('day').toDate() : undefined} // endOf('day') hogy az egész nap választható legyen
+                        maxDate={initialEndDate ? dayjs(initialEndDate).endOf('day').toDate() : undefined}
                         locale="hu"
                     />
-                    {/* ... Checkbox és Gombok ... */}
                     <Checkbox label="Számlát kérek" {...form.getInputProps('requiresReceipt', { type: 'checkbox' })} />
                     <Group justify="flex-end" mt="md">
                         <Button variant="outline" onClick={onClose} mr="sm">Mégsem</Button>

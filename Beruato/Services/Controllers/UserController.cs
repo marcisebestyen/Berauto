@@ -15,6 +15,7 @@ namespace Berauto.Controllers;
 
 [ApiController]
 [Route("api/users")]
+[AllowAnonymous]
 public class UserController : Controller
 {
     private readonly IUserService _userService;
@@ -60,12 +61,12 @@ public class UserController : Controller
     /// <param name="patchDoc">A JSON Patch dokumentum, ami a módosításokat tartalmazza.</param>
     /// <returns>HTTP státuszkód a művelet eredményéről.</returns>
     [Authorize]
-    [HttpPatch("updateProfile")] // HTTP metódus cserélve PATCH-re
+    [HttpPatch("updateProfile")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)] // ModelState hibák vagy patch hibák
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)] 
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)] // Pl. email ütközés
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateUserProfile([FromBody] JsonPatchDocument<UserUpdateDto> patchDoc)
     {
@@ -76,7 +77,6 @@ public class UserController : Controller
             return BadRequest(new { Message = "A PATCH dokumentum nem lehet üres." });
         }
 
-        //    A UserGetDto-t használjuk, majd átalakítjuk UserUpdateDto-ra.
         var userGetDto = await _userService.GetUserByIdAsync(userId);
         if (userGetDto == null)
         {
@@ -86,8 +86,6 @@ public class UserController : Controller
 
         var userToPatchDto = _mapper.Map<UserUpdateDto>(userGetDto);
 
-        // A ModelState-et átadjuk, hogy az ApplyTo bele tudja írni a patch alkalmazása során keletkező hibákat
-        // (pl. ha egy nem létező property-t próbál módosítani).
         patchDoc.ApplyTo(userToPatchDto, ModelState);
 
         if (!ModelState.IsValid)
@@ -95,15 +93,12 @@ public class UserController : Controller
             return BadRequest(ModelState);
         }
 
-        // Újraellenőrizzük a DTO-t a patch után, hogy a benne lévő DataAnnotation attribútumok (pl. StringLength)
-        // érvényesek-e a módosított értékekre.
         TryValidateModel(userToPatchDto);
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        // A UserService.UpdateUserAsync logikája változatlan, az kezeli a DTO alapján a tényleges entitásfrissítést.
         var result = await _userService.UpdateUserAsync(userId, userToPatchDto);
 
         if (result.Succeeded)
@@ -111,7 +106,6 @@ public class UserController : Controller
             return NoContent();
         }
 
-        // Hibakezelés a ServiceResult alapján (hasonlóan a PUT-hoz)
         if (result.Errors.Any())
         {
             string firstError = result.Errors.First().ToLowerInvariant();
@@ -120,7 +114,7 @@ public class UserController : Controller
                 return NotFound(new { Errors = result.Errors });
             }
 
-            if (firstError.Contains("már foglalt")) // Pl. email cím ütközés
+            if (firstError.Contains("már foglalt"))
             {
                 return Conflict(new { Errors = result.Errors });
             }
@@ -161,7 +155,7 @@ public class UserController : Controller
     [HttpPost("register")]
     [ProducesResponseType(typeof(UserGetDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(object),
-        StatusCodes.Status400BadRequest)] // Validációs hibák vagy üzleti logikai hibák (pl. email foglalt)
+        StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Register([FromBody] UserCreateDto registrationDto)
     {
@@ -177,17 +171,13 @@ public class UserController : Controller
         {
             return BadRequest(new { Errors = registrationResult.Errors });
         }
-
-        // Sikeres regisztráció esetén 201 Created választ adunk vissza,
-        // a válasz body-jában az új felhasználó adataival (UserGetDto),
-        // és a Location headerben az új erőforrás URI-jával (opcionális, de jó gyakorlat).
         return CreatedAtAction(nameof(GetMyProfile), new { userId = registrationResult.User.Id },
             registrationResult.User);
     }
 
     [HttpPost("check-email-for-direct-reset")]
     [ProducesResponseType(typeof(object),
-        StatusCodes.Status200OK)] // Egy objektumot ad vissza, pl. { emailExists: true/false }
+        StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> CheckEmailForReset([FromBody] ForgotPasswordRequest req)
     {
@@ -232,9 +222,6 @@ public class UserController : Controller
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
         {
-            // Ez a helyzet elvileg nem fordulhatna elő, ha az [Authorize] attribútum aktív
-            // és a token érvényes és tartalmazza a NameIdentifier claim-et.
-            // Ha mégis, az komoly konfigurációs vagy token generálási hibára utal.
             _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token for an authorized request.");
             throw new UnauthorizedAccessException(
                 "A felhasználói azonosító (ClaimTypes.NameIdentifier) nem található vagy érvénytelen a tokenben, annak ellenére, hogy a kérés authentikált.");

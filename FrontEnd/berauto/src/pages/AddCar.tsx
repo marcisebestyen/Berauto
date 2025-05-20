@@ -1,4 +1,3 @@
-
 import React, { useState, FormEvent } from 'react';
 import {
     TextInput,
@@ -14,9 +13,6 @@ import {
 } from '@mantine/core';
 import {CarFormData} from "../interfaces/ICar.ts";
 
-// Backend enumok frontend reprezentációja a Select komponenshez
-// A 'value' itt stringként az enum nevét fogja tartalmazni.
-// A backendnek képesnek kell lennie ezt stringként fogadni és enumra konvertálni.
 const fuelTypeOptions = [
     { value: 'Diesel', label: 'Dízel' },
     { value: 'Petrol', label: 'Benzin' },
@@ -36,14 +32,14 @@ const AddCarPage = () => {
     const [formData, setFormData] = useState<CarFormData>({
         Brand: '',
         Model: '',
-        FuelType: '', // Kezdetben üres, a felhasználó választ
-        RequiredLicence: '', // Kezdetben üres, a felhasználó választ
+        FuelType: '',
+        RequiredLicence: '',
         LicencePlate: '',
-        HasValidVignette: true, // Alapértelmezett érték
+        HasValidVignette: true,
         PricePerKilometer: '',
-        IsAutomatic: false, // Alapértelmezett érték
+        IsAutomatic: false,
         ActualKilometers: '',
-        InProperCondition: true, // Alapértelmezett érték
+        InProperCondition: true,
     });
 
     const [error, setError] = useState<string | string[]>('');
@@ -58,12 +54,10 @@ const AddCarPage = () => {
         }));
     };
 
-    // Külön handler a Mantine Select és NumberInput komponensekhez,
-    // mivel azok nem standard 'event.target.value'-t adnak vissza.
     const handleSelectChange = (name: keyof CarFormData, value: string | null) => {
         setFormData(prevData => ({
             ...prevData,
-            [name]: value || '', // Ha a value null (pl. törlés), üres string legyen
+            [name]: value || '',
         }));
     };
 
@@ -91,7 +85,6 @@ const AddCarPage = () => {
         setSuccessMessage('');
         setIsLoading(true);
 
-        // Frontend validáció
         if (!formData.Brand || !formData.Model || !formData.FuelType || !formData.RequiredLicence || !formData.LicencePlate || formData.PricePerKilometer === '' || formData.ActualKilometers === '') {
             setError('Minden csillaggal jelölt mező kitöltése kötelező.');
             setIsLoading(false);
@@ -108,12 +101,10 @@ const AddCarPage = () => {
             return;
         }
 
-        // API végpont URL-je (módosítsd, ha szükséges)
-        const apiUrl = 'https://localhost:7205/api/cars/createCar'; // Figyelj a controller nevére ('Cars' vagy 'Car')
+        const apiUrl = 'https://localhost:7205/api/cars/createCar';
 
         try {
-            // A formData objektumot küldjük, a backendnek kell tudnia map-elni a CarCreateDto-ra.
-            // A FuelType és RequiredLicence stringként megy át, a backend enum konverziónak kell működnie.
+
             const payload = {
                 ...formData,
                 PricePerKilometer: Number(formData.PricePerKilometer),
@@ -124,21 +115,19 @@ const AddCarPage = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Ide jöhet az authentikációs token, ha szükséges
-                    // 'Authorization': `Bearer YOUR_AUTH_TOKEN`,
                 },
                 body: JSON.stringify(payload),
             });
 
-            const responseData = await response.json(); // A backend CreatedAtAction választ ad, a body-ban az új autóval
+            const responseData = await response.json();
 
-            if (!response.ok) { // Státuszkód 4xx vagy 5xx
-                if (responseData.errors) { // ModelState hibák (ASP.NET Core default)
+            if (!response.ok) {
+                if (responseData.errors) {
                     const modelErrors = Object.values(responseData.errors).flat() as string[];
                     setError(modelErrors.length > 0 ? modelErrors : ['Érvénytelen bemeneti adatok.']);
-                } else if (responseData.title && responseData.status) { // ASP.NET Core default problem details
+                } else if (responseData.title && responseData.status) {
                     setError(`${responseData.title} (Státusz: ${responseData.status})`);
-                } else if (responseData.Message) { // Egyedi hibaüzenet a backendtől
+                } else if (responseData.Message) {
                     setError(responseData.Message);
                 }
                 else {
@@ -160,7 +149,6 @@ const AddCarPage = () => {
         }
     };
 
-    // Hibaüzenetek megjelenítése
     const renderErrorMessages = () => {
         if (!error) return null;
         const messages = Array.isArray(error) ? error : [error];

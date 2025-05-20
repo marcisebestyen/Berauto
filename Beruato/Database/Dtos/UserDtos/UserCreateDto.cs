@@ -20,9 +20,9 @@ public class UserCreateDto
 
     [EmailAddress(ErrorMessage = "Érvénytelen e-mail cím formátum.")]
     [StringLength(255, ErrorMessage = "Az e-mail cím maximum 255 karakter hosszú lehet.")]
-    public string Email { get; set; } // Nullázható, de regisztrált felhasználónál érdemes megkövetelni
+    public string Email { get; set; } 
 
     [StringLength(255, MinimumLength = 6, ErrorMessage = "A jelszónak legalább 6 karakter hosszúnak kell lennie.")]
-    public string Password { get; set; } // Nullázható, de regisztrált felhasználónál érdemes megkövetelni
-    public string Address { get; set; } // Nullázható, de regisztrált felhasználónál érdemes megkövetelni
+    public string Password { get; set; } 
+    public string Address { get; set; } 
 }

@@ -60,14 +60,13 @@
   &[data-active="true"] {
     &,
     &:hover {
-      /* Styling for active link is likely handled by the Button's color prop in JS */
     }
   }
 }
 
 .iconButton {
-  padding-left: rem(6px);
-  padding-right: rem(6px);
+  padding-left: calc(6 * var(--mantine-scale));
+  padding-right: calc(6 * var(--mantine-scale));
   margin-right: var(--mantine-spacing-sm);
 }
 

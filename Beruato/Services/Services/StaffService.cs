@@ -8,9 +8,11 @@ namespace Services.Services
 {
     using AutoMapper;
     using Database.Dtos.RentDtos;
+    using Database.Models;
     using global::Services.Repositories;
     
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
@@ -38,7 +40,7 @@ namespace Services.Services
             public async Task<RentGetDto> ApprovedBy(int staffId, int rentId)
             {
                 var user = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { staffId });
-                if (user == null || user.Role != Database.Models.Role.Staff)
+                if (user == null || (user.Role != Role.Staff && user.Role != Role.Admin))
                 {
                     throw new KeyNotFoundException($"User with id {staffId} not found or user is not staff.");
                 }
@@ -59,7 +61,7 @@ namespace Services.Services
             {
                 // 1. Staff (alkalmazott) ellenőrzése
                 var staffUser = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { staffId });
-                if (staffUser == null || staffUser.Role != Database.Models.Role.Staff)
+                if (staffUser == null || (staffUser.Role != Role.Staff && staffUser.Role != Role.Admin))
                 {
                     throw new KeyNotFoundException($"User with id {staffId} not found or user is not staff.");
                 }
@@ -105,7 +107,7 @@ namespace Services.Services
             {
                 // 1. Staff (alkalmazott) ellenőrzése
                 var staffUser = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { staffId });
-                if (staffUser == null || staffUser.Role != Database.Models.Role.Staff)
+                if (staffUser == null || (staffUser.Role != Role.Staff && staffUser.Role != Role.Admin))
                 {
                     throw new KeyNotFoundException($"User with id {staffId} not found or user is not staff.");
                 }

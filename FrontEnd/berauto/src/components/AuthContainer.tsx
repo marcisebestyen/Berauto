@@ -11,7 +11,6 @@ const AuthContainer = ({ children, title }: AuthContainerInterface) => {
             <Center>
                 <Paper radius="md" p="xl" withBorder maw={600} m={10}>
                     <Text size="lg" fw={500}>
-                        {/* Ha van title prop, azt használja, különben az alapértelmezett "Bérautó" szöveget */}
                         {title || "Bérautó"}
                     </Text>
                     <Divider my="lg" />

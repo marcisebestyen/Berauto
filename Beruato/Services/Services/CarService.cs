@@ -61,37 +61,26 @@ public class CarService : ICarService
     public async Task<ServiceResult> UpdateCarAsync(int id, JsonPatchDocument<Car> patchDocument,
         ModelStateDictionary modelState)
     {
-        // A patchDocument null ellenőrzése már a controllerben megtörtént, de itt is lehetne.
-        // A C# 8+ nullable reference types segíthet ennek kikényszerítésében.
 
         var existingCar =
             await _unitOfWork.CarRepository.GetByIdAsync(new object[]
             {
                 id
-            }); // Feltételezve, hogy a GetByIdAsync object[] helyett int-et is elfogad, vagy van egy ilyen overload.
-        // Vagy: await _unitOfWork.CarRepository.GetByIdAsync(new object[] { id });
+            }); 
         if (existingCar == null)
         {
             // _logger.LogInformation("UpdateCarAsync: Car with ID {CarId} not found.", id);
             throw new KeyNotFoundException($"A {id} azonosítójú autó nem található.");
         }
 
-        // 1. Alkalmazzuk a patch műveleteket a meglévő entitásra.
-        // Az ApplyTo metódus a 'modelState'-be írja a patch alkalmazása során felmerülő hibákat
-        // (pl. érvénytelen elérési út, "test" művelet sikertelensége).
         patchDocument.ApplyTo(existingCar, modelState);
 
-        // 2. Ellenőrizzük, hogy maga a patch alkalmazása adott-e hibát a ModelState-hez.
         if (!modelState.IsValid)
         {
-            // _logger.LogWarning("UpdateCarAsync: Errors after applying patch to car ID {CarId}. ModelState: {@ModelState}", id, modelState);
-            // A controller ezt elkapja és BadRequest(ModelState) választ ad.
             throw new ArgumentException("A JSON Patch dokumentum műveletei hibát eredményeztek. Lásd a részleteket.",
                 nameof(patchDocument));
         }
 
-        // 3. ERŐSEN AJÁNLOTT: Az EGÉSZ entitás validálása DataAnnotations alapján a patch alkalmazása UTÁN.
-        // A JsonPatchDocument.ApplyTo önmagában nem futtatja ezeket a validációkat az entitás teljes állapotára.
         var validationContext = new ValidationContext(existingCar, serviceProvider: null, items: null);
         var validationResults = new List<ValidationResult>();
         bool isEntityValid = Validator.TryValidateObject(existingCar, validationContext, validationResults,
@@ -101,7 +90,6 @@ public class CarService : ICarService
         {
             foreach (var validationResult in validationResults)
             {
-                // A MemberNames tartalmazhatja a hibás property nevét, vagy üres lehet általánosabb hibáknál.
                 if (validationResult.MemberNames.Any())
                 {
                     foreach (var memberName in validationResult.MemberNames)
@@ -111,7 +99,7 @@ public class CarService : ICarService
                 }
                 else
                 {
-                    modelState.AddModelError(string.Empty, validationResult.ErrorMessage); // Entitás szintű hiba
+                    modelState.AddModelError(string.Empty, validationResult.ErrorMessage); 
                 }
             }
 
@@ -120,17 +108,8 @@ public class CarService : ICarService
                 "Az entitás validációja sikertelen a patch alkalmazása után. Lásd a részleteket.", nameof(existingCar));
         }
 
-        // 4. Itt jöhetnek egyedi üzleti szabályok ellenőrzései, amelyek InvalidOperationException-t dobhatnak.
-        // Pl.: await ValidateBusinessRulesAsync(existingCar);
-
-        // 5. Változások mentése az adatbázisba
-        // Az EF Core változáskövetése észleli a 'existingCar' entitáson történt módosításokat.
-        // A repository UpdateAsync metódusa beállíthatja az entitás állapotát 'Modified'-re,
-        // bár ha az entitás már követett, az EF Core automatikusan észleli a változásokat.
-        // _unitOfWork.CarRepository.Update(existingCar); // Vagy csak hagyjuk, hogy az EF Core kövesse
         await _unitOfWork.SaveAsync();
 
-        // _logger.LogInformation("UpdateCarAsync: Successfully updated and saved car ID {CarId}.", id);
         return ServiceResult.Success("Autó sikeresen updatelve.");
     }
 

@@ -49,7 +49,7 @@ const Register = () => {
             return;
         }
         if (!formData.FirstName || !formData.LastName || !formData.Email) {
-            setError('A csillaggal jelölt mezők kitöltése kötelező.'); // Általánosabb hibaüzenet
+            setError('A csillaggal jelölt mezők kitöltése kötelező.');
             return;
         }
 
@@ -82,9 +82,9 @@ const Register = () => {
                 setSuccessMessage('Sikeres regisztráció! Hamarosan átirányítunk a bejelentkezési oldalra.');
                 setFormData({FirstName: '', LastName: '', PhoneNumber: '', LicenceId: '', Email: '', Password: ''});
                 setConfirmPassword('');
-                // Átirányítás a login oldalra pár másodperc múlva
+
                 setTimeout(() => {
-                    navigate('/login'); // Módosítsd, ha a login oldalad más útvonalon van
+                    navigate('/login');
                 }, 3000);
             }
         } catch (error) {
