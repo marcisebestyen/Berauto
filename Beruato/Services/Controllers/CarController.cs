@@ -34,7 +34,7 @@ namespace Berauto.Controllers
         /// <returns>Az összes autó listája.</returns>
         /// <response code="200">Sikeresen visszaadja az autók listáját. A válasz teste: IEnumerable&lt;CarDto&gt;</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpGet]
+        [HttpGet("get-all")]
         public async Task<IActionResult> GetAllCars()
         {
             var cars = await _carService.GetAllCarsAsync();
@@ -49,7 +49,7 @@ namespace Berauto.Controllers
         /// <response code="200">Sikeresen visszaadja a kért autót. A válasz teste: CarDto</response>
         /// <response code="404">A megadott azonosítóval nem található autó.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpGet("{carId:int}")]
+        [HttpGet("get/{carId:int}")]
         [AllowAnonymous]
         public async Task<IActionResult> GetCarById(int carId)
         {
@@ -70,7 +70,7 @@ namespace Berauto.Controllers
         /// <response code="201">Az autó sikeresen létrehozva. A válasz tartalmazza a létrehozott autót (CarDto) a 'Location' fejléc mellett.</response>
         /// <response code="400">Érvénytelen bemeneti adatok.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpPost("createCar")]
+        [HttpPost("create-car")]
         public async Task<IActionResult> AddCar([FromBody] CarCreateDto createCarDto)
         {
             if (!ModelState.IsValid)
@@ -98,7 +98,7 @@ namespace Berauto.Controllers
         /// <response code="404">A megadott azonosítóval nem található autó.</response>
         /// <response code="409">Konkurrens módosítási ütközés történt.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpPatch("{carId:int}")]
+        [HttpPatch("update/{carId:int}")]
         public async Task<IActionResult> UpdateCar([FromRoute(Name = "carId")] int id, [FromBody] JsonPatchDocument<Car> patchDocument)
         {
             // Ellenőrizzük, hogy maga a patchDocument objektum létrejött-e (nem null-e).
@@ -170,68 +170,12 @@ namespace Berauto.Controllers
         /// <response code="204">Az autó sikeresen törölve.</response>
         /// <response code="404">A megadott azonosítóval nem található autó.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpDelete("{carId:int}")]
+        [HttpDelete("delete/{carId:int}")]
         public async Task<IActionResult> DeleteCar(int carId)
         {
             try
             {
                 await _carService.DeleteCarAsync(carId);
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Frissíti egy autó kilométeróra-állását.
-        /// A kérés törzsében egy nyers decimális számot vár (pl. 125000.50).
-        /// </summary>
-        /// <param name="carId">Az autó egyedi azonosítója.</param>
-        /// <param name="newKilometers">Az új kilométeróra-állás (közvetlenül a kérés törzséből).</param>
-        /// <response code="204">A kilométeróra-állás sikeresen frissítve.</response>
-        /// <response code="400">Érvénytelen bemeneti adat (pl. nem szám).</response>
-        /// <response code="404">A megadott azonosítóval nem található autó.</response>
-        /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpPatch("{carId:int}/kilometers")]
-        public async Task<IActionResult> UpdateCarKilometers(int carId, [FromBody] decimal newKilometers)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            try
-            {
-                await _carService.UpdateCarKilometersAsync(carId, newKilometers);
-                return NoContent();
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Beállítja egy autó állapotát (megfelelő állapotban van-e).
-        /// A kérés törzsében egy nyers boolean értéket vár (pl. true vagy false).
-        /// </summary>
-        /// <param name="carId">Az autó egyedi azonosítója.</param>
-        /// <param name="inProperCondition">Az új állapot (true vagy false, közvetlenül a kérés törzséből).</param>
-        /// <response code="204">Az autó állapota sikeresen beállítva.</response>
-        /// <response code="400">Érvénytelen bemeneti adat (pl. nem boolean).</response>
-        /// <response code="404">A megadott azonosítóval nem található autó.</response>
-        /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpPatch("{carId:int}/condition")]
-        public async Task<IActionResult> SetCarCondition(int carId, [FromBody] bool inProperCondition)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            try
-            {
-                await _carService.SetCarConditionAsync(carId, inProperCondition);
                 return NoContent();
             }
             catch (KeyNotFoundException ex)

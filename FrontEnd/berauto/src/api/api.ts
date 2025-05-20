@@ -18,8 +18,22 @@ const Cars = {
             `/cars/available?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
         );
     },
-    updateCarAvailability: (carId: number, isAvailable: boolean) =>
-        axiosInstance.put(`/cars/${carId}/availability`, { isAvailable }),
+    updateCar: (id: number, patchDocument: JsonPatchOperation[]) => {
+        return axiosInstance.patch<void>( // A szerver NoContent() választ ad, ezért a várt adat void
+            `/cars/update/${id}`, // Az API végpontja az autó frissítésére
+            patchDocument,
+            {
+                headers: {
+                    'Content-Type': 'application/json-patch+json'
+                }
+            }
+        );
+    },
+    getAllCars: () => {
+        return axiosInstance.get<ICar[]>(
+            `/cars/get-all`
+        );
+    }
 };
 
 const Users = {

@@ -9,6 +9,7 @@ import CarHandoverPage from "../pages/CarHandoverPage.tsx"; // Feltételezve, ho
 import RunningRents from "../pages/RunningRents.tsx";
 import AddCar from "../pages/AddCar.tsx";
 import {CompletedRents} from "../pages/CompletedRents.tsx";
+import UpdateCar from "../pages/UpdateCar.tsx";
 
 
 
@@ -74,4 +75,9 @@ export const routes = [
         component: <AddCar/>,
         isPrivate: true,
     },
+    {
+        path: "admin/update",
+        component: <UpdateCar/>,
+        isPrivate: true,
+    }
 ];

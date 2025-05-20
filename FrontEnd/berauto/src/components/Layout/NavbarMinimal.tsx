@@ -116,6 +116,12 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
                 label: "Autó hozzáadása",
                 url: "/admin/add-car",
                 color: "green" as DefaultMantineColor,
+            },
+            {
+                icon: IconCar,
+                label: "Autó adatok szerkesztése",
+                url: "/admin/update",
+                color: "green" as DefaultMantineColor,
             }
         ];
 
