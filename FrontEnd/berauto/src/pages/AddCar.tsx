@@ -91,8 +91,10 @@ const AddCarPage = () => {
             setIsLoading(false);
             return;
         }
+        console.log(formData.PricePerDay);
         if (Number(formData.PricePerDay) <= 0) {
             setError('A kilométerenkénti árnak pozitívnak kell lennie.');
+            console.log(formData.PricePerDay);
             setIsLoading(false);
             return;
         }

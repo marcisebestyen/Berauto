@@ -39,7 +39,7 @@ const Cars = {
     createCar: async (carData: CarFormData): Promise<ICar> => {
         const payload = {
             ...carData,
-            pricePerKilometer: Number(carData.PricePerDay),
+            pricePerDay: Number(carData.PricePerDay),
             ActualKilometers: Number(carData.ActualKilometers),
         };
         delete (payload as any).PricePerDay;

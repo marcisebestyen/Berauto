@@ -112,12 +112,7 @@ public class UserService : IUserService
             user.Address = userUpdateDto.Address;
             changed = true;
         }
-
-        // Nem engedjük módosítani: Id, UserName, RegisteredUser, Role, Password ezen a végponton.
-        // A jelszó módosítására külön funkció kell.
-        // A UserName általában nem módosítható a regisztráció után.
-        // A Role módosítása adminisztrátori jogosultságot igényel.
-
+        
         if (!changed)
         {
             return ServiceResult.Success(); // Nem történt változás
@@ -131,18 +126,15 @@ public class UserService : IUserService
         }
         catch (DbUpdateConcurrencyException)
         {
-            // Konkurrencia probléma: valaki más módosította az adatot közben.
-            // Lehet újrapróbálkozni, vagy a felhasználót értesíteni.
             return ServiceResult.Failed("Az adatokat időközben valaki más módosította. Kérjük, próbálja újra.");
         }
         catch (DbUpdateException ex)
         {
-            // Általános adatbázis frissítési hiba (pl. unique constraint sérülés, amit fentebb nem kezeltünk expliciten)
             // Logolás javasolt: _logger.LogError(ex, "Hiba történt a felhasználó adatainak frissítésekor.");
             return ServiceResult.Failed(
                 $"Adatbázis hiba történt a frissítés során: {ex.InnerException?.Message ?? ex.Message}");
         }
-        catch (Exception ex) // Egyéb váratlan hibák
+        catch (Exception ex) 
         {
             _logger.LogError(ex, "Váratlan hiba történt a felhasználó adatainak frissítésekor.");
             return ServiceResult.Failed($"Váratlan hiba történt: {ex.Message}");
@@ -162,13 +154,11 @@ public class UserService : IUserService
 
         if (user == null)
         {
-            // Általános hibaüzenet, hogy ne adjunk információt arról, hogy a felhasználó létezik-e.
             return LoginResult.Failure("Hibás e-mail cím vagy jelszó.");
         }
 
         if (!user.RegisteredUser)
         {
-            // Vendégfelhasználó: jelszó nem szükséges, token sem kell
             var usersGetDto = _mapper.Map<UserGetDto>(user);
             return LoginResult.Success(usersGetDto, token: "");
         }
@@ -185,7 +175,6 @@ public class UserService : IUserService
             return LoginResult.Failure("Hibás e-mail cím vagy jelszó.");
         }
 
-        // Sikeres hitelesítés, JWT token generálása
         var tokenHandler = new JwtSecurityTokenHandler();
         var jwtSettings = _configuration.GetSection("Jwt");
         var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ??
@@ -224,7 +213,6 @@ public class UserService : IUserService
             return RegistrationResult.Failure("A regisztrációs adatok nem lehetnek üresek.");
         }
 
-        // Ellenőrizzük, hogy az e-mail cím foglalt-e már
         var existingUserByEmail = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == registrationDto.Email))
             .FirstOrDefault();
         if (existingUserByEmail != null)
@@ -232,34 +220,30 @@ public class UserService : IUserService
             return RegistrationResult.Failure("Ez az e-mail cím már regisztrálva van.");
         }
 
-        // UserName generálása/beállítása (itt az Email-t használjuk, de lehetne bonyolultabb logika is)
-        // és ellenőrizzük az egyediségét.
-        string userNameToRegister = registrationDto.Email; // Egyszerűsített UserName
+        string userNameToRegister = registrationDto.Email; 
         var existingUserByUserName = (await _unitOfWork.UserRepository.GetAsync(u => u.UserName == userNameToRegister))
             .FirstOrDefault();
         if (existingUserByUserName != null)
         {
-            // Ha az email egyedi, de a UserName (ami itt ugyanaz) valahogy mégis foglalt, az adatbázis anomália
-            // vagy a UserName generálási logika bonyolultabb és ütközést okozott.
-            // Egyedi UserName-t kell biztosítani. Lehet pl. egyedi stringet generálni.
             return RegistrationResult.Failure(
                 "A felhasználónév már foglalt. Próbálkozzon másikkal, vagy ez az email már használatban van felhasználónévként.");
         }
 
         string hashedPassword = BCrypt.Net.BCrypt.HashPassword(registrationDto.Password);
-        // string hashedPassword = registrationDto.Password; 
 
         var newUser = new User
         {
+
             FirstName = registrationDto.FirstName,
             LastName = registrationDto.LastName,
+            Email = registrationDto.Email,
+            UserName = registrationDto.UserName,
             PhoneNumber = registrationDto.PhoneNumber,
             LicenceId = registrationDto.LicenceId,
-            Email = registrationDto.Email,
-            UserName = userNameToRegister,
-            Password = hashedPassword,
             RegisteredUser = true,
-            Role = Role.Renter
+            Password = hashedPassword,
+            Role = Role.Renter,
+            Address = registrationDto.Address
         };
 
         try
@@ -267,12 +251,12 @@ public class UserService : IUserService
             await _unitOfWork.UserRepository.InsertAsync(newUser);
             await _unitOfWork.SaveAsync();
         }
-        catch (DbUpdateException ex) // Általános adatbázis hiba, pl. unique constraint sérülés, amit fent nem kezeltünk
+        catch (DbUpdateException ex) 
         {
             return RegistrationResult.Failure(
                 $"Adatbázis hiba történt a regisztráció során: {ex.InnerException?.Message ?? ex.Message}");
         }
-        catch (Exception ex) // Egyéb váratlan hibák
+        catch (Exception ex) 
         {
             return RegistrationResult.Failure($"Váratlan hiba történt a regisztráció során: {ex.Message}");
         }
@@ -289,30 +273,25 @@ public class UserService : IUserService
             throw new ArgumentException("Vendég adatok vagy email cím hiányzik.");
         }
 
-        // Próbáljuk megkeresni a felhasználót email alapján
         var existingUser = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == guestDto.Email)).FirstOrDefault();
 
         if (existingUser != null)
         {
-            // Ha létezik, és nem regisztrált, vagy ha regisztrált, de az adatok egyeznek (ezt finomítani kellhet)
-            // Most egyszerűen visszaadjuk, ha létezik. Fontold meg, mi történjen, ha már regisztrált felhasználó próbál vendégként foglalni.
-            // Lehet, hogy frissíteni kell a meglévő vendég adatait, ha változtak.
             _logger.LogInformation("Guest user found with email: {Email}, ID: {UserId}", guestDto.Email, existingUser.Id);
             return existingUser;
         }
 
-        // Ha nem létezik, hozzunk létre egy újat
         var newUser = new User
         {
             FirstName = guestDto.FirstName,
             LastName = guestDto.LastName,
             Email = guestDto.Email,
-            UserName = guestDto.Email, // Kezdetben az UserName lehet az Email
+            UserName = guestDto.Email, 
             PhoneNumber = guestDto.PhoneNumber,
             LicenceId = guestDto.LicenceId,
-            RegisteredUser = false, // Fontos: Ez egy vendég fiók
-            Password = null,        // Nincs jelszó, vagy egy nem használható placeholder
-            Role = Role.Renter      // Alapértelmezett szerepkör
+            RegisteredUser = false, 
+            Password = null,        
+            Role = Role.Renter      
         };
 
         await _unitOfWork.UserRepository.InsertAsync(newUser);
