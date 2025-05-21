@@ -69,7 +69,7 @@ PRINT 'Rents tábla feltöltve.';
 -- Receipts tábla feltöltése (Id-t nem adunk meg)
 -- RentId a fentebb beszúrt Rents ID-kra hivatkozik. IssuedById a Users tábla ID-jára.
 -- TotalCost később lesz újraszámolva a PricePerDay alapján
-INSERT INTO [dbo].[Receipts] ([RentId], [TotalCost], [IssueDate], [IssuedById])
+INSERT INTO [dbo].[Receipts] ([RentId], [TotalCost], [IssueDate], [IssuedBy])
 VALUES
 -- Rent: Rent 1, Issuer: User 7 (staff1)
 (1, 37500.00, '2025-06-03 09:52:00', 7), -- Várható Receipt ID: 1

@@ -100,6 +100,4 @@ export const routes = [
         isPrivate: true,
         roles: [ROLES.RENTER, ROLES.STAFF, ROLES.ADMIN],
     },
-
-
 ];

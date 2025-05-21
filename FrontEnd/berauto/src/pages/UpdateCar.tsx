@@ -89,7 +89,7 @@ const UpdateCar: React.FC = () => {
     const [editingCar, setEditingCar] = useState<ICar | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState<Partial<Omit<ICar, 'id'>> & {
-        pricePerKilometer?: number | '';
+        pricePerDay?: number | '';
         actualKilometers?: number | '';
     }>({});
 
@@ -121,7 +121,7 @@ const UpdateCar: React.FC = () => {
         const { id, ...carDataForForm } = car;
         setFormData({
             ...carDataForForm,
-            pricePerKilometer: carDataForForm.pricePerKilometer ?? '',
+            pricePerDay: carDataForForm.pricePerDay ?? '',
             actualKilometers: carDataForForm.actualKilometers ?? '',
         });
         setError(null);
@@ -158,7 +158,7 @@ const UpdateCar: React.FC = () => {
 
             let valueToPatch: ICar[typeof carKey] | null = null;
 
-            if (carKey === 'pricePerKilometer' || carKey === 'actualKilometers') {
+            if (carKey === 'pricePerDay' || carKey === 'actualKilometers') {
                 const numFormValue = formValue as number | '';
                 if (numFormValue === '' || numFormValue === null || numFormValue === undefined) {
                     valueToPatch = null;
@@ -243,7 +243,7 @@ const UpdateCar: React.FC = () => {
                                             Jogosítvány: {getLicenceTypeLabel(parseInt(car.requiredLicence))}
                                         </List.Item>
                                         <List.Item icon={<ThemeIcon color="orange" size={20} radius="xl"><IconCurrencyDollar size={12} /></ThemeIcon>}>
-                                            Ár/km: {car.pricePerKilometer} Ft
+                                            Ár/nap: {car.pricePerDay} Ft
                                         </List.Item>
                                         <List.Item icon={<ThemeIcon color="blue" size={20} radius="xl"><IconGauge size={12} /></ThemeIcon>}>
                                             Km óra: {car.actualKilometers} km
@@ -291,8 +291,8 @@ const UpdateCar: React.FC = () => {
                                 required searchable disabled={isSubmitting} allowDeselect={false}
                             />
                             <NumberInput
-                                label="Ár per kilométer (Ft)" placeholder="Pl. 150" value={formData.pricePerKilometer ?? ''}
-                                onChange={(value) => handleFormInputChange('pricePerKilometer', value)}
+                                label="Ár per kilométer (Ft)" placeholder="Pl. 150" value={formData.pricePerDay ?? ''}
+                                onChange={(value) => handleFormInputChange('pricePerDay', value)}
                                 min={0} step={10} required disabled={isSubmitting}
                             />
                             <NumberInput

@@ -1,8 +1,9 @@
 import axiosInstance from "./axios.config.ts";
-import { ICar } from "../interfaces/ICar.ts";
+import {CarFormData, ICar} from "../interfaces/ICar.ts";
 import { IUserProfile} from "../interfaces/IUser.ts";
 import { ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto } from "../interfaces/IRent.ts";
 import { IReceipt, IReceiptCreateDto } from "../interfaces/IReceipt";
+import { IHandOverRequestDto, ITakeBackRequestDto, IRejectRequestDto, IRejectSuccessResponse } from "../interfaces/RequestDto.ts";
 
 interface JsonPatchOperation {
     op: "replace" | "add" | "remove" | "copy" | "move" | "test";
@@ -34,6 +35,17 @@ const Cars = {
         return axiosInstance.get<ICar[]>(
             `/cars/get-all`
         );
+    },
+    createCar: async (carData: CarFormData): Promise<ICar> => {
+        const payload = {
+            ...carData,
+            pricePerKilometer: Number(carData.PricePerDay),
+            ActualKilometers: Number(carData.ActualKilometers),
+        };
+        delete (payload as any).PricePerDay;
+
+        const response = await axiosInstance.post<ICar>('/cars/create-car', payload);
+        return response.data;
     }
 };
 
@@ -82,36 +94,50 @@ const Rents = {
 };
 
 const Staff = {
-    approveRent: (rentId: number) =>
-        axiosInstance.post<IRentGetDto>(`/Staff/approve?rentId=${rentId}`),
-    
-    handOverCar: (rentId: number, actualStart: Date) => {
+    approveRent: (rentId: number) => {
+        return axiosInstance.post<IRentGetDto>(`/staff/approve?rentId=${rentId}`);
+    },
 
-        const formattedActualStart = actualStart.toISOString();
-        return axiosInstance.post<IRentGetDto>(`/Staff/hand_over?rentId=${rentId}&actualStart=${formattedActualStart}`, null);
+    handOverCar: (rentId: number, actualStart: Date) => {
+        const requestBody: IHandOverRequestDto = {
+            actualStart: actualStart.toISOString()
+        };
+        return axiosInstance.post<IRentGetDto>(
+            `/staff/hand_over?rentId=${rentId}`,
+            requestBody
+        );
     },
 
     takeBackCar: (rentId: number, actualEnd: Date, endingKilometer: number) => {
-        const formattedEnd = encodeURIComponent(actualEnd.toISOString());
+        const requestBody: ITakeBackRequestDto = {
+            actualEnd: actualEnd.toISOString(),
+            endingKilometer: endingKilometer
+        };
         return axiosInstance.post<IRentGetDto>(
-            `/Staff/take_back?rentId=${rentId}&actualEnd=${formattedEnd}&endingKilometer=${endingKilometer}`,
-            null
+            `/staff/take_back?rentId=${rentId}`,
+            requestBody
         );
     },
+
     rejectRent: (rentId: number, reason: string | null) => {
-        return axiosInstance.post(`/staff/reject?rentId=${rentId}`, { reason: reason });
+        const requestBody: IRejectRequestDto = {
+            reason: reason
+        };
+        return axiosInstance.post<IRejectSuccessResponse>(
+            `/api/staff/reject?rentId=${rentId}`,
+            requestBody
+        );
     },
 
-
-
     runningRents: () => {
-    return axiosInstance.get<IRentGetDto[]>('/Rent?filter=Running');
-},
+        return axiosInstance.get<IRentGetDto[]>('/Rent?filter=Running');
+    },
 
-completedRents: () => {
-    return axiosInstance.get<IRentGetDto[]>('/Rent?filter=Closed');
-}
+    completedRents: () => {
+        return axiosInstance.get<IRentGetDto[]>('/Rent?filter=Closed');
+    }
 };
+
 
 const Receipts = {
     getAll: () => axiosInstance.get<IReceipt[]>("/receipts/GetAllReceipts"),

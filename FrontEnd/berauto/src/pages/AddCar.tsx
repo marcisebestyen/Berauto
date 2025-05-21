@@ -12,6 +12,7 @@ import {
     Text
 } from '@mantine/core';
 import {CarFormData} from "../interfaces/ICar.ts";
+import api from "../api/api.ts";
 
 const fuelTypeOptions = [
     { value: 'Diesel', label: 'Dízel' },
@@ -36,7 +37,7 @@ const AddCarPage = () => {
         RequiredLicence: '',
         LicencePlate: '',
         HasValidVignette: true,
-        PricePerKilometer: '',
+        PricePerDay: '',
         IsAutomatic: false,
         ActualKilometers: '',
         InProperCondition: true,
@@ -85,12 +86,12 @@ const AddCarPage = () => {
         setSuccessMessage('');
         setIsLoading(true);
 
-        if (!formData.Brand || !formData.Model || !formData.FuelType || !formData.RequiredLicence || !formData.LicencePlate || formData.PricePerKilometer === '' || formData.ActualKilometers === '') {
+        if (!formData.Brand || !formData.Model || !formData.FuelType || !formData.RequiredLicence || !formData.LicencePlate || formData.PricePerDay === '' || formData.ActualKilometers === '') {
             setError('Minden csillaggal jelölt mező kitöltése kötelező.');
             setIsLoading(false);
             return;
         }
-        if (Number(formData.PricePerKilometer) <= 0) {
+        if (Number(formData.PricePerDay) <= 0) {
             setError('A kilométerenkénti árnak pozitívnak kell lennie.');
             setIsLoading(false);
             return;
@@ -101,53 +102,41 @@ const AddCarPage = () => {
             return;
         }
 
-        const apiUrl = 'https://localhost:7205/api/cars/createCar';
-
         try {
-
             const payload = {
                 ...formData,
-                PricePerKilometer: Number(formData.PricePerKilometer),
-                ActualKilometers: Number(formData.ActualKilometers),
             };
+            const createdCar = await api.Cars.createCar(payload);
 
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
+            setSuccessMessage(`Az autó sikeresen hozzáadva! Azonosító: ${createdCar.id}`);
+            setFormData({
+                Brand: '', Model: '', FuelType: '', RequiredLicence: '', LicencePlate: '',
+                HasValidVignette: true, PricePerDay: '', IsAutomatic: false,
+                ActualKilometers: '', InProperCondition: true,
             });
 
-            const responseData = await response.json();
-
-            if (!response.ok) {
+        } catch (err: any) {
+            console.error("Autó hozzáadása API hiba:", err);
+            // Hibakezelés az axios válasz alapján (err.response.data)
+            if (err.response && err.response.data) {
+                const responseData = err.response.data;
                 if (responseData.errors) {
                     const modelErrors = Object.values(responseData.errors).flat() as string[];
                     setError(modelErrors.length > 0 ? modelErrors : ['Érvénytelen bemeneti adatok.']);
                 } else if (responseData.title && responseData.status) {
                     setError(`${responseData.title} (Státusz: ${responseData.status})`);
-                } else if (responseData.Message) {
-                    setError(responseData.Message);
-                }
-                else {
-                    setError(`Hiba történt a szerveroldalon: ${response.statusText} (Státusz: ${response.status})`);
+                } else if (responseData.Message || responseData.message) { // Kis-nagybetűs Message/message
+                    setError(responseData.Message || responseData.message);
+                } else {
+                    setError(`Hiba történt a szerveroldalon: ${err.response.statusText} (Státusz: ${err.response.status})`);
                 }
             } else {
-                setSuccessMessage(`Az autó sikeresen hozzáadva! Azonosító: ${responseData.id}`);
-                setFormData({
-                    Brand: '', Model: '', FuelType: '', RequiredLicence: '', LicencePlate: '',
-                    HasValidVignette: true, PricePerKilometer: '', IsAutomatic: false,
-                    ActualKilometers: '', InProperCondition: true,
-                });
+                setError('Ismeretlen hiba történt a kapcsolat során. Kérjük, próbáld újra később.');
             }
-        } catch (err) {
-            console.error("Autó hozzáadása API hiba:", err);
-            setError('Ismeretlen hiba történt a kapcsolat során. Kérjük, próbáld újra később.');
         } finally {
             setIsLoading(false);
         }
-    };
+    }
 
     const renderErrorMessages = () => {
         if (!error) return null;
@@ -194,10 +183,10 @@ const AddCarPage = () => {
                     />
                     <TextInput label="Rendszám" name="LicencePlate" value={formData.LicencePlate} onChange={handleChange} required withAsterisk disabled={isLoading} />
                     <NumberInput
-                        label="Ár / km (Ft)"
+                        label="Ár / nap (Ft)"
                         name="PricePerKilometer"
-                        value={formData.PricePerKilometer}
-                        onChange={(value) => handleNumberChange('PricePerKilometer', value as number | '')}
+                        value={formData.PricePerDay}
+                        onChange={(value) => handleNumberChange('PricePerDay', value as number | '')}
                         min={0}
                         step={0.1}
                         required
