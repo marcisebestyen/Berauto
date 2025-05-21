@@ -10,7 +10,8 @@ import RunningRents from "../pages/RunningRents.tsx";
 import AddCar from "../pages/AddCar.tsx";
 import {CompletedRents} from "../pages/CompletedRents.tsx";
 import UpdateCar from "../pages/UpdateCar.tsx";
-
+import ReceiptListPage from "../pages/ReceiptListPage";
+import MyReceiptsPage from "../pages/MyReceiptsPage";
 
 
 export const ROLES = {
@@ -76,6 +77,12 @@ export const routes = [
         roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
+        path: "staff/receipts",
+        component: <ReceiptListPage />,
+        isPrivate: true,
+        roles: [ROLES.STAFF, ROLES.ADMIN],
+    },
+    {
         path: "admin/add-car",
         component: <AddCar/>,
         isPrivate: true,
@@ -86,5 +93,13 @@ export const routes = [
         component: <UpdateCar/>,
         isPrivate: true,
         roles: [ROLES.ADMIN],
-    }
+    },
+    {
+        path: "receipts/my",
+        component: <MyReceiptsPage />,
+        isPrivate: true,
+        roles: [ROLES.RENTER, ROLES.STAFF, ROLES.ADMIN],
+    },
+
+
 ];

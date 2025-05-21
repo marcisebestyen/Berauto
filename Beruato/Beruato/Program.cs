@@ -5,6 +5,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Services.Repositories;
 using Services.Services;
+using Services.Services.Services.Services;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -75,7 +77,10 @@ namespace Beruato
                         ValidAudience = jwtSettings["Audience"],
                         IssuerSigningKey =
                             new SymmetricSecurityKey(Encoding.UTF8
-                                .GetBytes(secretKey ?? throw new InvalidOperationException("JWT key not configured")))
+                                .GetBytes(secretKey ?? throw new InvalidOperationException("JWT key not configured"))),
+
+                        RoleClaimType = ClaimTypes.Role,
+                        NameClaimType = ClaimTypes.NameIdentifier
                     };
                 });
             

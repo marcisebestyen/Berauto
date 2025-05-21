@@ -61,7 +61,7 @@ public class MappingService : Profile
 
         //Receipt mappings
         CreateMap<ReceiptCreateDto, Receipt>()
-            .ForMember(dest => dest.IssuedById, opt => opt.MapFrom(src => src.IssuedById));
+            .ForMember(dest => dest.IssuedBy, opt => opt.MapFrom(src => src.IssuedById));
 
         CreateMap<Receipt, ReceiptGetDto>()
             .ForMember(dest => dest.IssuerName, opt => opt.MapFrom(src => src.IssuerOperator.UserName))

@@ -176,8 +176,8 @@ namespace Database.Data
                     .OnDelete(DeleteBehavior.Cascade);     
 
                 entity.HasOne(rec => rec.IssuerOperator)
-                    .WithMany() 
-                    .HasForeignKey(rec => rec.IssuedById)
+                    .WithMany()
+                    .HasForeignKey(rec => rec.IssuedBy)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);
             });

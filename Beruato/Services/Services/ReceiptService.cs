@@ -13,6 +13,7 @@ public interface IReceiptService
     Task<ReceiptGetDto?> GetReceiptByIdAsync(int receiptId);
     Task<CreateResult<ReceiptGetDto>> CreateReceiptAsync(ReceiptCreateDto receiptDto);
     Task<IEnumerable<ReceiptGetDto>> GetAllReceiptsAsync();
+    Task<IEnumerable<ReceiptGetDto>> GetReceiptsByUserIdAsync(int userId);
 }
 
 public class ReceiptService : IReceiptService
@@ -28,6 +29,14 @@ public class ReceiptService : IReceiptService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    public async Task<IEnumerable<ReceiptGetDto>> GetReceiptsByUserIdAsync(int userId)
+    {
+        var receipts = await _unitOfWork.ReceiptRepository.GetAsync(
+                 r => r.Rent.RenterId == userId || r.IssuedBy == userId,
+                 new[] { "Rent.Car", "Rent.Renter", "IssuerOperator" });
+
+        return _mapper.Map<IEnumerable<ReceiptGetDto>>(receipts);
+    }
     public async Task<IEnumerable<ReceiptGetDto>> GetAllReceiptsAsync()
     {
         var receipts = await _unitOfWork.ReceiptRepository.GetAllAsync(new[]
