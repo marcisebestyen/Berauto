@@ -72,7 +72,6 @@ namespace Berauto.Controllers
         /// <response code="400">Érvénytelen bemeneti adatok.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
         [HttpPost("create-car")]
-        
         public async Task<IActionResult> AddCar([FromBody] CarCreateDto createCarDto)
         {
             if (!ModelState.IsValid)

@@ -8,7 +8,7 @@ public class Receipt
     public int RentId { get; set; }
     public int IssuedBy { get; set; } 
 
-    public decimal TotalCost { get; set; } // (záró-induló km) * autó km ára
+    public decimal TotalCost { get; set; } 
     public DateTime IssueDate { get; set; }
 
     [ForeignKey(nameof(RentId))]

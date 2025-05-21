@@ -204,53 +204,84 @@ namespace Services.Services
         public async Task<RentGetDto> TakenBackBy(int staffId, int rentId, DateTime actualEnd, decimal endingKilometer)
         {
             var staffUser = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { staffId });
-            if (staffUser == null || (staffUser.Role != Role.Staff && staffUser.Role != Role.Admin))
+            if (staffUser == null || (staffUser.Role != Role.Staff && staffUser.Role !=Role.Admin))
             {
                 throw new KeyNotFoundException($"User with id {staffId} not found or user is not staff/admin.");
             }
 
-            var rent = (await _unitOfWork.RentRepository.GetAsync(r => r.Id == rentId, includeProperties: new[] { "Car", "Renter" })).FirstOrDefault();
+            var rent = (await _unitOfWork.RentRepository.GetAsync(r => r.Id == rentId, includeProperties: new[] { "Car", "Renter", "Receipt" })).FirstOrDefault();
+
             if (rent == null) { throw new KeyNotFoundException($"Rent with id {rentId} not found."); }
             if (rent.Car == null) { throw new InvalidOperationException($"Car data not loaded for Rent with id {rentId}."); }
             if (!rent.ActualStart.HasValue) { throw new InvalidOperationException($"Rent with id {rentId} cannot be taken back as it was not issued yet."); }
             if (rent.ActualEnd.HasValue) { throw new InvalidOperationException($"Rent with id {rentId} has already been taken back on {rent.ActualEnd.Value}."); }
-            if (!rent.StartingKilometer.HasValue) { throw new InvalidOperationException($"StartingKilometer is missing for Rent ID {rentId}. Cannot calculate cost."); }
-            else if (endingKilometer < rent.StartingKilometer.Value) { throw new InvalidOperationException($"Ending kilometer ({endingKilometer}) cannot be less than starting kilometer ({rent.StartingKilometer.Value})."); }
+
+            if (rent.StartingKilometer.HasValue && endingKilometer < rent.StartingKilometer.Value)
+            {
+                throw new InvalidOperationException($"Ending kilometer ({endingKilometer}) cannot be less than starting kilometer ({rent.StartingKilometer.Value}).");
+            }
 
             rent.TakenBackBy = staffId;
             rent.ActualEnd = actualEnd;
             rent.EndingKilometer = endingKilometer;
 
-            decimal? calculatedCost = null;
-            if (rent.Car.PricePerDay > 0 && rent.StartingKilometer.HasValue)
-            {
-                decimal drivenKilometers = Math.Max(0, endingKilometer - rent.StartingKilometer.Value);
-                calculatedCost = drivenKilometers * rent.Car.PricePerDay;
-                rent.TotalCost = calculatedCost;
-            }
-            else
-            {
-                _logger.LogWarning("Could not calculate TotalCost for Rent ID {RentId} due to missing PricePerDay on Car or StartingKilometer on Rent.", rentId);
-            }
+            decimal finalTotalCost = rent.TotalCost ?? 0m; 
 
-            rent.Car.ActualKilometers = endingKilometer;
-
-            if (rent.ReceiptId.HasValue && calculatedCost.HasValue)
+            if (rent.Car.PricePerDay > 0 && rent.ActualStart.HasValue && rent.ActualEnd.HasValue)
             {
-                var receipt = await _unitOfWork.ReceiptRepository.GetByIdAsync(new object[] { rent.ReceiptId.Value });
-                if (receipt != null)
+                if (rent.ActualEnd.Value >= rent.ActualStart.Value)
                 {
-                    receipt.TotalCost = calculatedCost.Value;
-                    await _unitOfWork.ReceiptRepository.UpdateAsync(receipt);
-                    _logger.LogInformation("Receipt ID {ReceiptId} updated with final TotalCost {TotalCost} for Rent ID {RentId}.", receipt.Id, calculatedCost.Value, rentId);
+                    TimeSpan actualDuration = rent.ActualEnd.Value - rent.ActualStart.Value;
+                    double totalActualDays = actualDuration.TotalDays;
+
+                    decimal billableActualDays = (decimal)Math.Max(1.0, Math.Ceiling(totalActualDays));
+
+                    finalTotalCost = billableActualDays * rent.Car.PricePerDay;
+
+                    _logger.LogInformation(
+                        "Calculated final TotalCost for Rent ID {RentId}: {BillableActualDays} actual days * {PricePerDay} PricePerDay = {FinalTotalCost}",
+                        rent.Id, billableActualDays, rent.Car.PricePerDay, finalTotalCost);
                 }
                 else
                 {
-                    _logger.LogWarning("Receipt with ID {ReceiptId} not found for Rent ID {RentId} during TakeBack. Cannot update receipt total cost.", rent.ReceiptId.Value, rentId);
+                    _logger.LogWarning(
+                       "Cannot calculate final TotalCost for Rent ID {RentId}: ActualEnd ({ActualEnd}) is before ActualStart ({ActualStart}). Using previously calculated or default cost.",
+                       rent.Id, rent.ActualEnd.Value, rent.ActualStart.Value);
                 }
             }
+            else
+            {
+                _logger.LogWarning(
+                    "Could not recalculate TotalCost for Rent ID {RentId} based on PricePerDay due to missing data (ActualStart, ActualEnd, or PricePerDay <= 0). Using previously calculated or default cost. Car.PricePerDay: {CarPricePerDay}",
+                    rentId, rent.Car.PricePerDay);
+            }
 
+            rent.TotalCost = finalTotalCost;
+            rent.Car.ActualKilometers = endingKilometer;
 
+            if (rent.ReceiptId.HasValue)
+            {
+                if (rent.Receipt != null)
+                {
+                    rent.Receipt.TotalCost = finalTotalCost;
+                    await _unitOfWork.ReceiptRepository.UpdateAsync(rent.Receipt);
+                    _logger.LogInformation("Receipt ID {ReceiptId} updated with final TotalCost {TotalCost} for Rent ID {RentId}.", rent.Receipt.Id, finalTotalCost, rentId);
+                }
+                else
+                {
+                    var receiptToUpdate = await _unitOfWork.ReceiptRepository.GetByIdAsync(new object[] { rent.ReceiptId.Value });
+                    if (receiptToUpdate != null)
+                    {
+                        receiptToUpdate.TotalCost = finalTotalCost;
+                        await _unitOfWork.ReceiptRepository.UpdateAsync(receiptToUpdate);
+                        _logger.LogInformation("Receipt ID {ReceiptId} (fetched separately) updated with final TotalCost {TotalCost} for Rent ID {RentId}.", receiptToUpdate.Id, finalTotalCost, rentId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Receipt with ID {ReceiptIdValue} not found for Rent ID {RentId} during TakeBack. Cannot update receipt total cost.", rent.ReceiptId.Value, rentId);
+                    }
+                }
+            }
             try
             {
                 await _unitOfWork.RentRepository.UpdateAsync(rent);
@@ -258,6 +289,7 @@ namespace Services.Services
                 await _unitOfWork.SaveAsync();
             }
             catch (Exception ex) { _logger.LogError(ex, "Error during taking back car for Rent ID {RentId}", rentId); throw; }
+
             var updatedRentWithIncludes = (await _unitOfWork.RentRepository.GetAsync(r => r.Id == rent.Id, includeProperties: new[] { "Car", "Renter", "Receipt" })).FirstOrDefault();
             return _mapper.Map<RentGetDto>(updatedRentWithIncludes);
         }
