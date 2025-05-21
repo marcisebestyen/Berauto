@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Beruato.Migrations
 {
     [DbContext(typeof(BerautoDbContext))]
-    [Migration("20250516185429_OnModelCreatingEdit")]
-    partial class OnModelCreatingEdit
+    [Migration("20250521161051_UjArNevVagyArModellValtozas")]
+    partial class UjArNevVagyArModellValtozas
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -90,7 +90,7 @@ namespace Beruato.Migrations
                     b.Property<DateTime>("IssueDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("IssuedBy")
+                    b.Property<int>("IssuedById")
                         .HasColumnType("int");
 
                     b.Property<int>("RentId")
@@ -101,7 +101,7 @@ namespace Beruato.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IssuedBy");
+                    b.HasIndex("IssuedById");
 
                     b.HasIndex("RentId")
                         .IsUnique();
@@ -117,28 +117,28 @@ namespace Beruato.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("ActualEnd")
+                    b.Property<DateTime?>("ActualEnd")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("ActualStart")
+                    b.Property<DateTime?>("ActualStart")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("ApprovedBy")
+                    b.Property<int?>("ApprovedBy")
                         .HasColumnType("int");
 
                     b.Property<int>("CarId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("EndingKilometer")
+                    b.Property<decimal?>("EndingKilometer")
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<bool>("InvoiceRequest")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime>("IssuedAt")
+                    b.Property<DateTime?>("IssuedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("IssuedBy")
+                    b.Property<int?>("IssuedBy")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("PlannedEnd")
@@ -147,14 +147,20 @@ namespace Beruato.Migrations
                     b.Property<DateTime>("PlannedStart")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ReceiptId")
+                        .HasColumnType("int");
+
                     b.Property<int>("RenterId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("StartingKilometer")
+                    b.Property<decimal?>("StartingKilometer")
                         .HasColumnType("decimal(18, 2)");
 
-                    b.Property<int>("TakenBackBy")
+                    b.Property<int?>("TakenBackBy")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
@@ -163,6 +169,10 @@ namespace Beruato.Migrations
                     b.HasIndex("CarId");
 
                     b.HasIndex("IssuedBy");
+
+                    b.HasIndex("ReceiptId")
+                        .IsUnique()
+                        .HasFilter("[ReceiptId] IS NOT NULL");
 
                     b.HasIndex("RenterId");
 
@@ -178,6 +188,9 @@ namespace Beruato.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -195,7 +208,6 @@ namespace Beruato.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("LicenceId")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
@@ -235,12 +247,12 @@ namespace Beruato.Migrations
                 {
                     b.HasOne("Database.Models.User", "IssuerOperator")
                         .WithMany()
-                        .HasForeignKey("IssuedBy")
+                        .HasForeignKey("IssuedById")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Database.Models.Rent", "Rent")
-                        .WithOne()
+                        .WithOne("Receipt")
                         .HasForeignKey("Database.Models.Receipt", "RentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -255,8 +267,7 @@ namespace Beruato.Migrations
                     b.HasOne("Database.Models.User", "ApproverOperator")
                         .WithMany()
                         .HasForeignKey("ApprovedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Database.Models.Car", "Car")
                         .WithMany()
@@ -267,8 +278,7 @@ namespace Beruato.Migrations
                     b.HasOne("Database.Models.User", "IssuerOperator")
                         .WithMany()
                         .HasForeignKey("IssuedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Database.Models.User", "Renter")
                         .WithMany()
@@ -279,8 +289,7 @@ namespace Beruato.Migrations
                     b.HasOne("Database.Models.User", "RecipientOperator")
                         .WithMany()
                         .HasForeignKey("TakenBackBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ApproverOperator");
 
@@ -291,6 +300,12 @@ namespace Beruato.Migrations
                     b.Navigation("RecipientOperator");
 
                     b.Navigation("Renter");
+                });
+
+            modelBuilder.Entity("Database.Models.Rent", b =>
+                {
+                    b.Navigation("Receipt")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

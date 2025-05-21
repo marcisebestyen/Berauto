@@ -78,52 +78,44 @@ public class ReceiptService : IReceiptService
         var issuerExists = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { createDto.IssuedById });
         if (issuerExists == null)
         {
-            _logger.LogWarning("Attempted to create receipt with non-existing IssuerId: {IssuerId}",
-                createDto.IssuedById);
-            return CreateResult<ReceiptGetDto>.Failure(
-                $"A(z) {createDto.IssuedById} azonosítójú kiállító operátor nem található.");
+            _logger.LogWarning("Attempted to create receipt with non-existing IssuerId: {IssuerId}", createDto.IssuedById);
+            return CreateResult<ReceiptGetDto>.Failure($"A(z) {createDto.IssuedById} azonosítójú kiállító operátor nem található.");
         }
 
-        var existingReceiptForRent = (await _unitOfWork.ReceiptRepository.GetAsync(r => r.RentId == createDto.RentId))
-            .FirstOrDefault();
+        var existingReceiptForRent = (await _unitOfWork.ReceiptRepository.GetAsync(r => r.RentId == createDto.RentId)).FirstOrDefault();
         if (existingReceiptForRent != null)
         {
-            _logger.LogWarning("Receipt already exists for RentId: {RentId}. Existing ReceiptId: {ExistingReceiptId}",
-                createDto.RentId, existingReceiptForRent.Id);
-            return CreateResult<ReceiptGetDto>.Failure(
-                $"Ehhez a bérléshez (RentId: {createDto.RentId}) már létezik számla (ReceiptId: {existingReceiptForRent.Id}).");
+            _logger.LogWarning("Receipt already exists for RentId: {RentId}. Existing ReceiptId: {ExistingReceiptId}", createDto.RentId, existingReceiptForRent.Id);
+            return CreateResult<ReceiptGetDto>.Failure($"Ehhez a bérléshez (RentId: {createDto.RentId}) már létezik számla (ReceiptId: {existingReceiptForRent.Id}).");
         }
 
         var newReceipt = _mapper.Map<Receipt>(createDto);
 
-        rentEntity.IssuedAt = newReceipt.IssueDate; 
+        rentEntity.IssuedAt = newReceipt.IssueDate;
+        rentEntity.TotalCost = newReceipt.TotalCost;
 
         try
         {
             await _unitOfWork.ReceiptRepository.InsertAsync(newReceipt);
-            await _unitOfWork.RentRepository.UpdateAsync(rentEntity); 
+            rentEntity.ReceiptId = newReceipt.Id;
 
+            await _unitOfWork.RentRepository.UpdateAsync(rentEntity);
             await _unitOfWork.SaveAsync();
         }
         catch (DbUpdateException ex)
         {
-            _logger.LogError(ex, "Database error occurred while creating a new receipt and updating rent for RentId: {RentId}.",
-                createDto.RentId);
-            return CreateResult<ReceiptGetDto>.Failure(
-                $"Adatbázis hiba történt a számla létrehozása során: {ex.InnerException?.Message ?? ex.Message}");
+            _logger.LogError(ex, "Database error occurred while creating a new receipt and updating rent for RentId: {RentId}.", createDto.RentId);
+            return CreateResult<ReceiptGetDto>.Failure($"Adatbázis hiba történt a számla létrehozása során: {ex.InnerException?.Message ?? ex.Message}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error occurred while creating a new receipt and updating rent for RentId: {RentId}.",
-                createDto.RentId);
-            return CreateResult<ReceiptGetDto>.Failure(
-                $"Váratlan hiba történt a számla létrehozása során: {ex.Message}");
+            _logger.LogError(ex, "Unexpected error occurred while creating a new receipt and updating rent for RentId: {RentId}.", createDto.RentId);
+            return CreateResult<ReceiptGetDto>.Failure($"Váratlan hiba történt a számla létrehozása során: {ex.Message}");
         }
 
         var createdReceiptDto = _mapper.Map<ReceiptGetDto>(newReceipt);
 
-        _logger.LogInformation("Receipt with ID {ReceiptId} created successfully for RentId: {RentId}. Rent's IssuedAt updated.", newReceipt.Id,
-            newReceipt.RentId);
+        _logger.LogInformation("Receipt with ID {ReceiptId} created successfully for RentId: {RentId}. Rent's IssuedAt, TotalCost, and ReceiptId updated.", newReceipt.Id, newReceipt.RentId);
         return CreateResult<ReceiptGetDto>.Success(createdReceiptDto);
     }
 }

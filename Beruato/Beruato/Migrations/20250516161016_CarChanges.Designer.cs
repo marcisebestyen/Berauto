@@ -64,7 +64,7 @@ namespace Beruato.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal>("PricePerKilometer")
+                    b.Property<decimal>("PricePerDay")
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<int>("RequiredLicence")

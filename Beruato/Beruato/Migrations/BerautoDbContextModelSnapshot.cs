@@ -61,7 +61,7 @@ namespace Beruato.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal>("PricePerKilometer")
+                    b.Property<decimal>("PricePerDay")
                         .HasColumnType("decimal(18, 2)");
 
                     b.Property<int>("RequiredLicence")
@@ -87,7 +87,7 @@ namespace Beruato.Migrations
                     b.Property<DateTime>("IssueDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("IssuedBy")
+                    b.Property<int>("IssuedById")
                         .HasColumnType("int");
 
                     b.Property<int>("RentId")
@@ -98,7 +98,7 @@ namespace Beruato.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IssuedBy");
+                    b.HasIndex("IssuedById");
 
                     b.HasIndex("RentId")
                         .IsUnique();
@@ -144,6 +144,9 @@ namespace Beruato.Migrations
                     b.Property<DateTime>("PlannedStart")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ReceiptId")
+                        .HasColumnType("int");
+
                     b.Property<int>("RenterId")
                         .HasColumnType("int");
 
@@ -153,6 +156,9 @@ namespace Beruato.Migrations
                     b.Property<int?>("TakenBackBy")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ApprovedBy");
@@ -160,6 +166,10 @@ namespace Beruato.Migrations
                     b.HasIndex("CarId");
 
                     b.HasIndex("IssuedBy");
+
+                    b.HasIndex("ReceiptId")
+                        .IsUnique()
+                        .HasFilter("[ReceiptId] IS NOT NULL");
 
                     b.HasIndex("RenterId");
 
@@ -234,12 +244,12 @@ namespace Beruato.Migrations
                 {
                     b.HasOne("Database.Models.User", "IssuerOperator")
                         .WithMany()
-                        .HasForeignKey("IssuedBy")
+                        .HasForeignKey("IssuedById")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Database.Models.Rent", "Rent")
-                        .WithOne()
+                        .WithOne("Receipt")
                         .HasForeignKey("Database.Models.Receipt", "RentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -287,6 +297,12 @@ namespace Beruato.Migrations
                     b.Navigation("RecipientOperator");
 
                     b.Navigation("Renter");
+                });
+
+            modelBuilder.Entity("Database.Models.Rent", b =>
+                {
+                    b.Navigation("Receipt")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

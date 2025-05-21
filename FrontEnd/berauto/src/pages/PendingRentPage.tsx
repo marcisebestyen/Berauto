@@ -140,39 +140,38 @@ const PendingRentsPage = () => {
                 color: 'red',
             });
             console.error("confirmReject hiba: selectedRent null, vagy selectedRent.id érvénytelen. selectedRent:", selectedRent);
-            setIsLoading(false);
-            closeRejectModal();
-            return;
-        }
-        if (!user?.id) {
-            setIsLoading(false);
             closeRejectModal();
             return;
         }
 
-        console.log(`confirmReject - API hívás indítása. Rent ID: ${selectedRent.id}, Staff ID (tokenből jön): ${user.id}, Indok: ${rejectionReason}`);
+
+        console.log(`confirmReject - API hívás indítása. Rent ID: ${selectedRent.id}, Indok: ${rejectionReason}`);
 
         setIsLoading(true);
         try {
-            console.log(`Bérlés ${selectedRent.id} elutasítva. Indok: ${rejectionReason}. Ügyintéző ID: ${user.id}`);
+            await api.Staff.rejectRent(selectedRent.id, rejectionReason || null);
+
             notifications.show({
-                title: 'Sikeres Elutasítás (Szimulált)',
-                message: `A(z) ${selectedRent.id} azonosítójú kölcsönzés elutasítva.`,
-                color: 'orange',
-                icon: <IconX />,
+                title: 'Sikeres Elutasítás',
+                message: `A(z) ${selectedRent.id} azonosítójú kölcsönzési igény sikeresen elutasítva (törölve).`,
+                color: 'green',
+                icon: <IconCheck />,
             });
             fetchPendingRents();
         } catch (err: any) {
             console.error("Hiba az elutasítás során:", err);
+            const errorMessage = err.response?.data?.message || err.response?.data?.title || err.message || 'Az elutasítás nem sikerült.';
             notifications.show({
                 title: 'Elutasítási Hiba',
-                message: err.response?.data?.message || err.message || 'Az elutasítás nem sikerült.',
+                message: errorMessage,
                 color: 'red',
                 icon: <IconAlertCircle />,
             });
         } finally {
             setIsLoading(false);
             closeRejectModal();
+            setSelectedRent(null);
+            setRejectionReason('');
         }
     };
 

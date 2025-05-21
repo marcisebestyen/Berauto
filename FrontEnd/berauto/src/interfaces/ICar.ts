@@ -9,7 +9,7 @@ export interface ICar {
     requiredLicence: RequiredLicenceType;
     licencePlate: string;
     hasValidVignette: boolean;
-    pricePerKilometer: number;
+    pricePerDay: number;
     isAutomatic: boolean;
     actualKilometers: number;
 }
@@ -21,7 +21,7 @@ export interface CarFormData {
     RequiredLicence: string;
     LicencePlate: string;
     HasValidVignette: boolean;
-    PricePerKilometer: number | '';
+    PricePerDay: number | '';
     IsAutomatic: boolean;
     ActualKilometers: number | '';
     InProperCondition: boolean;

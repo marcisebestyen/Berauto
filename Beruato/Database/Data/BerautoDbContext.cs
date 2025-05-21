@@ -16,8 +16,8 @@ namespace Database.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            string connectionString = "Server=ROMEOPC;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // romeo
-            // string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
+            //string connectionString = "Server=ROMEOPC;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // romeo
+             string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
             //string connectionString = "Server=localhost;Database=BerautoTestDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
 
 
@@ -31,19 +31,19 @@ namespace Database.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                
+
                 entity.Property(e => e.FirstName)
                     .IsRequired()
                     .HasMaxLength(100);
-                
+
                 entity.Property(e => e.LastName)
                     .IsRequired()
                     .HasMaxLength(100);
-                
+
                 entity.Property(e => e.UserName)
                     .IsRequired()
-                    .HasMaxLength(100); // adminoknak, staffoknak
-                
+                    .HasMaxLength(100);
+
                 entity.HasIndex(e => e.UserName)
                     .IsUnique();
 
@@ -52,14 +52,14 @@ namespace Database.Data
                 entity.Property(e => e.PhoneNumber)
                     .IsRequired()
                     .HasMaxLength(30);
-                
+
                 entity.Property(e => e.LicenceId)
                     .HasMaxLength(30);
 
                 entity.Property(e => e.Email)
                     .IsRequired()
                     .HasMaxLength(255);
-                
+
                 entity.Property(e => e.Password)
                     .HasMaxLength(255);
 
@@ -75,7 +75,7 @@ namespace Database.Data
                 entity.Property(e => e.FuelType)
                     .IsRequired()
                     .HasMaxLength(50);
-                
+
                 entity.Property(e => e.RequiredLicence)
                     .IsRequired()
                     .HasMaxLength(50);
@@ -83,14 +83,14 @@ namespace Database.Data
                 entity.Property(e => e.LicencePlate)
                     .IsRequired()
                     .HasMaxLength(15);
-                
+
                 entity.HasIndex(e => e.LicencePlate)
                     .IsUnique();
 
-                entity.Property(e => e.PricePerKilometer)
+                entity.Property(e => e.PricePerDay)
                     .IsRequired()
                     .HasColumnType("decimal(18, 2)");
-                
+
                 entity.Property(e => e.ActualKilometers)
                     .IsRequired()
                     .HasColumnType("decimal(18, 2)");
@@ -98,7 +98,7 @@ namespace Database.Data
                 entity.Property(e => e.Brand)
                     .IsRequired()
                     .HasMaxLength(100);
-                
+
                 entity.Property(e => e.Model)
                     .IsRequired()
                     .HasMaxLength(100);
@@ -108,6 +108,7 @@ namespace Database.Data
             {
                 entity.HasKey(e => e.Id);
 
+
                 entity.HasOne(r => r.Renter)
                     .WithMany()
                     .HasForeignKey(r => r.RenterId)
@@ -115,24 +116,30 @@ namespace Database.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(r => r.Car)
-                    .WithMany()
+                    .WithMany() 
                     .HasForeignKey(r => r.CarId)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);
 
+
                 entity.HasOne(r => r.ApproverOperator)
                     .WithMany()
                     .HasForeignKey(r => r.ApprovedBy)
+                    .IsRequired(false) 
                     .OnDelete(DeleteBehavior.Restrict);
 
+         
                 entity.HasOne(r => r.IssuerOperator)
                     .WithMany()
                     .HasForeignKey(r => r.IssuedBy)
+                    .IsRequired(false) 
                     .OnDelete(DeleteBehavior.Restrict);
 
+   
                 entity.HasOne(r => r.RecipientOperator)
                     .WithMany()
                     .HasForeignKey(r => r.TakenBackBy)
+                    .IsRequired(false) 
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.Property(r => r.StartingKilometer)
@@ -143,6 +150,15 @@ namespace Database.Data
 
                 entity.Property(r => r.InvoiceRequest)
                     .IsRequired();
+
+                entity.HasIndex(r => r.ReceiptId)
+                    .IsUnique(true)
+                    .HasFilter("[ReceiptId] IS NOT NULL"); 
+
+
+                entity.Property(r => r.TotalCost)
+                    .HasColumnType("decimal(18,2)");
+
             });
 
             modelBuilder.Entity<Receipt>(entity =>
@@ -153,14 +169,14 @@ namespace Database.Data
                     .IsRequired()
                     .HasColumnType("decimal(18, 2)");
 
-                entity.HasOne(rec => rec.Rent)
-                    .WithOne()
-                    .HasForeignKey<Receipt>(rec => rec.RentId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(rec => rec.Rent)             
+                    .WithOne(r => r.Receipt)               
+                    .HasForeignKey<Receipt>(rec => rec.RentId) 
+                    .IsRequired()                         
+                    .OnDelete(DeleteBehavior.Cascade);     
 
                 entity.HasOne(rec => rec.IssuerOperator)
-                    .WithMany()
+                    .WithMany() 
                     .HasForeignKey(rec => rec.IssuedById)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);

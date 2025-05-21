@@ -97,6 +97,11 @@ const Staff = {
             `/Staff/take_back?rentId=${rentId}&actualEnd=${formattedEnd}&endingKilometer=${endingKilometer}`
         );
     },
+    rejectRent: (rentId: number, reason: string | null) => {
+        return axiosInstance.post(`/staff/reject?rentId=${rentId}`, { reason: reason });
+    },
+
+
 
     runningRents: () => {
     return axiosInstance.get<IRentGetDto[]>('/Rent?filter=Running');

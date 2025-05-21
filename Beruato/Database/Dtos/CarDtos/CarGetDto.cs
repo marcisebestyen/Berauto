@@ -11,7 +11,7 @@ public class CarGetDto
     public RequiredLicence RequiredLicence { get; set; }
     public string LicencePlate { get; set; }
     public bool HasValidVignette { get; set; }
-    public decimal PricePerKilometer { get; set; }
+    public decimal PricePerDay { get; set; }
     public bool IsAutomatic { get; set; }
     public decimal ActualKilometers { get; set; }
 }

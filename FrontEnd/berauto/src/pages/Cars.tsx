@@ -118,7 +118,7 @@ const Cars = () => {
         <Table.Tr key={element.id}>
             <Table.Td>{element.brand}</Table.Td>
             <Table.Td>{element.model}</Table.Td>
-            <Table.Td>{element.pricePerKilometer} Ft/km</Table.Td>
+            <Table.Td>{element.pricePerDay} Ft/nap  </Table.Td>
             <Table.Td>{element.isAutomatic ? 'Automata' : 'Manuális'}</Table.Td>
             <Table.Td>
                 <Button
