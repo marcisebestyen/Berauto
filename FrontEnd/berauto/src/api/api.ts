@@ -88,13 +88,14 @@ const Staff = {
     handOverCar: (rentId: number, actualStart: Date) => {
 
         const formattedActualStart = actualStart.toISOString();
-        return axiosInstance.post<IRentGetDto>(`/Staff/hand_over?rentId=${rentId}&actualStart=${formattedActualStart}`);
+        return axiosInstance.post<IRentGetDto>(`/Staff/hand_over?rentId=${rentId}&actualStart=${formattedActualStart}`, null);
     },
 
     takeBackCar: (rentId: number, actualEnd: Date, endingKilometer: number) => {
         const formattedEnd = encodeURIComponent(actualEnd.toISOString());
         return axiosInstance.post<IRentGetDto>(
-            `/Staff/take_back?rentId=${rentId}&actualEnd=${formattedEnd}&endingKilometer=${endingKilometer}`
+            `/Staff/take_back?rentId=${rentId}&actualEnd=${formattedEnd}&endingKilometer=${endingKilometer}`,
+            null
         );
     },
     rejectRent: (rentId: number, reason: string | null) => {

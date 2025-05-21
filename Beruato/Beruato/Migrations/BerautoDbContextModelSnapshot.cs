@@ -76,36 +76,6 @@ namespace Beruato.Migrations
                     b.ToTable("Cars");
                 });
 
-            modelBuilder.Entity("Database.Models.Receipt", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("IssueDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("IssuedById")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RentId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalCost")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IssuedById");
-
-                    b.HasIndex("RentId")
-                        .IsUnique();
-
-                    b.ToTable("Receipts");
-                });
-
             modelBuilder.Entity("Database.Models.Rent", b =>
                 {
                     b.Property<int>("Id")
@@ -240,23 +210,34 @@ namespace Beruato.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Database.Models.Receipt", b =>
+            modelBuilder.Entity("Receipt", b =>
                 {
-                    b.HasOne("Database.Models.User", "IssuerOperator")
-                        .WithMany()
-                        .HasForeignKey("IssuedById")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.HasOne("Database.Models.Rent", "Rent")
-                        .WithOne("Receipt")
-                        .HasForeignKey("Database.Models.Receipt", "RentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Navigation("IssuerOperator");
+                    b.Property<DateTime>("IssueDate")
+                        .HasColumnType("datetime2");
 
-                    b.Navigation("Rent");
+                    b.Property<int>("IssuedBy")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RentId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IssuedBy");
+
+                    b.HasIndex("RentId")
+                        .IsUnique();
+
+                    b.ToTable("Receipts");
                 });
 
             modelBuilder.Entity("Database.Models.Rent", b =>
@@ -297,6 +278,25 @@ namespace Beruato.Migrations
                     b.Navigation("RecipientOperator");
 
                     b.Navigation("Renter");
+                });
+
+            modelBuilder.Entity("Receipt", b =>
+                {
+                    b.HasOne("Database.Models.User", "IssuerOperator")
+                        .WithMany()
+                        .HasForeignKey("IssuedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Database.Models.Rent", "Rent")
+                        .WithOne("Receipt")
+                        .HasForeignKey("Receipt", "RentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("IssuerOperator");
+
+                    b.Navigation("Rent");
                 });
 
             modelBuilder.Entity("Database.Models.Rent", b =>
