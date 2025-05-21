@@ -91,8 +91,10 @@ const AddCarPage = () => {
             setIsLoading(false);
             return;
         }
+        console.log(formData.PricePerDay);
         if (Number(formData.PricePerDay) <= 0) {
             setError('A kilométerenkénti árnak pozitívnak kell lennie.');
+            console.log(formData.PricePerDay);
             setIsLoading(false);
             return;
         }
@@ -184,7 +186,7 @@ const AddCarPage = () => {
                     <TextInput label="Rendszám" name="LicencePlate" value={formData.LicencePlate} onChange={handleChange} required withAsterisk disabled={isLoading} />
                     <NumberInput
                         label="Ár / nap (Ft)"
-                        name="PricePerKilometer"
+                        name="PricePerDay"
                         value={formData.PricePerDay}
                         onChange={(value) => handleNumberChange('PricePerDay', value as number | '')}
                         min={0}

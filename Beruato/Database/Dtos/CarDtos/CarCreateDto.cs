@@ -20,7 +20,7 @@ public class CarCreateDto
 
     [Required(ErrorMessage = "A kilométerenkénti ár megadása kötelező.")]
     [Range(0.01, double.MaxValue, ErrorMessage = "A kilométerenkénti árnak pozitívnak kell lennie.")]
-    public decimal PricePerKilometer { get; set; }
+    public decimal PricePerDay { get; set; }
 
     [Required(ErrorMessage = "Az automata váltó állapotának megadása kötelező.")]
     public bool IsAutomatic { get; set; }
