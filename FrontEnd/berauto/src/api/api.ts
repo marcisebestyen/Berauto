@@ -2,6 +2,7 @@ import axiosInstance from "./axios.config.ts";
 import { ICar } from "../interfaces/ICar.ts";
 import { IUserProfile} from "../interfaces/IUser.ts";
 import { ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto } from "../interfaces/IRent.ts";
+import { IReceipt, IReceiptCreateDto } from "../interfaces/IReceipt";
 
 interface JsonPatchOperation {
     op: "replace" | "add" | "remove" | "copy" | "move" | "test";
@@ -106,7 +107,17 @@ completedRents: () => {
 }
 };
 
+const Receipts = {
+    getAll: () => axiosInstance.get<IReceipt[]>("/receipts"),
 
-const api = { Cars, Users, Rents, Staff};
+    getById: (id: number) =>
+        axiosInstance.get<IReceipt>(`/receipts/${id}`),
+
+    create: (data: IReceiptCreateDto) =>
+        axiosInstance.post<IReceipt>("/receipts", data),
+};
+
+
+const api = { Cars, Users, Rents, Staff, Receipts};
 
 export default api;

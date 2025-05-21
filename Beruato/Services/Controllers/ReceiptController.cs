@@ -68,4 +68,20 @@ public class ReceiptController : Controller
         
         return CreatedAtAction(nameof(GetReceipt), new { receiptId = result.Resource.Id }, result.Resource);
     }
+
+    // Get All Receipts
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<ReceiptGetDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetAllReceipts()
+    {
+        var receipts = await _receiptService.GetAllReceiptsAsync();
+        if (receipts == null || !receipts.Any())
+        {
+            return NotFound(new { Message = "Nincsenek elérhető számlák." });
+        }
+
+        return Ok(receipts);
+    }
+
 }

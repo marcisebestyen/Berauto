@@ -61,10 +61,16 @@ public class MappingService : Profile
 
         //Receipt mappings
         CreateMap<ReceiptCreateDto, Receipt>()
-            .ForMember(dest => dest.IssuedBy, opt => opt.MapFrom(src => src.IssuedById));
+            .ForMember(dest => dest.IssuedById, opt => opt.MapFrom(src => src.IssuedById));
 
         CreateMap<Receipt, ReceiptGetDto>()
-            .ForMember(dest => dest.IssuedById, opt => opt.MapFrom(src => src.IssuedBy));
+            .ForMember(dest => dest.IssuerName, opt => opt.MapFrom(src => src.IssuerOperator.UserName))
+            .ForMember(dest => dest.CarBrand, opt => opt.MapFrom(src => src.Rent.Car.Brand))
+            .ForMember(dest => dest.CarModel, opt => opt.MapFrom(src => src.Rent.Car.Model))
+            .ForMember(dest => dest.PlannedStart, opt => opt.MapFrom(src => src.Rent.PlannedStart))
+            .ForMember(dest => dest.PlannedEnd, opt => opt.MapFrom(src => src.Rent.PlannedEnd))
+            .ForMember(dest => dest.RenterName, opt => opt.MapFrom(src => src.Rent.Renter.UserName));
+
 
         CreateMap<UpdateReceiptDto, Receipt>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
