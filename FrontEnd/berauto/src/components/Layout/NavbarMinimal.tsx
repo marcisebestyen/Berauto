@@ -16,6 +16,7 @@ import {useNavigate, useLocation} from "react-router-dom";
 import {useMediaQuery} from "@mantine/hooks";
 import useAuth from "../../hooks/useAuth.tsx";
 
+
 interface NavbarLinkProps {
     icon: typeof IconHome;
     label: string;
@@ -76,12 +77,16 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
             { icon: IconTransferOut, label: "Autóátadások", url: "/staff/handovers", color: "grape" },
             { icon: IconRun, label: "Futó Kölcsönzések", url: "/staff/running-rents", color: "orange" },
             { icon: IconLockCheck, label: "Lezárt Kölcsönzések", url: "/staff/completed-rents", color: "lime" },
+            { icon: IconUserCircle, label: "Számlák", url: "/staff/receipts", color: "blue" },
         ];
-
+        const userSpecificItems = [
+            { icon: IconUserCircle, label: "Saját számláim", url: "/receipts/my", color: "blue" },
+        ];
         const adminSpecificItems = [
             { icon: IconPlus, label: "Autó hozzáadása", url: "/admin/add-car", color: "green" },
             { icon: IconCar, label: "Autó adatok szerkesztése", url: "/admin/update", color: "green" },
         ];
+
 
         let visibleItems = [...basePublicItems];
 
@@ -91,6 +96,9 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
 
         if (isAuthenticated && user?.role === ROLES.ADMIN) {
             visibleItems = [...visibleItems, ...staffSpecificItems, ...adminSpecificItems];
+        }
+        if (isAuthenticated && (user?.role === ROLES.RENTER || user?.role === ROLES.ADMIN || user?.role === ROLES.STAFF)) {
+            visibleItems = [...visibleItems, ...userSpecificItems];
         }
 
         return visibleItems;

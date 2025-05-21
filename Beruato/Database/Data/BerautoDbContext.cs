@@ -161,7 +161,7 @@ namespace Database.Data
 
                 entity.HasOne(rec => rec.IssuerOperator)
                     .WithMany()
-                    .HasForeignKey(rec => rec.IssuedById)
+                    .HasForeignKey(rec => rec.IssuedBy)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);
             });

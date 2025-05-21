@@ -10,11 +10,9 @@ const axiosInstance = axios.create({
     withCredentials: true,
 });
 
-// Request Interceptor hozzáadása
 axiosInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        // Token lekérése a localStorage-ból a konstansban megadott kulccsal
-        const token = localStorage.getItem(tokenKeyName); // <-- KONSTANS HASZNÁLATA ITT
+        const token = localStorage.getItem(tokenKeyName);
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -23,7 +21,6 @@ axiosInstance.interceptors.request.use(
         return config;
     },
     (error) => {
-        // Kérés konfigurációs hiba esetén
         return Promise.reject(error);
     }
 );

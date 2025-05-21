@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Services.Services;
+using System.Security.Claims;
 
 namespace Services.Controllers;
 
 [ApiController]
 [Route("api/receipts")]
-[Authorize(Roles = "Staff,Admin")]
 public class ReceiptController : Controller
 {
     private readonly IReceiptService _receiptService;
@@ -27,6 +27,7 @@ public class ReceiptController : Controller
     /// <param name="receiptId">A lekérdezendő számla azonosítója.</param>
     /// <returns>A számla adatai (ReceiptGetDto), ha létezik.</returns>
     [HttpGet("{receiptId}")]
+    [Authorize(Roles = "Staff,Admin")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ReceiptGetDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -53,7 +54,8 @@ public class ReceiptController : Controller
     /// HTTP 400 BadRequest státuszkód, ha a bemeneti adatok érvénytelenek vagy üzleti logikai hiba lép fel.
     /// HTTP 500 InternalServerError státuszkód váratlan szerverhiba esetén.
     /// </returns>
-    [HttpPost]
+    [HttpPost ("Create")]
+    [Authorize(Roles = "Staff,Admin")]
     [ProducesResponseType(typeof(ReceiptGetDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
@@ -70,7 +72,8 @@ public class ReceiptController : Controller
     }
 
     // Get All Receipts
-    [HttpGet]
+    [HttpGet ("GetAllReceipts")]
+    [Authorize(Roles = "Staff,Admin")]
     [ProducesResponseType(typeof(IEnumerable<ReceiptGetDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetAllReceipts()
@@ -82,6 +85,23 @@ public class ReceiptController : Controller
         }
 
         return Ok(receipts);
+    }
+
+    // MyUser Receipts
+    [HttpGet("user")]
+    [Authorize]
+    public async Task<IActionResult> GetReceiptsForUser()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null)
+        {
+            return Unauthorized(new { Message = "A felhasználó nincs bejelentkezve." });
+        }
+
+        int userId = int.Parse(userIdClaim);
+
+        var result = await _receiptService.GetReceiptsByUserIdAsync(userId);
+        return Ok(result);
     }
 
 }

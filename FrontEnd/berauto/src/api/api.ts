@@ -20,8 +20,8 @@ const Cars = {
         );
     },
     updateCar: (id: number, patchDocument: JsonPatchOperation[]) => {
-        return axiosInstance.patch<void>( // A szerver NoContent() választ ad, ezért a várt adat void
-            `/cars/update/${id}`, // Az API végpontja az autó frissítésére
+        return axiosInstance.patch<void>(
+            `/cars/update/${id}`,
             patchDocument,
             {
                 headers: {
@@ -108,13 +108,16 @@ completedRents: () => {
 };
 
 const Receipts = {
-    getAll: () => axiosInstance.get<IReceipt[]>("/receipts"),
+    getAll: () => axiosInstance.get<IReceipt[]>("/receipts/GetAllReceipts"),
 
     getById: (id: number) =>
         axiosInstance.get<IReceipt>(`/receipts/${id}`),
 
     create: (data: IReceiptCreateDto) =>
-        axiosInstance.post<IReceipt>("/receipts", data),
+        axiosInstance.post<IReceipt>("/receipts/Create", data),
+
+    getForCurrentUser: () =>
+        axiosInstance.get<IReceipt[]>("/receipts/user"),
 };
 
 
