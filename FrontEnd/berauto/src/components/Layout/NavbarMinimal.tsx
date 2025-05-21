@@ -5,11 +5,12 @@ import {
     IconLogout,
     IconHome,
     IconCar,
-    IconListCheck,     // Kölcsönzési Igények (Pending Rents)
-    IconTransferOut,   // Átadandó Autók (Handovers)
-    IconRun,           // Futó Kölcsönzések (Running Rents)
+    IconListCheck,
+    IconTransferOut,
+    IconRun,
     IconLockCheck,
-    IconPlus// Lezárt Kölcsönzések (Completed Rents)
+    IconPlus,
+    IconCircleMinus
 } from "@tabler/icons-react";
 import classes from "./NavbarMinimalColored.module.css";
 import {useNavigate, useLocation} from "react-router-dom";
@@ -85,6 +86,9 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
         const adminSpecificItems = [
             { icon: IconPlus, label: "Autó hozzáadása", url: "/admin/add-car", color: "green" },
             { icon: IconCar, label: "Autó adatok szerkesztése", url: "/admin/update", color: "green" },
+            {
+                icon: IconCircleMinus, label: "Autó eltávolítása", url: "/admin/delete", color: "red"
+            }
         ];
 
 

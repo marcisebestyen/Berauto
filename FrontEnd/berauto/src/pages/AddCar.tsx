@@ -117,7 +117,6 @@ const AddCarPage = () => {
 
         } catch (err: any) {
             console.error("Autó hozzáadása API hiba:", err);
-            // Hibakezelés az axios válasz alapján (err.response.data)
             if (err.response && err.response.data) {
                 const responseData = err.response.data;
                 if (responseData.errors) {
@@ -184,7 +183,7 @@ const AddCarPage = () => {
                     <TextInput label="Rendszám" name="LicencePlate" value={formData.LicencePlate} onChange={handleChange} required withAsterisk disabled={isLoading} />
                     <NumberInput
                         label="Ár / nap (Ft)"
-                        name="PricePerKilometer"
+                        name="PricePerDay"
                         value={formData.PricePerDay}
                         onChange={(value) => handleNumberChange('PricePerDay', value as number | '')}
                         min={0}

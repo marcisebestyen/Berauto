@@ -12,6 +12,7 @@ import {CompletedRents} from "../pages/CompletedRents.tsx";
 import UpdateCar from "../pages/UpdateCar.tsx";
 import ReceiptListPage from "../pages/ReceiptListPage";
 import MyReceiptsPage from "../pages/MyReceiptsPage";
+import DeleteCarPage from "../pages/DeleteCarPage.tsx";
 
 
 export const ROLES = {
@@ -91,6 +92,12 @@ export const routes = [
     {
         path: "admin/update",
         component: <UpdateCar/>,
+        isPrivate: true,
+        roles: [ROLES.ADMIN],
+    },
+    {
+        path: "admin/delete",
+        component: <DeleteCarPage/>,
         isPrivate: true,
         roles: [ROLES.ADMIN],
     },

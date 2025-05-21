@@ -1,6 +1,6 @@
 import axiosInstance from "./axios.config.ts";
 import {CarFormData, ICar} from "../interfaces/ICar.ts";
-import { IUserProfile} from "../interfaces/IUser.ts";
+import {IUserProfile} from "../interfaces/IUser.ts";
 import { ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto } from "../interfaces/IRent.ts";
 import { IReceipt, IReceiptCreateDto } from "../interfaces/IReceipt";
 import { IHandOverRequestDto, ITakeBackRequestDto, IRejectRequestDto, IRejectSuccessResponse } from "../interfaces/RequestDto.ts";
@@ -46,6 +46,9 @@ const Cars = {
 
         const response = await axiosInstance.post<ICar>('/cars/create-car', payload);
         return response.data;
+    },
+    deleteCar: (carId: number) => {
+        return axiosInstance.delete<void>(`/cars/delete/${carId}`);
     }
 };
 
