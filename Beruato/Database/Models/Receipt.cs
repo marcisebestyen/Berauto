@@ -1,12 +1,19 @@
-﻿namespace Database.Models
-{
-    public class Receipt
-    {
-        public int Id { get; set; }
-        public int RentId { get; set; }
-        public double Cost { get; set; }
-        public DateTime IssueDate { get; set; }
+﻿using Database.Models;
+using System.ComponentModel.DataAnnotations.Schema;
 
-        public Rent Rent { get; set; } = new();
-    }
+public class Receipt
+{
+    public int Id { get; set; }
+
+    public int RentId { get; set; }
+    public int IssuedBy { get; set; } 
+
+    public decimal TotalCost { get; set; } 
+    public DateTime IssueDate { get; set; }
+
+    [ForeignKey(nameof(RentId))]
+    public Rent Rent { get; set; }
+
+    [ForeignKey(nameof(IssuedBy))]
+    public User IssuerOperator { get; set; }
 }

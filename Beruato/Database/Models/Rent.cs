@@ -3,15 +3,27 @@
     public class Rent
     {
         public int Id { get; set; }
-        public int CarId { get; set; }
-        public int UserId { get; set; }
-        public int AdministratorId { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public bool Finished { get; set; }
+        public int RenterId { get; set; }
+        public DateTime PlannedStart { get; set; } // user adja le igénynél
+        public DateTime PlannedEnd { get; set; } // -,,-
+        public DateTime? ActualStart { get; set; } // autó kiadásakor
+        public DateTime? ActualEnd { get; set; } // autó visszahozása
+        public int? ApprovedBy { get; set; } // staff id-ja 
+        public int? IssuedBy { get; set; } // -,,-
+        public int? TakenBackBy { get; set; } // -,,-
+        public int CarId { get; set; } // szabad autók listájából
+        public decimal? StartingKilometer { get; set; }
+        public decimal? EndingKilometer { get; set; }
+        public bool InvoiceRequest { get; set; }
+        public DateTime? IssuedAt { get; set; } // visszaírjuk Recepit-ből (dátumot)
+        public decimal? TotalCost { get; set; } // visszaírjuk Recepit-ből (összesen)
+        public int? ReceiptId { get; set; }
 
-        public Car Car { get; set; } = new();
-        public User User { get; set; } = new();
-        public User Administrator { get; set; } = new();
+        public User Renter { get; set; }
+        public User ApproverOperator { get; set; }
+        public User IssuerOperator { get; set; }
+        public User RecipientOperator { get; set; }
+        public Car Car { get; set; }
+        public Receipt Receipt { get; set; }
     }
 }
