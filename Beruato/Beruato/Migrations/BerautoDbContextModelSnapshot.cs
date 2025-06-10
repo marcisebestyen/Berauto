@@ -22,51 +22,6 @@ namespace Beruato.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Database.Models.Address", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("County")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Door")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Floor")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HouseNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Settlement")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Street")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ZipCode")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Addresses");
-                });
-
             modelBuilder.Entity("Database.Models.Car", b =>
                 {
                     b.Property<int>("Id")
@@ -75,43 +30,43 @@ namespace Beruato.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("ActualKilometers")
+                        .HasColumnType("decimal(18, 2)");
+
                     b.Property<string>("Brand")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("FuelType")
+                        .HasMaxLength(50)
                         .HasColumnType("int");
 
-                    b.Property<bool>("HaveValidVignette")
+                    b.Property<bool>("HasValidVignette")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsAutomaticTransmission")
+                    b.Property<bool>("InProperCondition")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsAvailable")
+                    b.Property<bool>("IsAutomatic")
                         .HasColumnType("bit");
-
-                    b.Property<int>("Licence")
-                        .HasColumnType("int");
 
                     b.Property<string>("LicencePlate")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
 
                     b.Property<string>("Model")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<decimal>("PricePerDay")
+                        .HasColumnType("decimal(18, 2)");
 
-                    b.Property<int>("Seats")
+                    b.Property<int>("RequiredLicence")
+                        .HasMaxLength(50)
                         .HasColumnType("int");
-
-                    b.Property<decimal>("Trunk")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
 
                     b.HasKey("Id");
 
@@ -121,7 +76,7 @@ namespace Beruato.Migrations
                     b.ToTable("Cars");
                 });
 
-            modelBuilder.Entity("Database.Models.Receipt", b =>
+            modelBuilder.Entity("Database.Models.Rent", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -129,17 +84,155 @@ namespace Beruato.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("Cost")
-                        .HasPrecision(18, 2)
+                    b.Property<DateTime?>("ActualEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ActualStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedBy")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CarId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("EndingKilometer")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<bool>("InvoiceRequest")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("IssuedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("IssuedBy")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PlannedEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PlannedStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReceiptId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RenterId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("StartingKilometer")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<int?>("TakenBackBy")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("TotalCost")
                         .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("CarId");
+
+                    b.HasIndex("IssuedBy");
+
+                    b.HasIndex("ReceiptId")
+                        .IsUnique()
+                        .HasFilter("[ReceiptId] IS NOT NULL");
+
+                    b.HasIndex("RenterId");
+
+                    b.HasIndex("TakenBackBy");
+
+                    b.ToTable("Rents");
+                });
+
+            modelBuilder.Entity("Database.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("LicenceId")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Password")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("RegisteredUser")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasFilter("[Email] IS NOT NULL");
+
+                    b.HasIndex("UserName")
+                        .IsUnique();
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Receipt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("IssueDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("IssuedBy")
+                        .HasColumnType("int");
+
                     b.Property<int>("RentId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18, 2)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("IssuedBy");
 
                     b.HasIndex("RentId")
                         .IsUnique();
@@ -149,142 +242,10 @@ namespace Beruato.Migrations
 
             modelBuilder.Entity("Database.Models.Rent", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AdministratorId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CarId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("Finished")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AdministratorId");
-
-                    b.HasIndex("CarId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Rents");
-                });
-
-            modelBuilder.Entity("Database.Models.Role", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Roles");
-                });
-
-            modelBuilder.Entity("Database.Models.User", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AddressId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.PrimitiveCollection<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AddressId");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.HasIndex("UserName")
-                        .IsUnique();
-
-                    b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("RoleUser", b =>
-                {
-                    b.Property<int>("RolesId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UsersId")
-                        .HasColumnType("int");
-
-                    b.HasKey("RolesId", "UsersId");
-
-                    b.HasIndex("UsersId");
-
-                    b.ToTable("UserRoles", (string)null);
-                });
-
-            modelBuilder.Entity("Database.Models.Receipt", b =>
-                {
-                    b.HasOne("Database.Models.Rent", "Rent")
-                        .WithOne()
-                        .HasForeignKey("Database.Models.Receipt", "RentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Rent");
-                });
-
-            modelBuilder.Entity("Database.Models.Rent", b =>
-                {
-                    b.HasOne("Database.Models.User", "Administrator")
+                    b.HasOne("Database.Models.User", "ApproverOperator")
                         .WithMany()
-                        .HasForeignKey("AdministratorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("ApprovedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Database.Models.Car", "Car")
                         .WithMany()
@@ -292,42 +253,55 @@ namespace Beruato.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Database.Models.User", "User")
+                    b.HasOne("Database.Models.User", "IssuerOperator")
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("IssuedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Database.Models.User", "Renter")
+                        .WithMany()
+                        .HasForeignKey("RenterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Administrator");
+                    b.HasOne("Database.Models.User", "RecipientOperator")
+                        .WithMany()
+                        .HasForeignKey("TakenBackBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApproverOperator");
 
                     b.Navigation("Car");
 
-                    b.Navigation("User");
+                    b.Navigation("IssuerOperator");
+
+                    b.Navigation("RecipientOperator");
+
+                    b.Navigation("Renter");
                 });
 
-            modelBuilder.Entity("Database.Models.User", b =>
+            modelBuilder.Entity("Receipt", b =>
                 {
-                    b.HasOne("Database.Models.Address", "Address")
+                    b.HasOne("Database.Models.User", "IssuerOperator")
                         .WithMany()
-                        .HasForeignKey("AddressId")
+                        .HasForeignKey("IssuedBy")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Address");
-                });
-
-            modelBuilder.Entity("RoleUser", b =>
-                {
-                    b.HasOne("Database.Models.Role", null)
-                        .WithMany()
-                        .HasForeignKey("RolesId")
+                    b.HasOne("Database.Models.Rent", "Rent")
+                        .WithOne("Receipt")
+                        .HasForeignKey("Receipt", "RentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Database.Models.User", null)
-                        .WithMany()
-                        .HasForeignKey("UsersId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.Navigation("IssuerOperator");
+
+                    b.Navigation("Rent");
+                });
+
+            modelBuilder.Entity("Database.Models.Rent", b =>
+                {
+                    b.Navigation("Receipt")
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

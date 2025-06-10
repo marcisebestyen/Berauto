@@ -1,117 +1,146 @@
-﻿using Database.Data;
+﻿using System.ComponentModel.DataAnnotations;
 using Database.Models;
-using Database.Dtos;
+using Services.Repositories;
+using Database.Dtos.CarDtos;
 using AutoMapper;
-using Microsoft.Extensions.Logging;
-using Microsoft.EntityFrameworkCore;
+using Database.Results;
+using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Services.Services
+namespace Services.Services;
+
+public interface ICarService
 {
-    public interface ICarServices
+    Task<IEnumerable<CarGetDto>> GetAllCarsAsync();
+    Task<CarGetDto?> GetCarByIdAsync(int id);
+    Task<CarGetDto> AddCarAsync(CarCreateDto createCarDto);
+    Task<ServiceResult> UpdateCarAsync(int id, JsonPatchDocument<Car> patchDocument, ModelStateDictionary modelState);
+    Task DeleteCarAsync(int id);
+    Task<IEnumerable<CarGetDto>> GetAvailableCarsAsync(DateTime startDate, DateTime endDate);
+}
+
+public class CarService : ICarService
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+
+    public CarService(IUnitOfWork unitOfWork, IMapper mapper)
     {
-        public bool IsCarAvailable(int carId);
-        Task<CarDto> AddCarAsync(CreateCarDto carDto); 
-        Task<CarDto> RemoveCarAsync(int carId);
-        Task<List<CarDto>> ListCarsAsync();
-        Task<List<Car>> GetAvailableCarsAsync();
-        Task<CarDto> UpdateCarAsync(int id, UpdateCarDto carUpdateDto);
-        Task<bool> ValidateVignetteAsync(int carId);
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public class CarService : ICarServices
+    public async Task<IEnumerable<CarGetDto>> GetAllCarsAsync()
     {
-        private readonly BerautoDbContext _context;
-        private readonly ILogger<CarService> _logger;
-        private readonly IMapper _mapper;
-        public CarService(BerautoDbContext context, ILogger<CarService> logger, IMapper mapper)
+        var cars = await _unitOfWork.CarRepository.GetAllAsync();
+        return _mapper.Map<IEnumerable<CarGetDto>>(cars);
+    }
+
+    public async Task<CarGetDto?> GetCarByIdAsync(int id)
+    {
+        var car = await _unitOfWork.CarRepository.GetByIdAsync(new object[] { id });
+        if (car == null)
         {
-            _context = context;
-            _logger = logger;
-            _mapper = mapper;
+            return null;
         }
 
-        public bool IsCarAvailable(int carId)
-        {
-            var car = _context.Cars.Find(carId);
-            if (car == null)
+        return _mapper.Map<CarGetDto>(car);
+    }
+
+    public async Task<CarGetDto> AddCarAsync(CarCreateDto createCarDto)
+    {
+        var car = _mapper.Map<Car>(createCarDto);
+
+        await _unitOfWork.CarRepository.InsertAsync(car);
+        await _unitOfWork.SaveAsync();
+
+        return _mapper.Map<CarGetDto>(car);
+    }
+
+    public async Task<ServiceResult> UpdateCarAsync(int id, JsonPatchDocument<Car> patchDocument,
+        ModelStateDictionary modelState)
+    {
+
+        var existingCar =
+            await _unitOfWork.CarRepository.GetByIdAsync(new object[]
             {
-                throw new ArgumentException($"Car with ID {carId} not found.");
-            }
-            return car.IsAvailable;
+                id
+            }); 
+        if (existingCar == null)
+        {
+            // _logger.LogInformation("UpdateCarAsync: Car with ID {CarId} not found.", id);
+            throw new KeyNotFoundException($"A {id} azonosítójú autó nem található.");
         }
 
-        public async Task<CarDto> AddCarAsync(CreateCarDto createCarDto)
+        patchDocument.ApplyTo(existingCar, modelState);
+
+        if (!modelState.IsValid)
         {
-            var car = _mapper.Map<Car>(createCarDto);
-
-            _logger.LogInformation("Adding a new car");
-
-            await _context.Cars.AddAsync(car);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Car added successfully with ID: {CarId}", car.Id);
-            return _mapper.Map<CarDto>(car);
+            throw new ArgumentException("A JSON Patch dokumentum műveletei hibát eredményeztek. Lásd a részleteket.",
+                nameof(patchDocument));
         }
 
-        public async Task<CarDto> RemoveCarAsync(int id)
+        var validationContext = new ValidationContext(existingCar, serviceProvider: null, items: null);
+        var validationResults = new List<ValidationResult>();
+        bool isEntityValid = Validator.TryValidateObject(existingCar, validationContext, validationResults,
+            validateAllProperties: true);
+
+        if (!isEntityValid)
         {
-            var car = await _context.Cars.FindAsync(id);
-            if (car == null)
+            foreach (var validationResult in validationResults)
             {
-                throw new ArgumentException($"Car with ID {id} not found.");
-            }
-
-            _logger.LogInformation($"Removing car with ID: {id}");
-
-            _context.Cars.Remove(car);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation($"Car with ID: {id} removed successfully");
-            return _mapper.Map<CarDto>(car);
-        }
-
-        public async Task<List<CarDto>> ListCarsAsync()
-        {
-
-            _logger.LogInformation("Listing all cars");
-            var cars = await _context.Cars.ToListAsync();
-            return _mapper.Map<List<CarDto>>(cars);
-        }
-        public async Task<List<Car>> GetAvailableCarsAsync()
-        {
-            _logger.LogInformation("GetAvailableCars method called");
-            return await _context.Cars.Where(car => car.IsAvailable).ToListAsync();
-
-        }
-        public async Task<CarDto> UpdateCarAsync(int id, UpdateCarDto carUpdateDto)
-        {
-            var car = await _context.Cars.FindAsync(id);
-            if (car == null)
-            {
-                throw new ArgumentException($"Car with ID {id} not found.");
-            }
-
-            _logger.LogInformation($"Updating 'IsAvailable' status for car with ID: {id}");
-
-            car.IsAvailable = (bool)carUpdateDto.IsAvailable;
-
-            _context.Cars.Update(car);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation($"Car with ID: {id} 'IsAvailable' updated successfully");
-            return _mapper.Map<CarDto>(car);
-        }
-
-        public async Task<bool> ValidateVignetteAsync(int carId)
-        {
-            var car = await _context.Cars.FindAsync(carId);
-            if (car == null)
-            {
-                throw new ArgumentException($"Car with ID {carId} not found.");
+                if (validationResult.MemberNames.Any())
+                {
+                    foreach (var memberName in validationResult.MemberNames)
+                    {
+                        modelState.AddModelError(memberName, validationResult.ErrorMessage);
+                    }
+                }
+                else
+                {
+                    modelState.AddModelError(string.Empty, validationResult.ErrorMessage); 
+                }
             }
 
-            _logger.LogInformation("Validating vignette for car with ID: {CarId}", car.Id);
-            return car.HaveValidVignette;
+            // _logger.LogWarning("UpdateCarAsync: Entity validation failed after patch for car ID {CarId}. ModelState: {@ModelState}", id, modelState);
+            throw new ArgumentException(
+                "Az entitás validációja sikertelen a patch alkalmazása után. Lásd a részleteket.", nameof(existingCar));
         }
+
+        await _unitOfWork.SaveAsync();
+
+        return ServiceResult.Success("Autó sikeresen updatelve.");
+    }
+
+    public async Task DeleteCarAsync(int id)
+    {
+        try
+        {
+            await _unitOfWork.CarRepository.DeleteAsync(id);
+            await _unitOfWork.SaveAsync();
+        }
+        catch (KeyNotFoundException)
+        {
+            throw;
+        }
+    }
+
+
+    public async Task<IEnumerable<CarGetDto>> GetAvailableCarsAsync(DateTime startDate, DateTime endDate)
+    {
+        var rentedCarIds =
+            (await _unitOfWork.RentRepository.GetAsync(rent =>
+                rent.PlannedStart < endDate && rent.PlannedEnd > startDate
+            ))
+            .Select(rent => rent.CarId)
+            .Distinct()
+            .ToList();
+
+        var availableCarsEntities =
+            await _unitOfWork.CarRepository.GetAsync(car => car.InProperCondition && !rentedCarIds.Contains(car.Id)
+            );
+
+        return _mapper.Map<IEnumerable<CarGetDto>>(availableCarsEntities);
     }
 }

@@ -1,78 +1,130 @@
-﻿using Database.Dtos;
-using Database.Data;
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+using Database.Dtos.ReceiptDtos;
 using Database.Models;
+using Database.Results;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Services.Repositories;
 
-namespace Services.Services
+namespace Services.Services;
+
+public interface IReceiptService
 {
-    public interface IReceiptService
+    Task<ReceiptGetDto?> GetReceiptByIdAsync(int receiptId);
+    Task<CreateResult<ReceiptGetDto>> CreateReceiptAsync(ReceiptCreateDto receiptDto);
+    Task<IEnumerable<ReceiptGetDto>> GetAllReceiptsAsync();
+    Task<IEnumerable<ReceiptGetDto>> GetReceiptsByUserIdAsync(int userId);
+}
+
+public class ReceiptService : IReceiptService
+{
+    protected readonly IUnitOfWork _unitOfWork;
+    protected readonly IMapper _mapper;
+    protected readonly ILogger<ReceiptService> _logger;
+
+    public ReceiptService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<ReceiptService> logger)
     {
-        Task<ReceiptDto> AddReceipt(CreateReceiptDto receiptDto);
-        Task<ReceiptDto> GetReceipt(int receiptId);
-        Task<List<ReceiptDto>> GetReceipts();
-        Task<ReceiptDto> UpdateReceipt(int receiptId, UpdateReceiptDto updateReceiptDto);
-        Task<bool> DeleteReceipt(int receiptId);
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public class ReceiptService : IReceiptService
+    public async Task<IEnumerable<ReceiptGetDto>> GetReceiptsByUserIdAsync(int userId)
     {
-        private readonly BerautoDbContext _context;
-        private readonly IMapper _mapper;
-        public ReceiptService(BerautoDbContext context, IMapper mapper)
+        var receipts = await _unitOfWork.ReceiptRepository.GetAsync(
+                 r => r.Rent.RenterId == userId || r.IssuedBy == userId,
+                 new[] { "Rent.Car", "Rent.Renter", "IssuerOperator" });
+
+        return _mapper.Map<IEnumerable<ReceiptGetDto>>(receipts);
+    }
+    public async Task<IEnumerable<ReceiptGetDto>> GetAllReceiptsAsync()
+    {
+        var receipts = await _unitOfWork.ReceiptRepository.GetAllAsync(new[]
         {
-            _context = context;
-            _mapper = mapper;
-        }
-        public async Task<ReceiptDto> AddReceipt(CreateReceiptDto receiptDto)
+            "Rent.Car",
+            "Rent.Renter",
+            "IssuerOperator"
+        });
+
+        if (receipts == null || !receipts.Any())
         {
-            var receipt = _mapper.Map<Receipt>(receiptDto);
-            await _context.Receipts.AddAsync(receipt);
-            await _context.SaveChangesAsync();
-            return _mapper.Map<ReceiptDto>(receipt);
+            return Enumerable.Empty<ReceiptGetDto>();
         }
-        public async Task<ReceiptDto> GetReceipt(int receiptId)
+        return _mapper.Map<IEnumerable<ReceiptGetDto>>(receipts);
+    }
+
+    public async Task<ReceiptGetDto?> GetReceiptByIdAsync(int receiptId)
+    {
+        var receipt = await _unitOfWork.ReceiptRepository.GetByIdAsync(new[]
         {
-            var receipt = await _context.Receipts
-                .Include(r => r.Rent)
-                .FirstOrDefaultAsync(r => r.Id == receiptId);
-            if (receipt == null)
-            {
-                throw new ArgumentException("The given receipt does not exist.");
-            }
-            return _mapper.Map<ReceiptDto>(receipt);
-        }
-        public async Task<List<ReceiptDto>> GetReceipts()
+            "Rent.Car",
+            "Rent.Renter",
+            "IssuerOperator"
+        });
+
+        if (receipt == null)
         {
-            var receipts = await _context.Receipts
-                .Include(r => r.Rent)
-                .ToListAsync();
-            return _mapper.Map<List<ReceiptDto>>(receipts);
+            return null;
         }
-        public async Task<ReceiptDto> UpdateReceipt(int receiptId, UpdateReceiptDto updateReceiptDto)
+
+        return _mapper.Map<ReceiptGetDto>(receipt);
+    }
+
+    public async Task<CreateResult<ReceiptGetDto>> CreateReceiptAsync(ReceiptCreateDto createDto)
+    {
+        if (createDto == null)
         {
-            var receipt = await _context.Receipts
-                .Include(r => r.Rent)
-                .FirstOrDefaultAsync(r => r.Id == receiptId);
-            if (receipt == null)
-            {
-                throw new ArgumentException("The given receipt does not exist.");
-            }
-            _mapper.Map(updateReceiptDto, receipt);
-            await _context.SaveChangesAsync();
-            return _mapper.Map<ReceiptDto>(receipt);
+            return CreateResult<ReceiptGetDto>.Failure("A létrehozási adatok nem lehetnek üresek.");
         }
-        public async Task<bool> DeleteReceipt(int receiptId)
+
+        var rentEntity = await _unitOfWork.RentRepository.GetByIdAsync(new object[] { createDto.RentId });
+        if (rentEntity == null)
         {
-            var receipt = await _context.Receipts
-                .FirstOrDefaultAsync(r => r.Id == receiptId);
-            if (receipt == null)
-            {
-                throw new ArgumentException("The given receipt does not exist.");
-            }
-            _context.Receipts.Remove(receipt);
-            await _context.SaveChangesAsync();
-            return true;
+            _logger.LogWarning("Attempted to create receipt for non-existing RentId: {RentId}", createDto.RentId);
+            return CreateResult<ReceiptGetDto>.Failure($"A(z) {createDto.RentId} azonosítójú bérlés nem található.");
         }
+
+        var issuerExists = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { createDto.IssuedById });
+        if (issuerExists == null)
+        {
+            _logger.LogWarning("Attempted to create receipt with non-existing IssuerId: {IssuerId}", createDto.IssuedById);
+            return CreateResult<ReceiptGetDto>.Failure($"A(z) {createDto.IssuedById} azonosítójú kiállító operátor nem található.");
+        }
+
+        var existingReceiptForRent = (await _unitOfWork.ReceiptRepository.GetAsync(r => r.RentId == createDto.RentId)).FirstOrDefault();
+        if (existingReceiptForRent != null)
+        {
+            _logger.LogWarning("Receipt already exists for RentId: {RentId}. Existing ReceiptId: {ExistingReceiptId}", createDto.RentId, existingReceiptForRent.Id);
+            return CreateResult<ReceiptGetDto>.Failure($"Ehhez a bérléshez (RentId: {createDto.RentId}) már létezik számla (ReceiptId: {existingReceiptForRent.Id}).");
+        }
+
+        var newReceipt = _mapper.Map<Receipt>(createDto);
+
+        rentEntity.IssuedAt = newReceipt.IssueDate;
+        rentEntity.TotalCost = newReceipt.TotalCost;
+
+        try
+        {
+            await _unitOfWork.ReceiptRepository.InsertAsync(newReceipt);
+            rentEntity.ReceiptId = newReceipt.Id;
+
+            await _unitOfWork.RentRepository.UpdateAsync(rentEntity);
+            await _unitOfWork.SaveAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error occurred while creating a new receipt and updating rent for RentId: {RentId}.", createDto.RentId);
+            return CreateResult<ReceiptGetDto>.Failure($"Adatbázis hiba történt a számla létrehozása során: {ex.InnerException?.Message ?? ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error occurred while creating a new receipt and updating rent for RentId: {RentId}.", createDto.RentId);
+            return CreateResult<ReceiptGetDto>.Failure($"Váratlan hiba történt a számla létrehozása során: {ex.Message}");
+        }
+
+        var createdReceiptDto = _mapper.Map<ReceiptGetDto>(newReceipt);
+
+        _logger.LogInformation("Receipt with ID {ReceiptId} created successfully for RentId: {RentId}. Rent's IssuedAt, TotalCost, and ReceiptId updated.", newReceipt.Id, newReceipt.RentId);
+        return CreateResult<ReceiptGetDto>.Success(createdReceiptDto);
     }
 }

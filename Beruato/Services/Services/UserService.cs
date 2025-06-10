@@ -1,228 +1,358 @@
-﻿using AutoMapper;
-using Database.Data;
-using Database.Dtos;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AutoMapper;
+using Database.Dtos.UserDtos;
+using Database.Models;
+using Database.Results;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using Services.Repositories;
 
-namespace Database.Models
+namespace Services.Services;
+
+public interface IUserService
 {
-    public interface IUserService
+    Task<UserGetDto?> GetUserByIdAsync(int userId);
+    Task<ServiceResult> UpdateUserAsync(int userId, UserUpdateDto userUpdateDto);
+    Task<LoginResult> LoginAsync(UserLoginDto loginDto);
+    Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto);
+    Task<User> GetOrCreateGuestUserAsync(UserCreateGuestDto guestDto);
+    Task<bool> CheckEmailExistsAndRegisteredAsync(string email);
+    Task<ServiceResult> ResetPasswordAsync(string email, string newPassword);
+}
+
+public class UserService : IUserService
+{
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMapper _mapper;
+    private readonly ILogger<UserService> _logger;
+    private readonly IConfiguration _configuration;
+
+    public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger,
+        IConfiguration configuration)
     {
-        Task<UserDto> AddUser(CreateUserDto userDto);
-        Task<UserDto> GetUser(int userId);
-        Task<List<UserDto>> GetUsers();
-        Task<UserDto> UpdateUser(int userId, UpdateUserDto updateUserDto);
-        Task<bool> DeleteUser(int userId);
-        Task<string> LoginAsync(UserLoginDto userDto);
-        Task<int> GetUserRents(int userId);
-        Task<int> GetActiveRents(int userId);
+        _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
-    public class UserService : IUserService
+    public async Task<UserGetDto?> GetUserByIdAsync(int userId)
     {
-        private readonly BerautoDbContext _context;
-        private readonly IMapper _mapper;
-        private readonly IConfiguration _configuration;
+        var user = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { userId });
 
-        public UserService(BerautoDbContext context, IMapper mapper, IConfiguration configuration)
+        if (user == null)
         {
-            _context = context;
-            _mapper = mapper;
-            _configuration = configuration;
+            return null;
         }
 
-        public async Task<UserDto> AddUser(CreateUserDto userDto)
+        return _mapper.Map<UserGetDto>(user);
+    }
+
+    public async Task<ServiceResult> UpdateUserAsync(int userId, UserUpdateDto userUpdateDto)
+    {
+        var user = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { userId });
+
+        if (user == null)
         {
-            var user = _mapper.Map<User>(userDto);
-            user.Password = BCrypt.Net.BCrypt.HashPassword(userDto.Password);
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-            return _mapper.Map<UserDto>(user);
+            return ServiceResult.Failed("A módosítandó felhasználó nem található.");
         }
 
-        public async Task<UserDto> GetUser(int userId)
+        if (!user.RegisteredUser)
         {
-            var user = await _context.Users
-                .Include(u => u.Address)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user == null)
-            {
-                throw new ArgumentException("The given user does not exist.");
-            }
-
-            return _mapper.Map<UserDto>(user);
+            return ServiceResult.Failed("Csak regisztrált felhasználók módosíthatják az adataikat.");
         }
 
-        public async Task<List<UserDto>> GetUsers()
-        {
-            var users = await _context.Users
-                .Include(u => u.Address)
-                .ToListAsync();
+        bool changed = false;
 
-            return _mapper.Map<List<UserDto>>(users);
+        if (userUpdateDto.FirstName != null && user.FirstName != userUpdateDto.FirstName)
+        {
+            user.FirstName = userUpdateDto.FirstName;
+            changed = true;
         }
 
-        public async Task<UserDto> UpdateUser(int userId, UpdateUserDto updateUserDto)
+        if (userUpdateDto.LastName != null && user.LastName != userUpdateDto.LastName)
         {
-            try
-            {
-                var user = await _context.Users
-                .Include(u => u.Address)
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-                if (user == null)
-                {
-                    throw new ArgumentException("User not found");
-                }
-
-                _mapper.Map(updateUserDto, user);
-
-                await _context.Entry(user)
-                    .Reference(u => u.Address)
-                    .LoadAsync();
-
-
-                await _context.SaveChangesAsync();
-                return _mapper.Map<UserDto>(user);
-            }
-            catch (DbUpdateException ex)
-            {
-                Console.WriteLine("DB Update Error: " + ex.InnerException?.Message);
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("General Error: " + ex.Message);
-                throw;
-            }
+            user.LastName = userUpdateDto.LastName;
+            changed = true;
         }
 
-        public async Task<bool> DeleteUser(int userId)
+        if (userUpdateDto.PhoneNumber != null && user.PhoneNumber != userUpdateDto.PhoneNumber)
         {
-            var user = await _context.Users.FindAsync(userId);
-
-            if (user == null)
-            {
-                return false;
-            }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        public async Task<string> LoginAsync(UserLoginDto userDto)
-        {
-            var user = await _context.Users
-                                     .Include(u => u.Roles)
-                                     .FirstOrDefaultAsync(x => x.Email == userDto.Email);
-
-            if (user == null || !BCrypt.Net.BCrypt.Verify(userDto.Password, user.Password))
-            {
-                throw new UnauthorizedAccessException("Invalid credentials.");
-            }
-
-            return await GenerateToken(user);
+            user.PhoneNumber = userUpdateDto.PhoneNumber;
+            changed = true;
         }
 
-        private async Task<string> GenerateToken(User user)
+        if (userUpdateDto.LicenceId != null && user.LicenceId != userUpdateDto.LicenceId)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expires = DateTime.Now.AddDays(Convert.ToDouble(_configuration["Jwt:ExpireDays"]));
-
-            var id = await GetClaimsIdentity(user);
-            var token = new JwtSecurityToken(_configuration["Jwt:Issuer"], _configuration["Jwt:Audience"], id.Claims, expires: expires, signingCredentials: creds);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            user.LicenceId = userUpdateDto.LicenceId;
+            changed = true;
         }
 
-        private async Task<ClaimsIdentity> GetClaimsIdentity(User user)
+        if (userUpdateDto.Email != null && user.Email != userUpdateDto.Email)
         {
-            var claims = new List<Claim>
+            // Ellenőrizzük, hogy az új email cím nem foglalt-e már más felhasználó által
+            var existingUserWithEmail =
+                (await _unitOfWork.UserRepository.GetAsync(u => u.Email == userUpdateDto.Email && u.Id != user.Id))
+                .FirstOrDefault();
+            if (existingUserWithEmail != null)
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Sid, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.AuthTime, DateTime.Now.ToString(CultureInfo.InvariantCulture))
-            };
-
-            if (user.Roles != null && user.Roles.Any())
-            {
-                claims.AddRange(user.Roles.Select(role => new Claim("roleIds", role.Id.ToString())));
-
-                claims.AddRange(user.Roles.Select(role => new Claim(ClaimTypes.Role, role.Name)));
+                return ServiceResult.Failed("Az email cím már foglalt egy másik felhasználó által.");
             }
 
-            return new ClaimsIdentity(claims, "Token");
+            user.Email = userUpdateDto.Email;
+            changed = true;
         }
 
-        public async Task<UserDto> RegisterAsync(CreateUserDto userDto)
+        if(userUpdateDto.Address != null && user.Address != userUpdateDto.Address)
         {
-            if (await _context.Users.AnyAsync(u => u.UserName == userDto.UserName || u.Email == userDto.Email))
-            {
-                throw new ArgumentException("Username or Email already exists.");
-            }
-
-            var user = _mapper.Map<User>(userDto);
-            user.Password = BCrypt.Net.BCrypt.HashPassword(userDto.Password);
-
-            user.Roles = new List<Role>(); 
-            var defaultRoleName = "User";
-
-            var userRoleEntity = await _context.Roles
-                                               .FirstOrDefaultAsync(r => r.Name == defaultRoleName);
-
-            if (userRoleEntity != null)
-            {
-                user.Roles.Add(userRoleEntity);
-            }
-            else
-            {
-                throw new InvalidOperationException($"Default role '{defaultRoleName}' not found in the database. Registration cannot proceed.");
-            }
-
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
-
-            var createdUser = await _context.Users
-                                      .Include(u => u.Address)
-                                      .Include(u => u.Roles)
-                                      .FirstOrDefaultAsync(u => u.Id == user.Id);
-
-            return _mapper.Map<UserDto>(createdUser);
+            user.Address = userUpdateDto.Address;
+            changed = true;
+        }
+        
+        if (!changed)
+        {
+            return ServiceResult.Success(); // Nem történt változás
         }
 
-        public async Task<int> GetUserRents(int userId)
+        try
         {
-            var rents = await _context.Rents
-                .Where(r => r.UserId == userId)
-                .ToListAsync();
+            await _unitOfWork.UserRepository.UpdateAsync(user);
+            await _unitOfWork.SaveAsync();
+            return ServiceResult.Success();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return ServiceResult.Failed("Az adatokat időközben valaki más módosította. Kérjük, próbálja újra.");
+        }
+        catch (DbUpdateException ex)
+        {
+            // Logolás javasolt: _logger.LogError(ex, "Hiba történt a felhasználó adatainak frissítésekor.");
+            return ServiceResult.Failed(
+                $"Adatbázis hiba történt a frissítés során: {ex.InnerException?.Message ?? ex.Message}");
+        }
+        catch (Exception ex) 
+        {
+            _logger.LogError(ex, "Váratlan hiba történt a felhasználó adatainak frissítésekor.");
+            return ServiceResult.Failed($"Váratlan hiba történt: {ex.Message}");
+        }
+    }
 
-            if (rents == null || rents.Count == 0)
-            {
-                throw new ArgumentException("No rents found for this user.");
-            }
-
-            return rents.Count;
+    public async Task<LoginResult> LoginAsync(UserLoginDto loginDto)
+    {
+        if (loginDto == null || string.IsNullOrWhiteSpace(loginDto.Identifier) ||
+            string.IsNullOrWhiteSpace(loginDto.Password))
+        {
+            return LoginResult.Failure("Az e-mail cím és a jelszó megadása kötelező.");
         }
 
-        public async Task<int> GetActiveRents(int userId)
+        var user = (await _unitOfWork.UserRepository.GetAsync(u =>
+            u.Email == loginDto.Identifier || u.UserName == loginDto.Identifier)).FirstOrDefault();
+
+        if (user == null)
         {
-            var rents = await _context.Rents
-                .Where(r => r.UserId == userId && r.Finished == false)
-                .ToListAsync();
-            if (rents == null || rents.Count == 0)
-            {
-                throw new ArgumentException("No active rents found for this user.");
-            }
-            return rents.Count;
+            return LoginResult.Failure("Hibás e-mail cím vagy jelszó.");
+        }
+
+        if (!user.RegisteredUser)
+        {
+            var usersGetDto = _mapper.Map<UserGetDto>(user);
+            return LoginResult.Success(usersGetDto, token: "");
+        }
+
+        if (string.IsNullOrWhiteSpace(loginDto.Password))
+        {
+            return LoginResult.Failure("A jelszó megadása kötelező.");
+        }
+
+        bool isPasswordValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.Password);
+
+        if (!isPasswordValid)
+        {
+            return LoginResult.Failure("Hibás e-mail cím vagy jelszó.");
+        }
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var jwtSettings = _configuration.GetSection("Jwt");
+        var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ??
+                                          throw new InvalidOperationException("JWT Key not configured."));
+
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.AddDays(Convert.ToDouble(jwtSettings["ExpireDays"])),
+            Issuer = jwtSettings["Issuer"],
+            Audience = jwtSettings["Audience"],
+            SigningCredentials =
+                new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        var tokenString = tokenHandler.WriteToken(token);
+
+        var userGetDto = _mapper.Map<UserGetDto>(user);
+
+        return LoginResult.Success(userGetDto, tokenString);
+    }
+
+    public async Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto)
+    {
+        if (registrationDto == null)
+        {
+            return RegistrationResult.Failure("A regisztrációs adatok nem lehetnek üresek.");
+        }
+
+        var existingUserByEmail = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == registrationDto.Email))
+            .FirstOrDefault();
+        if (existingUserByEmail != null)
+        {
+            return RegistrationResult.Failure("Ez az e-mail cím már regisztrálva van.");
+        }
+
+        string userNameToRegister = registrationDto.Email; 
+        var existingUserByUserName = (await _unitOfWork.UserRepository.GetAsync(u => u.UserName == userNameToRegister))
+            .FirstOrDefault();
+        if (existingUserByUserName != null)
+        {
+            return RegistrationResult.Failure(
+                "A felhasználónév már foglalt. Próbálkozzon másikkal, vagy ez az email már használatban van felhasználónévként.");
+        }
+
+        string hashedPassword = BCrypt.Net.BCrypt.HashPassword(registrationDto.Password);
+
+        var newUser = new User
+        {
+
+            FirstName = registrationDto.FirstName,
+            LastName = registrationDto.LastName,
+            Email = registrationDto.Email,
+            UserName = registrationDto.UserName,
+            PhoneNumber = registrationDto.PhoneNumber,
+            LicenceId = registrationDto.LicenceId,
+            RegisteredUser = true,
+            Password = hashedPassword,
+            Role = Role.Renter,
+            Address = registrationDto.Address
+        };
+
+        try
+        {
+            await _unitOfWork.UserRepository.InsertAsync(newUser);
+            await _unitOfWork.SaveAsync();
+        }
+        catch (DbUpdateException ex) 
+        {
+            return RegistrationResult.Failure(
+                $"Adatbázis hiba történt a regisztráció során: {ex.InnerException?.Message ?? ex.Message}");
+        }
+        catch (Exception ex) 
+        {
+            return RegistrationResult.Failure($"Váratlan hiba történt a regisztráció során: {ex.Message}");
+        }
+
+        var userGetDto = _mapper.Map<UserGetDto>(newUser);
+
+        return RegistrationResult.Success(userGetDto);
+    }
+
+    public async Task<User> GetOrCreateGuestUserAsync(UserCreateGuestDto guestDto)
+    {
+        if (guestDto == null || string.IsNullOrWhiteSpace(guestDto.Email))
+        {
+            throw new ArgumentException("Vendég adatok vagy email cím hiányzik.");
+        }
+
+        var existingUser = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == guestDto.Email)).FirstOrDefault();
+
+        if (existingUser != null)
+        {
+            _logger.LogInformation("Guest user found with email: {Email}, ID: {UserId}", guestDto.Email, existingUser.Id);
+            return existingUser;
+        }
+
+        var newUser = new User
+        {
+            FirstName = guestDto.FirstName,
+            LastName = guestDto.LastName,
+            Email = guestDto.Email,
+            UserName = guestDto.Email, 
+            PhoneNumber = guestDto.PhoneNumber,
+            LicenceId = guestDto.LicenceId,
+            RegisteredUser = false, 
+            Password = null,        
+            Role = Role.Renter      
+        };
+
+        await _unitOfWork.UserRepository.InsertAsync(newUser);
+        await _unitOfWork.SaveAsync();
+        _logger.LogInformation("New guest user created with email: {Email}, ID: {UserId}", guestDto.Email, newUser.Id);
+        return newUser;
+    }
+
+
+    public async Task<bool> CheckEmailExistsAndRegisteredAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            _logger.LogWarning("CheckEmailExistsAndRegisteredAsync called with empty email.");
+            return false;
+        }
+
+        var user =
+            (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email && u.RegisteredUser)).FirstOrDefault();
+
+        return user != null;
+    }
+
+    public async Task<ServiceResult> ResetPasswordAsync(string email, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(newPassword))
+        {
+            _logger.LogWarning("ResetPasswordAsync called with empty email and password.");
+            return ServiceResult.Failed("Az e-mail cím és az új jelszó megadása kötelező.");
+        }
+
+        var user =
+            (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email && u.RegisteredUser)).FirstOrDefault();
+
+        if (user == null)
+        {
+            _logger.LogWarning("DirectResetPasswordAsync called for non-existent or non-registered user email: {Email}",
+                email);
+            return ServiceResult.Failed("A megadott e-mail címmel nem található regisztrált felhasználó.");
+        }
+
+        user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+        try
+        {
+            await _unitOfWork.UserRepository.UpdateAsync(user);
+            await _unitOfWork.SaveAsync();
+            _logger.LogInformation(
+                "Password directly reset for user {UserId} (Email: {Email}) in university project mode.", user.Id,
+                email);
+            return ServiceResult.Success("A jelszó sikeresen megváltoztatva.");
+        }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx, "Database error during direct password reset for email {Email}", email);
+            return ServiceResult.Failed($"Adatbázis hiba történt: {dbEx.InnerException?.Message ?? dbEx.Message}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during direct password reset for email {Email}", email);
+            return ServiceResult.Failed("Váratlan hiba történt a jelszó módosítása közben.");
         }
     }
 }

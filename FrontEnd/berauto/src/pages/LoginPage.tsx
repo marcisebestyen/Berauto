@@ -24,30 +24,28 @@ const Login = () => {
 
     const form = useForm({
         initialValues: {
-            email: '',
+            identifier: '',
             password: '',
         },
         validate: {
-            email: (val: string) => {
-                if (!val) return 'Az email cím megadása kötelező';
-                return /^\S+@\S+$/.test(val) ? null : 'Érvénytelen email cím';
-            },
-            password: (val: string) => {
-                if (!val) return 'A jelszó megadása kötelező';
-                return val.length < 6 ? 'A jelszónak legalább 6 karakter hosszúnak kell lennie' : null;
-            },
-        }
+            identifier: (val: string) => !val ? 'Email vagy felhasználónév megadása kötelező' : null,
+            password: (val: string) => !val
+                ? 'A jelszó megadása kötelező'
+                : val.length < 6
+                    ? 'A jelszónak legalább 6 karakter hosszúnak kell lennie'
+                    : null,
+        },
     });
 
-    const handleSubmit = async (data: { email: string; password: string }) => {
+    const handleSubmit = async (data: { identifier: string; password: string }) => {
         if (!form.isValid()) return;
-        
+
         setIsLoading(true);
         setLoginError(null);
-        
+
         try {
-            await login(data.email, data.password);
-            navigate("/app/dashboard");
+            await login(data.identifier, data.password);
+            navigate("/");
         } catch (error: any) {
             setLoginError(
                 error.message || 'Bejelentkezési hiba történt. Kérjük próbálja újra.'
@@ -89,13 +87,13 @@ const Login = () => {
                             <Stack gap="md">
                                 <TextInput
                                     required
-                                    label="Email cím"
-                                    placeholder="pelda@email.com"
+                                    label="Email vagy felhasználónév"
+                                    placeholder="pelda@email.com vagy felhasznalonev"
                                     radius="md"
                                     size="md"
                                     disabled={isLoading}
-                                    error={form.errors.email}
-                                    {...form.getInputProps('email')}
+                                    error={form.errors.identifier}
+                                    {...form.getInputProps('identifier')}
                                 />
 
                                 <PasswordInput
@@ -109,9 +107,9 @@ const Login = () => {
                                     {...form.getInputProps('password')}
                                 />
                             </Stack>
-                            
+
                             {loginError && (
-                                <Text size="sm" mt="md" fw={500}>
+                                <Text size="sm" mt="md" fw={500} c="red">
                                     {loginError}
                                 </Text>
                             )}
@@ -143,6 +141,6 @@ const Login = () => {
             </Center>
         </Box>
     );
-}
+};
 
 export default Login;

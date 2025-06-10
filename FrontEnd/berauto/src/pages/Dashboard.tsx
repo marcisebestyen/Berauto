@@ -1,68 +1,104 @@
-import {Text, Title, Group, Paper, ThemeIcon, SimpleGrid } from '@mantine/core';
-import {IconCheck, IconClock} from '@tabler/icons-react';
-import useAuth from '../hooks/useAuth';
 import { useEffect, useState } from 'react';
-import api from '../api/api.ts';
+import {
+    Text,
+    Title,
+    Button,
+    Center,
+    Stack,
+    Card,
+    Group,
+    Badge,
+} from '@mantine/core';
+import { IconLogin, IconUserPlus } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom';
+import useAuth from '../hooks/useAuth';
+import api from '../api/api';
+import { ISimpleRent } from '../interfaces/IRent';
 
 const Dashboard = () => {
-    const [rentCount, setRentCount] = useState<number>(0);
-    const [activeRentCount, setActiveRentCount] = useState<number>(0);
     const { user } = useAuth();
+    const navigate = useNavigate();
+    const [activeRents, setActiveRents] = useState<ISimpleRent[]>([]);
+    const [allRents, setAllRents] = useState<ISimpleRent[]>([]);
 
     useEffect(() => {
-        const fetchRentCount = async () => {
-            try {
-                const response = await api.Users.getUserRents(user?.id);
-                setRentCount(response.data);
-
-                const response2 = await api.Users.getActiveRents(user?.id);
-                setActiveRentCount(response2.data);
-            } catch (error) {
-                console.error('Hiba a foglalások számának lekérésekor:', error);
+        const fetchRents = async () => {
+            if (user?.id) {
+                try {
+                    const [activeRes, allRes] = await Promise.all([
+                        api.Users.getActiveRents(user.id),
+                        api.Users.getUserRents(user.id),
+                    ]);
+                    setActiveRents(activeRes.data);
+                    setAllRents(allRes.data);
+                } catch (error) {
+                    console.error("Hiba a foglalások lekérésekor:", error);
+                }
             }
         };
 
-        if (user?.id) {
-            fetchRentCount();
-        }
-    }, [user?.id]);
+        fetchRents();
+    }, [user]);
 
-    const stats = [
-        {
-            title: 'Aktív foglalásaid',
-            value: activeRentCount.toString() ,
-            icon: IconClock,
-            color: 'blue'
-        },
-        {
-            title: 'Összes foglalásod',
-            value: rentCount.toString(),
-            icon: IconCheck,
-            color: 'green'
-        }
-    ];
+    if (!user) {
+        return (
+            <Center style={{ minHeight: '80vh' }}>
+                <Stack align="center">
+                    <Title order={2}>Üdvözlünk, Vendég!</Title>
+                    <Text c="dimmed">A foglalások eléréséhez kérlek jelentkezz be.</Text>
+                    <Button
+                        leftSection={<IconLogin size={18} />}
+                        variant="outline"
+                        size="md"
+                        onClick={() => navigate('/login')}
+                    >
+                        Bejelentkezés
+                    </Button>
+                    <Button
+                        leftSection={<IconUserPlus size={18} />}
+                        variant="outline"
+                        size="md"
+                        onClick={() => navigate('/register')}
+                    >
+                        Regisztráció
+                    </Button>
+                </Stack>
+            </Center>
+        );
+    }
+
+    const fullName = user.lastName && user.firstName
+        ? `${user.firstName} ${user.lastName}`
+        : 'Felhasználó';
 
     return (
         <>
-            <Title order={2} mb="md">Üdvözlünk, {user?.username}!</Title>
+            <Title order={2} mb="md">Üdvözlünk, {fullName}!</Title>
 
-            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-                {stats.map((stat) => (
-                    <Paper withBorder radius="md" p="md" key={stat.title}>
-                        <Group justify="space-between">
-                            <Text size="xs" c="dimmed" fw={700} tt="uppercase">
-                                {stat.title}
-                            </Text>
-                            <ThemeIcon color={stat.color} variant="light" size={38} radius="md">
-                                <stat.icon style={{ width: '1.5rem', height: '1.5rem' }} />
-                            </ThemeIcon>
+            {activeRents.length > 0 && (
+                <Card shadow="sm" padding="md" mb="lg" withBorder>
+                    <Title order={4} mb="sm">Aktív foglalásaid</Title>
+                    <Stack>
+                        {activeRents.map(rent => (
+                            <Group key={rent.id} justify="space-between">
+                                <Text>{rent.carModel} ({new Date(rent.plannedStart).toLocaleDateString('hu-HU')} – {new Date(rent.plannedEnd).toLocaleDateString('hu-HU')})</Text>
+                                <Badge color="orange">Aktív</Badge>
+                            </Group>
+                        ))}
+                    </Stack>
+                </Card>
+            )}
+
+            <Card shadow="sm" padding="md" withBorder>
+                <Title order={4} mb="sm">Összes foglalásod</Title>
+                <Stack>
+                    {allRents.map(rent => (
+                        <Group key={rent.id} justify="space-between">
+                            <Text>{rent.carModel} ({new Date(rent.plannedStart).toLocaleDateString('hu-HU')} – {new Date(rent.plannedEnd).toLocaleDateString('hu-HU')})</Text>
                         </Group>
-                        <Text fw={700} size="xl" mt="sm">
-                            {stat.value}
-                        </Text>
-                    </Paper>
-                ))}
-            </SimpleGrid>
+                    ))}
+                </Stack>
+            </Card>
         </>
     );
 };

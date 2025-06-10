@@ -1,111 +1,167 @@
-﻿using Database.Data;
+﻿using AutoMapper;
+using Database.Dtos.RentDtos;
 using Database.Models;
-using AutoMapper;
-using Database.Dtos;
-using Microsoft.EntityFrameworkCore;
+using Services.Repositories;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
+using Database.Dtos.UserDtos;
+
 
 namespace Services.Services
 {
+    public enum RentStatusFilter
+    {
+        All,
+        Open,           // Jóváhagyásra vár (ApprovedBy == null)
+        Closed,         // Lezárt (ActualEnd.HasValue)
+        Running,        // Futó (ActualStart.HasValue && !ActualEnd.HasValue)
+        ApprovedForHandover // ÚJ: Jóváhagyva, átadásra vár (ApprovedBy != null && ActualStart == null)
+    }
+
     public interface IRentService
     {
-        public Task<RentDto> CreateRent(CreateRentDto createRentDto);
-        public Task<RentDto> GetRent(int rentId);
-        public Task<List<RentDto>> GetAllRent();
-        public Task<RentDto> UpdateRent(UpdateRentDto updateRentDto, int rentId);
-        public Task<RentDto> DeleteRent(int rentId);
-        public Task<RentDto> ChangeFinished(int rentId);
-
+        Task<IEnumerable<RentGetDto>> GetAllRentsAsync(RentStatusFilter statusFilter, int? userId);
+        Task<RentGetDto> AddRentAsync(RentCreateDto createRentDto);
+        Task<RentGetDto?> GetRentByIdAsync(int id);
+        Task<RentGetDto> AddGuestRentAsync(GuestRentCreateDto createGuestRentDto);
     }
 
     public class RentService : IRentService
     {
-        private readonly BerautoDbContext _context;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IUserService _userService;
 
-        public RentService(BerautoDbContext context, IMapper mapper)
+        public RentService(IUnitOfWork unitOfWork, IMapper mapper, IUserService userService)
         {
-            _context = context;
-            _mapper = mapper;
+            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
+            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+            _userService = userService ?? throw new ArgumentNullException(nameof(userService));
         }
-        public async Task<RentDto> CreateRent(CreateRentDto createRentDto)
+
+        public async Task<RentGetDto> AddRentAsync(RentCreateDto createRentDto)
         {
             var rent = _mapper.Map<Rent>(createRentDto);
-            if (rent is null) 
-            {
-                throw new Exception("Rent is null");
-            }
-            await _context.Rents.AddAsync(rent);
-            await _context.SaveChangesAsync();
 
-            return _mapper.Map<RentDto>(rent);
+            await _unitOfWork.RentRepository.InsertAsync(rent);
+            await _unitOfWork.SaveAsync();
 
+            var createdRentWithDetails = await GetRentByIdAsync(rent.Id);
+            return createdRentWithDetails ?? throw new InvalidOperationException("Failed to retrieve created rent with details.");
         }
 
-        public async Task<RentDto> GetRent(int rentId)
+        public async Task<RentGetDto> AddGuestRentAsync(GuestRentCreateDto createGuestRentDto)
+        {
+            if (createGuestRentDto == null)
             {
-            var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
+                throw new ArgumentNullException(nameof(createGuestRentDto));
+            }
+
+            var guestUserDetails = new UserCreateGuestDto
+            {
+                FirstName = createGuestRentDto.FirstName,
+                LastName = createGuestRentDto.LastName,
+                Email = createGuestRentDto.Email,
+                PhoneNumber = createGuestRentDto.PhoneNumber,
+                LicenceId = createGuestRentDto.LicenceId
+            };
+            var guestUser = await _userService.GetOrCreateGuestUserAsync(guestUserDetails);
+
+            var rent = new Rent
+            {
+                CarId = createGuestRentDto.CarId,
+                RenterId = guestUser.Id,
+                PlannedStart = createGuestRentDto.PlannedStart,
+                PlannedEnd = createGuestRentDto.PlannedEnd,
+                InvoiceRequest = createGuestRentDto.InvoiceRequest,
+            };
+
+            await _unitOfWork.RentRepository.InsertAsync(rent);
+            await _unitOfWork.SaveAsync();
+
+            var createdRentWithDetails = await GetRentByIdAsync(rent.Id);
+            return createdRentWithDetails ?? throw new InvalidOperationException("Failed to retrieve created guest rent with details.");
+        }
+
+
+        public async Task<IEnumerable<RentGetDto>> GetAllRentsAsync(RentStatusFilter statusFilter = RentStatusFilter.All, int? userId = null)
+        {
+            Expression<Func<Rent, bool>>? predicate = null;
+            bool useGenericGetAsync = true; 
+
+            switch (statusFilter)
+            {
+                case RentStatusFilter.Open: 
+                    if (userId.HasValue)
+                        predicate = r => r.RenterId == userId.Value && r.ApprovedBy == null && !r.ActualStart.HasValue;
+                    else
+                        predicate = r => r.ApprovedBy == null && !r.ActualStart.HasValue; 
+                    break;
+                case RentStatusFilter.ApprovedForHandover: 
+                    if (userId.HasValue)
+                        predicate = r => r.RenterId == userId.Value && r.ApprovedBy != null && !r.ActualStart.HasValue;
+                    else
+                        predicate = r => r.ApprovedBy != null && !r.ActualStart.HasValue;
+                    break;
+                case RentStatusFilter.Running:
+                    if (userId.HasValue)
+                        predicate = r => r.RenterId == userId.Value && r.ActualStart.HasValue && !r.ActualEnd.HasValue;
+                    else
+                        predicate = r => r.ActualStart.HasValue && !r.ActualEnd.HasValue;
+                    break;
+                case RentStatusFilter.Closed:
+                    if (userId.HasValue)
+                        predicate = r => r.RenterId == userId.Value && r.ActualEnd.HasValue;
+                    else
+                        predicate = r => r.ActualEnd.HasValue;
+                    break;
+                case RentStatusFilter.All:
+                default:
+                    if (userId.HasValue)
+                    {
+                        predicate = r => r.RenterId == userId.Value;
+                    }
+                    else
+                    {
+                        useGenericGetAsync = false;
+                    }
+                    break;
+            }
+
+            IEnumerable<Rent> rentsFromDb;
+            string[] includeProps = { "Car", "Renter" }; 
+
+            if (useGenericGetAsync && predicate != null)
+            {
+                rentsFromDb = await _unitOfWork.RentRepository.GetAsync(predicate, includeProperties: includeProps);
+            }
+            else if (!useGenericGetAsync)
+            {
+                rentsFromDb = await _unitOfWork.RentRepository.GetAllAsync(includeProperties: includeProps);
+            }
+            else
+            {
+               
+                rentsFromDb = Enumerable.Empty<Rent>();
+            }
+
+            return _mapper.Map<IEnumerable<RentGetDto>>(rentsFromDb);
+        }
+
+        public async Task<RentGetDto?> GetRentByIdAsync(int id)
+        {
+            string[] includeProps = { "Car" };
+            var rents = await _unitOfWork.RentRepository.GetAsync(r => r.Id == id, includeProperties: includeProps);
+            var rent = rents.FirstOrDefault();
+
             if (rent == null)
             {
-                throw new Exception("Rent not found");
+                return null;
             }
-
-            return _mapper.Map<RentDto>(rent);
+            return _mapper.Map<RentGetDto>(rent);
         }
-
-        public async Task<List<RentDto>> GetAllRent()
-            {
-            return await _context.Rents.Select(r => _mapper.Map<RentDto>(r)).ToListAsync();
-        }
-
-        public async Task<RentDto> UpdateRent(UpdateRentDto updateRentDto, int rentId)
-        {
-            var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
-            var update = _mapper.Map<Rent>(updateRentDto);
-            if (rent == null)
-            {
-                throw new Exception("Rent not found");
-            }
-            if (update.CarId != default)
-            {
-                rent.CarId = update.CarId;
-            }
-            if (update.StartDate != default)
-            {
-                rent.StartDate = update.StartDate;
-            }
-            if (update.EndDate != default)
-            {
-                rent.EndDate = update.EndDate;
-            }
-
-            await _context.SaveChangesAsync();
-            return _mapper.Map<RentDto>(rent);
-        }
-
-        public async Task<RentDto> DeleteRent(int rentId)
-        {
-            var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
-            if (rent == null)
-        {
-                throw new Exception("Rent not found");
-            }
-            _context.Rents.Remove(rent);
-            await _context.SaveChangesAsync();
-            return _mapper.Map<RentDto>(rent);
-        }
-
-        public async Task<RentDto> ChangeFinished(int rentId)
-        {
-            var rent = await _context.Rents.FirstOrDefaultAsync(r => r.Id == rentId);
-            if (rent == null)
-            {
-                throw new Exception("Rent not found");
-            }
-            rent.Finished = true;
-            await _context.SaveChangesAsync();
-            return _mapper.Map<RentDto>(rent);
-        }
-
-        
     }
 }
