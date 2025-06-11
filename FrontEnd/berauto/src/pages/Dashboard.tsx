@@ -29,8 +29,16 @@ const Dashboard = () => {
                         api.Users.getActiveRents(user.id),
                         api.Users.getUserRents(user.id),
                     ]);
-                    setActiveRents(activeRes.data);
-                    setAllRents(allRes.data);
+
+                    console.log("Aktív foglalások API válasz:", activeRes.data);
+                    console.log("Összes foglalás API válasz:", allRes.data);
+
+                    if (Array.isArray(activeRes.data)) {
+                        setActiveRents(activeRes.data);
+                    }
+                    if (Array.isArray(allRes.data)) {
+                        setAllRents(allRes.data);
+                    }
                 } catch (error) {
                     console.error("Hiba a foglalások lekérésekor:", error);
                 }

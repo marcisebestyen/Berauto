@@ -45,6 +45,14 @@ const CarHandoverPage = () => {
         setError(null);
         try {
             const response = await api.Rents.getRentsGloballyByFilter("ApprovedForHandover");
+
+            if (!Array.isArray(response.data)) {
+                // Írjuk ki a konzolra, hogy mit kaptunk valójában, ez segít a hibakeresésben.
+                console.error("API hiba: a response.data nem tömb, hanem:", response.data);
+                // Dobjunk egy hibát, amit a catch blokk elkap és kezel.
+                throw new Error("A szerver válasza nem a várt formátumú (nem tömb).");
+            }
+
             setHandovers(response.data);
             const initialDates: Record<number, Date | null> = {};
             response.data.forEach(rent => {
