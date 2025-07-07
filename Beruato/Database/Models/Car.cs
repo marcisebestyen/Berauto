@@ -30,6 +30,7 @@
         public bool IsAutomatic { get; set; }
         public decimal ActualKilometers { get; set; }
         public bool InProperCondition { get; set; } // műszaki állapota megfelelő 
+        public bool IsDeleted { get; set; } = false;
     }
 }
 /*

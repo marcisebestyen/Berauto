@@ -33,14 +33,15 @@ public class CarService : ICarService
 
     public async Task<IEnumerable<CarGetDto>> GetAllCarsAsync()
     {
-        var cars = await _unitOfWork.CarRepository.GetAllAsync();
+        var cars = await _unitOfWork.CarRepository.GetAsync(car => !car.IsDeleted);
         return _mapper.Map<IEnumerable<CarGetDto>>(cars);
     }
+
 
     public async Task<CarGetDto?> GetCarByIdAsync(int id)
     {
         var car = await _unitOfWork.CarRepository.GetByIdAsync(new object[] { id });
-        if (car == null)
+        if (car == null || car.IsDeleted)
         {
             return null;
         }
@@ -115,15 +116,20 @@ public class CarService : ICarService
 
     public async Task DeleteCarAsync(int id)
     {
-        try
+        var carToDelete = await _unitOfWork.CarRepository.GetByIdAsync(new object[] { id });
+        if (carToDelete == null)
         {
-            await _unitOfWork.CarRepository.DeleteAsync(id);
-            await _unitOfWork.SaveAsync();
+            throw new KeyNotFoundException($"A(z) {id} azonosítójú autó nem található.");
         }
-        catch (KeyNotFoundException)
+
+        if (carToDelete.IsDeleted)
         {
-            throw;
+            return;
         }
+
+        carToDelete.IsDeleted = true;
+        await _unitOfWork.CarRepository.UpdateAsync(carToDelete);
+        await _unitOfWork.SaveAsync();
     }
 
 
@@ -138,7 +144,10 @@ public class CarService : ICarService
             .ToList();
 
         var availableCarsEntities =
-            await _unitOfWork.CarRepository.GetAsync(car => car.InProperCondition && !rentedCarIds.Contains(car.Id)
+            await _unitOfWork.CarRepository.GetAsync(car =>
+                car.InProperCondition &&
+                !rentedCarIds.Contains(car.Id) &&
+                !car.IsDeleted
             );
 
         return _mapper.Map<IEnumerable<CarGetDto>>(availableCarsEntities);
