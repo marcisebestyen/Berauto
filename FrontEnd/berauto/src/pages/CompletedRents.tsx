@@ -3,6 +3,9 @@ import { Container, Title, Paper, Table, LoadingOverlay } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import api from '../api/api';
 import { IRentGetDto } from '../interfaces/IRent';
+import dayjs from 'dayjs';
+import 'dayjs/locale/hu';
+dayjs.locale('hu');
 
 export function CompletedRents() {
     const [rents, setRents] = useState<IRentGetDto[]>([]);
@@ -33,10 +36,10 @@ export function CompletedRents() {
             <Table.Td>{rent.carModel}</Table.Td>
             <Table.Td>{rent.renterId}</Table.Td>
             <Table.Td>{rent.renterName}</Table.Td>
-            <Table.Td>{new Date(rent.plannedStart).toLocaleDateString('hu-HU')}</Table.Td>
-            <Table.Td>{new Date(rent.plannedEnd).toLocaleDateString('hu-HU')}</Table.Td>
-            <Table.Td>{rent.actualStart ? new Date(rent.actualStart).toLocaleDateString('hu-HU') : '-'}</Table.Td>
-            <Table.Td>{rent.actualEnd ? new Date(rent.actualEnd).toLocaleDateString('hu-HU') : '-'}</Table.Td>
+            <Table.Td>{dayjs(rent.plannedStart).format('YYYY.MM.DD HH:mm')}</Table.Td>
+            <Table.Td>{dayjs(rent.plannedEnd).format('YYYY.MM.DD HH:mm')}</Table.Td>
+            <Table.Td>{rent.actualStart ? dayjs(rent.actualStart).format('YYYY.MM.DD HH:mm') : '-'}</Table.Td>
+            <Table.Td>{rent.actualEnd ? dayjs(rent.actualEnd).format('YYYY.MM.DD HH:mm') : '-'}</Table.Td>
             <Table.Td>{rent.endingKilometer} km</Table.Td>
         </Table.Tr>
     ));

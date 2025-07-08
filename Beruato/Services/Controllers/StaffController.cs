@@ -94,10 +94,14 @@ namespace Services.Controllers
             {
                 return BadRequest(new { message = "A kiadási adatok nem lehetnek üresek." });
             }
+
             try
             {
                 var staffId = GetCurrentStaffIdFromToken();
-                var rentDto = await _staffService.IssuedBy(staffId, rentId, request.ActualStart);
+
+                var actualStartUtc = DateTime.SpecifyKind(request.ActualStart, DateTimeKind.Utc);
+
+                var rentDto = await _staffService.IssuedBy(staffId, rentId, actualStartUtc);
                 return Ok(rentDto);
             }
             catch (UnauthorizedAccessException ex)
@@ -112,11 +116,12 @@ namespace Services.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (Exception ex)
-            { 
+            catch (Exception)
+            {
                 return StatusCode(500, new { message = "Váratlan hiba történt a kiadás során." });
             }
         }
+
 
         /// <summary>
         /// Egy bérlés visszavételének rögzítése a bejelentkezett személyzeti tag által.
@@ -130,17 +135,21 @@ namespace Services.Controllers
         /// <response code="401">A felhasználó nincs authentikálva, vagy a tokenből hiányzik a személyzeti azonosító.</response>
         /// <response code="403">A felhasználónak nincs joga végrehajtani ezt a műveletet.</response>
         /// <response code="404">A megadott azonosítóval nem található bérlés, vagy a személyzeti tag nem található/jogosult.</response>
-        [HttpPost("take_back")] // Changed route to "takeback"
+        [HttpPost("take_back")]
         public async Task<IActionResult> TakeBack(int rentId, [FromBody] TakeBackRequestDto request)
         {
             if (request == null)
             {
                 return BadRequest(new { message = "A visszavételi adatok nem lehetnek üresek." });
             }
+
             try
             {
                 var staffId = GetCurrentStaffIdFromToken();
-                var rentDto = await _staffService.TakenBackBy(staffId, rentId, request.ActualEnd, request.EndingKilometer);
+
+                var actualEndUtc = DateTime.SpecifyKind(request.ActualEnd, DateTimeKind.Utc);
+
+                var rentDto = await _staffService.TakenBackBy(staffId, rentId, actualEndUtc, request.EndingKilometer);
                 return Ok(rentDto);
             }
             catch (UnauthorizedAccessException ex)
@@ -155,11 +164,12 @@ namespace Services.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "Váratlan hiba történt a visszavétel során." });
             }
         }
+
 
         /// <summary>
         /// Egy bérlési igény elutasítása (törlése) a bejelentkezett személyzeti tag által.

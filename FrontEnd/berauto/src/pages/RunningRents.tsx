@@ -53,8 +53,10 @@ export function RunningRents() {
             return;
         }
 
+        const utcDate = new Date(actualEndDate.getTime() - actualEndDate.getTimezoneOffset() * 60000);
+
         try {
-            await api.Staff.takeBackCar(rentId, actualEndDate, endingKilometer);
+            await api.Staff.takeBackCar(rentId, utcDate, endingKilometer);
             notifications.show({
                 title: 'Sikeres visszavétel',
                 message: 'Az autó sikeresen visszavételre került',
@@ -72,6 +74,7 @@ export function RunningRents() {
             });
         }
     };
+
 
     const rows = rents.map((rent) => (
         <Table.Tr key={rent.id}>
@@ -119,13 +122,16 @@ export function RunningRents() {
                             label="Tényleges befejezés időpontja"
                             placeholder="Válassz időpontot"
                             value={actualEndDate}
+
                             onChange={(value: string) => {
-                                const parsedDate = new Date(value);
-                                setActualEndDate(parsedDate);
+                                const parsed = new Date(value);
+                                setActualEndDate(parsed);
                             }}
+
                             leftSection={<IconCalendarTime size="1.2rem" />}
                             clearable
                         />
+
                         <Text size="sm">Záró kilométeróra állás</Text>
                         <input
                             type="number"
