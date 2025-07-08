@@ -107,23 +107,36 @@ const CarHandoverPage = () => {
     };
 
     const confirmHandover = async () => {
-        if (!selectedRent || !selectedRent.id) { /* ... */ return; }
-        const actualHandoverTime = selectedActualStartDates[selectedRent.id];
-        if (!actualHandoverTime) { /* ... */ return; }
+        if (!selectedRent || !selectedRent.id) return;
+        const localTime = selectedActualStartDates[selectedRent.id];
+        if (!localTime) return;
+
+        const utcTime = new Date(localTime.getTime() - localTime.getTimezoneOffset() * 60000);
 
         setIsLoading(true);
         try {
-            await api.Staff.handOverCar(selectedRent.id, actualHandoverTime);
-            notifications.show({ title: 'Sikeres Átadás', message: `A(z) ${selectedRent.id} azonosítójú kölcsönzéshez az autó átadva.`, color: 'green', icon: <IconCheck />, });
+            await api.Staff.handOverCar(selectedRent.id, utcTime);
+            notifications.show({
+                title: 'Sikeres Átadás',
+                message: `A(z) ${selectedRent.id} azonosítójú kölcsönzéshez az autó átadva.`,
+                color: 'green',
+                icon: <IconCheck />,
+            });
             fetchHandovers();
         } catch (err: any) {
             console.error("Hiba az autó átadása során:", err);
-            notifications.show({ title: 'Átadási Hiba', message: err.response?.data?.message || err.message || 'Az autó átadása nem sikerült.', color: 'red', icon: <IconAlertCircle />, });
+            notifications.show({
+                title: 'Átadási Hiba',
+                message: err.response?.data?.message || err.message || 'Az autó átadása nem sikerült.',
+                color: 'red',
+                icon: <IconAlertCircle />,
+            });
         } finally {
             setIsLoading(false);
             closeHandoverModal();
         }
     };
+
 
     const rows = handovers.map((rent) => (
         <Table.Tr key={rent.id}>

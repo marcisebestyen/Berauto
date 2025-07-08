@@ -73,7 +73,7 @@ namespace Services.Controllers
         [HttpPost("createRent")]
         public async Task<IActionResult> AddRent([FromBody] RentCreateDto createRentDto)
         {
-            if (createRentDto == null) // Ezt az [ApiController] és a model binder is kezeli (400-at ad, ha a body üres és a paraméter nem nullable)
+            if (createRentDto == null)
             {
                 return BadRequest("A kölcsönzési adatok (request body) nem lehetnek üresek.");
             }
@@ -84,15 +84,19 @@ namespace Services.Controllers
 
             try
             {
+                createRentDto.PlannedStart = DateTime.SpecifyKind(createRentDto.PlannedStart, DateTimeKind.Utc);
+                createRentDto.PlannedEnd = DateTime.SpecifyKind(createRentDto.PlannedEnd, DateTimeKind.Utc);
+
                 var createdRent = await _rentService.AddRentAsync(createRentDto);
                 return CreatedAtAction(nameof(GetRentById), new { id = createdRent.Id }, createdRent);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Hiba történt a kölcsönzés feldolgozása közben.");
             }
         }
-        [HttpPost("guest-create")] 
+
+        [HttpPost("guest-create")]
         [ProducesResponseType(typeof(RentGetDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
@@ -109,20 +113,22 @@ namespace Services.Controllers
 
             try
             {
+                createGuestRentDto.PlannedStart = DateTime.SpecifyKind(createGuestRentDto.PlannedStart, DateTimeKind.Utc);
+                createGuestRentDto.PlannedEnd = DateTime.SpecifyKind(createGuestRentDto.PlannedEnd, DateTimeKind.Utc);
+
                 var createdRent = await _rentService.AddGuestRentAsync(createGuestRentDto);
                 return CreatedAtAction(nameof(GetRentById), new { id = createdRent.Id }, createdRent);
             }
             catch (ArgumentException ex)
             {
-               
                 return BadRequest(new { Message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-               
                 return StatusCode(StatusCodes.Status500InternalServerError, "Hiba történt a foglalás feldolgozása közben.");
             }
         }
-        
+
+
     }
 }

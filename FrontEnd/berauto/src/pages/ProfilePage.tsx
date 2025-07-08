@@ -70,9 +70,9 @@ const ProfilePage = () => {
             firstName: data.firstName || '',
             lastName: data.lastName || '',
             email: data.email || '',
-            phoneNumber: data.phoneNumber || null,
-            licenceId: data.licenceId || null,
-            address: data.address || null,
+            phoneNumber: data.phoneNumber || undefined,
+            licenceId: data.licenceId || undefined,
+            address: data.address || undefined,
         };
         setValues(currentFormValues);
         resetDirty(currentFormValues);
@@ -148,7 +148,10 @@ const ProfilePage = () => {
 
             const updatedProfile: IUserProfile = {
                 ...originalProfileDataForPatch,
-                ...currentFormValues,
+                ...Object.fromEntries(
+                    Object.entries(currentFormValues)
+                        .map(([key, value]) => [key, value === null ? undefined : value])
+                ),
                 id: originalProfileDataForPatch.id,
                 userName: originalProfileDataForPatch.userName,
             };
