@@ -1,37 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import api from '../api/api'; // Ellenőrizd az import útvonalát
-import { ICar, FuelType, RequiredLicenceType } from '../interfaces/ICar'; // Ellenőrizd az import útvonalát
+import React, {useState, useEffect} from 'react';
+import api from '../api/api';
+import {ICar, FuelType, RequiredLicenceType} from '../interfaces/ICar';
 import {
     Container, Title, Text, Stack, Card, Button, Modal,
-    Alert, Loader, List, ThemeIcon, Paper, Grid, Group
+    Alert, Loader, List, ThemeIcon, Paper, Grid, Group, Badge
 } from '@mantine/core';
 import {
     IconAlertCircle, IconTrash, IconGasStation, IconLicense,
-    IconCurrencyDollar, IconGauge, IconSettings, IconShieldCheck, IconCheck
+    IconCurrencyDollar, IconGauge, IconSettings, IconShieldCheck, IconCheck, IconCar
 } from '@tabler/icons-react';
-import { notifications } from '@mantine/notifications';
-import { useDisclosure } from '@mantine/hooks';
+import {notifications} from '@mantine/notifications';
+import {useDisclosure} from '@mantine/hooks';
 
-// Ezeket a segédfüggvényeket átveheted az UpdateCar oldalból vagy egy közös utility fájlból
 const getFuelTypeLabel = (fuelType: FuelType | string): string => {
-    // Ha a fuelType számként érkezik (enum index), konvertáljuk stringgé
     let typeStr = String(fuelType);
     if (typeof fuelType === 'number') {
         switch (fuelType) {
-            case 0: typeStr = 'Diesel'; break;
-            case 1: typeStr = 'Petrol'; break;
-            case 2: typeStr = 'Hybrid'; break;
-            case 3: typeStr = 'Electric'; break;
-            default: typeStr = 'Ismeretlen';
+            case 0:
+                typeStr = 'Diesel';
+                break;
+            case 1:
+                typeStr = 'Petrol';
+                break;
+            case 2:
+                typeStr = 'Hybrid';
+                break;
+            case 3:
+                typeStr = 'Electric';
+                break;
+            default:
+                typeStr = 'Ismeretlen';
         }
     }
 
     switch (typeStr) {
-        case "Diesel": return 'Dízel';
-        case "Petrol": return 'Benzin';
-        case "Hybrid": return 'Hibrid';
-        case "Electric": return 'Elektromos';
-        default: return 'Ismeretlen';
+        case "Diesel":
+            return 'Dízel';
+        case "Petrol":
+            return 'Benzin';
+        case "Hybrid":
+            return 'Hibrid';
+        case "Electric":
+            return 'Elektromos';
+        default:
+            return 'Ismeretlen';
     }
 }
 
@@ -39,15 +51,26 @@ const getLicenceTypeLabel = (licence: RequiredLicenceType | string): string => {
     let typeStr = String(licence);
     if (typeof licence === 'number') {
         switch (licence) {
-            case 0: typeStr = 'AM'; break;
-            case 1: typeStr = 'A1'; break;
-            case 2: typeStr = 'A2'; break;
-            case 3: typeStr = 'A'; break;
-            case 4: typeStr = 'B'; break;
-            default: typeStr = 'Ismeretlen';
+            case 0:
+                typeStr = 'AM';
+                break;
+            case 1:
+                typeStr = 'A1';
+                break;
+            case 2:
+                typeStr = 'A2';
+                break;
+            case 3:
+                typeStr = 'A';
+                break;
+            case 4:
+                typeStr = 'B';
+                break;
+            default:
+                typeStr = 'Ismeretlen';
         }
     }
-    return typeStr; // Az AM, A1, stb. már a label
+    return typeStr;
 }
 
 
@@ -56,7 +79,7 @@ const DeleteCarPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isDeleting, setIsDeleting] = useState<boolean>(false);
     const [carToDelete, setCarToDelete] = useState<ICar | null>(null);
-    const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+    const [deleteModalOpened, {open: openDeleteModal, close: closeDeleteModal}] = useDisclosure(false);
 
     useEffect(() => {
         fetchCars();
@@ -73,7 +96,7 @@ const DeleteCarPage: React.FC = () => {
                 title: 'Hiba',
                 message: 'Nem sikerült betölteni az autókat a törléshez.',
                 color: 'red',
-                icon: <IconAlertCircle />,
+                icon: <IconAlertCircle/>,
             });
         } finally {
             setIsLoading(false);
@@ -81,6 +104,15 @@ const DeleteCarPage: React.FC = () => {
     };
 
     const handleDeleteClick = (car: ICar) => {
+        if (car.isRented) {
+            notifications.show({
+                title: 'Törlési hiba',
+                message: `A(z) ${car.brand} ${car.model} autó nem törölhető, mert jelenleg ki van adva.`,
+                color: 'orange',
+                icon: <IconAlertCircle />
+            });
+            return;
+        }
         setCarToDelete(car);
         openDeleteModal();
     };
@@ -95,14 +127,13 @@ const DeleteCarPage: React.FC = () => {
                 title: 'Sikeres törlés',
                 message: `A(z) ${carToDelete.brand} ${carToDelete.model} (ID: ${carToDelete.id}) autó sikeresen törölve.`,
                 color: 'green',
-                icon: <IconCheck />,
+                icon: <IconCheck/>,
             });
-            fetchCars(); // Frissítjük a listát
+            fetchCars();
         } catch (err: any) {
             console.error("Failed to delete car:", err);
             let errorMessage = `Hiba történt a(z) ${carToDelete.brand} ${carToDelete.model} autó törlésekor.`;
             if (err.response && err.response.data) {
-                // Ha a backend ad specifikus hibaüzenetet (pl. 404 Not Found)
                 errorMessage = typeof err.response.data === 'string' ? err.response.data : (err.response.data.message || err.response.data.title || errorMessage);
             } else if (err.message) {
                 errorMessage = err.message;
@@ -111,7 +142,7 @@ const DeleteCarPage: React.FC = () => {
                 title: 'Törlési hiba',
                 message: errorMessage,
                 color: 'red',
-                icon: <IconAlertCircle />,
+                icon: <IconAlertCircle/>,
             });
         } finally {
             setIsDeleting(false);
@@ -121,7 +152,12 @@ const DeleteCarPage: React.FC = () => {
     };
 
     if (isLoading && !cars.length) {
-        return <Container style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 200px)' }}><Loader size="xl" /></Container>;
+        return <Container style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: 'calc(100vh - 200px)'
+        }}><Loader size="xl"/></Container>;
     }
 
     return (
@@ -136,7 +172,14 @@ const DeleteCarPage: React.FC = () => {
                         <Card shadow="sm" padding="lg" radius="md" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                             <Stack justify="space-between" style={{ flexGrow: 1 }}>
                                 <div>
-                                    <Title order={4}>{car.brand} {car.model}</Title>
+                                    <Group justify="space-between" align="center" mb="sm">
+                                        <Title order={4}>{car.brand} {car.model}</Title>
+                                        {car.isRented && (
+                                            <Badge color="blue" variant="filled" leftSection={<IconCar size={14} />}>
+                                                Bérelt
+                                            </Badge>
+                                        )}
+                                    </Group>
                                     <Text c="dimmed" size="sm" mb="sm">{car.licencePlate}</Text>
                                     <List spacing={6} size="sm" center>
                                         <List.Item icon={<ThemeIcon color="teal" size={20} radius="xl"><IconGasStation size={12} /></ThemeIcon>}>
@@ -167,8 +210,9 @@ const DeleteCarPage: React.FC = () => {
                                     mt="md"
                                     onClick={() => handleDeleteClick(car)}
                                     loading={isDeleting && carToDelete?.id === car.id}
+                                    disabled={car.isRented} // <-- Itt tiltjuk le a gombot
                                 >
-                                    Autó törlése
+                                    {car.isRented ? 'Autó bérelve' : 'Autó törlése'}
                                 </Button>
                             </Stack>
                         </Card>
@@ -180,7 +224,7 @@ const DeleteCarPage: React.FC = () => {
                 <Modal
                     opened={deleteModalOpened}
                     onClose={closeDeleteModal}
-                    title={<Title order={3}>Törlés megerősítése</Title>}
+                    title="Törlés megerősítése"
                     centered
                     overlayProps={{ backgroundOpacity: 0.55, blur: 3 }}
                 >

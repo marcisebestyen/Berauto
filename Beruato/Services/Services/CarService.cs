@@ -122,6 +122,12 @@ public class CarService : ICarService
             throw new KeyNotFoundException($"A(z) {id} azonosítójú autó nem található.");
         }
 
+        if (carToDelete.IsRented)
+        {
+            throw new InvalidOperationException(
+                $"A(z) {id} azonosítójú autó nem törölhető, mert jelenleg ki van adva.");
+        }
+
         if (carToDelete.IsDeleted)
         {
             return;

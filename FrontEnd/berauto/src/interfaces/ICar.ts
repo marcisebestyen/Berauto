@@ -12,6 +12,9 @@ export interface ICar {
     pricePerDay: number;
     isAutomatic: boolean;
     actualKilometers: number;
+    inProperCondition: boolean;
+    isDeleted: boolean;
+    isRented: boolean;
 }
 
 export interface CarFormData {
