@@ -9,7 +9,6 @@ namespace Database.Data
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<Rent> Rents { get; set; }
         public DbSet<User> Users { get; set; }
-        public DbSet<WaitingList> WaitingLists { get; set; }
 
         public BerautoDbContext(DbContextOptions<BerautoDbContext> options) : base(options)
         {
@@ -17,9 +16,9 @@ namespace Database.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            // string connectionString = "Server=ROMEOPC;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // romeo
+            string connectionString = "Server=ROMEOPC;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // romeo
             // string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
-            string connectionString = "Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
+            // string connectionString = "Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
 
 
             optionsBuilder.UseSqlServer(connectionString);
@@ -181,21 +180,6 @@ namespace Database.Data
                     .HasForeignKey(rec => rec.IssuedBy)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            modelBuilder.Entity<WaitingList>(entity =>
-            {
-                entity.HasKey(wl => wl.Id);
-                
-                entity.HasOne(wl => wl.User)
-                    .WithMany(u => u.WaitingLists)
-                    .HasForeignKey(wl => wl.UserId)
-                    .OnDelete(deleteBehavior: DeleteBehavior.Restrict);
-                
-                entity.HasOne(wl => wl.Car)
-                    .WithMany(c => c.WaitingLists)
-                    .HasForeignKey(wl => wl.CarId)
-                    .OnDelete(deleteBehavior: DeleteBehavior.Restrict);
             });
         }
     }
