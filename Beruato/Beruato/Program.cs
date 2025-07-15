@@ -16,11 +16,10 @@ namespace Beruato
     {
         public static void Main(string[] args)
         {
+            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
             var builder = WebApplication.CreateBuilder(args);
 
             var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
-
 
             builder.Services.AddControllers();
             builder.Services.AddControllers().AddNewtonsoftJson();
@@ -55,7 +54,12 @@ namespace Beruato
             builder.Services.AddScoped<IRentService, RentService>();
             builder.Services.AddScoped<IStaffService, StaffService>();
             builder.Services.AddScoped<IReceiptService, ReceiptService>();
-            
+            builder.Services.AddScoped<IInvoicePdfService, InvoicePdfService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+
+            builder.Services.Configure<Services.Configurations.MailSettings>(
+            builder.Configuration.GetSection("MailtrapSettings"));
+
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var secretKey = jwtSettings["Key"];
 

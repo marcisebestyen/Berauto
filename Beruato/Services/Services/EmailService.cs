@@ -1,53 +1,108 @@
 using System.Net;
 using System.Net.Mail;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Services.Configurations;
+using System.Net.Security;
+using Services.Configurations; // Feltételezve, hogy a MailSettings osztály itt van definiálva
 
-namespace Services.Services;
-
-public interface IEmailService
+namespace Services.Services
 {
-    Task SendEmailAsync(string toEmail, string subject, string body);
-}
-
-public class EmailService : IEmailService
-{
-    private readonly MailSettings _mailSettings;
-
-    public EmailService(IOptions<MailSettings> mailSettings)
+    public interface IEmailService
     {
-        _mailSettings = mailSettings.Value ?? throw new ArgumentNullException(nameof(mailSettings));
+        Task SendEmailWithAttachmentAsync(string toEmail, string subject, string body, byte[] attachmentBytes, string attachmentFileName);
+        Task SendEmailAsync(string toEmail, string subject, string body);
     }
 
-    public async Task SendEmailAsync(string toEmail, string subject, string body)
+    public class EmailService : IEmailService
     {
-        using (var client = new SmtpClient(_mailSettings.Host, _mailSettings.Port))
-        {
-            client.Credentials = new NetworkCredential(_mailSettings.Username, _mailSettings.Password);
-            client.EnableSsl = true;
-            client.DeliveryMethod = SmtpDeliveryMethod.Network;
-            
-            var mailMessage = new MailMessage
-            {
-                From = new MailAddress(_mailSettings.FromEmail, _mailSettings.FromName),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = true
-            };
+        private readonly MailSettings _mailSettings;
+        private readonly ILogger<EmailService> _logger;
 
+        public EmailService(IOptions<MailSettings> mailSettings, ILogger<EmailService> logger)
+        {
+            _mailSettings = mailSettings.Value ?? throw new ArgumentNullException(nameof(mailSettings));
+            _logger = logger;
+        }
+
+        public async Task SendEmailWithAttachmentAsync(string toEmail, string subject, string body, byte[] attachmentBytes, string attachmentFileName)
+        {
             try
             {
-                await client.SendMailAsync(mailMessage);
-                Console.WriteLine($"Email sent to: {toEmail} via Mailtrap");
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+                using (var client = new SmtpClient(_mailSettings.Host, _mailSettings.Port))
+                {
+                    client.Credentials = new NetworkCredential(_mailSettings.Username, _mailSettings.Password);
+                    client.EnableSsl = true;
+                    client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                    client.UseDefaultCredentials = false;
+
+                    using (var mailMessage = new MailMessage())
+                    {
+                        mailMessage.From = new MailAddress(_mailSettings.FromEmail, _mailSettings.FromName);
+                        mailMessage.To.Add(toEmail);
+                        mailMessage.Subject = subject;
+                        mailMessage.Body = body;
+                        mailMessage.IsBodyHtml = true;
+
+                        if (attachmentBytes != null && attachmentBytes.Length > 0)
+                        {
+                            var attachment = new Attachment(new System.IO.MemoryStream(attachmentBytes), attachmentFileName, "application/pdf");
+                            mailMessage.Attachments.Add(attachment);
+                        }
+
+                        await client.SendMailAsync(mailMessage);
+                    }
+                }
+                _logger.LogInformation("Email sent to: {ToEmail} via Mailtrap. Subject: {Subject}", toEmail, subject);
             }
             catch (SmtpException ex)
             {
-                Console.WriteLine($"Error sending email: {ex.Message}");
-                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+                _logger.LogError(ex, "Error sending email to {ToEmail}: {Message}", toEmail, ex.Message);
+                throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"General error sending email: {ex.Message}");
+                _logger.LogError(ex, "General error sending email to {ToEmail}: {Message}", toEmail, ex.Message);
+                throw;
+            }
+        }
+
+        public async Task SendEmailAsync(string toEmail, string subject, string body)
+        {
+            try
+            {
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+                using (var client = new SmtpClient(_mailSettings.Host, _mailSettings.Port))
+                {
+                    client.Credentials = new NetworkCredential(_mailSettings.Username, _mailSettings.Password);
+                    client.EnableSsl = true;
+                    client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                    client.UseDefaultCredentials = false;
+
+                    using (var mailMessage = new MailMessage())
+                    {
+                        mailMessage.From = new MailAddress(_mailSettings.FromEmail, _mailSettings.FromName);
+                        mailMessage.To.Add(toEmail);
+                        mailMessage.Subject = subject;
+                        mailMessage.Body = body;
+                        mailMessage.IsBodyHtml = true;
+
+                        await client.SendMailAsync(mailMessage);
+                    }
+                }
+                _logger.LogInformation("Email sent to: {ToEmail} via Mailtrap. Subject: {Subject}", toEmail, subject);
+            }
+            catch (SmtpException ex)
+            {
+                _logger.LogError(ex, "Error sending email to {ToEmail}: {Message}", toEmail, ex.Message);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "General error sending email to {ToEmail}: {Message}", toEmail, ex.Message);
                 throw;
             }
         }
