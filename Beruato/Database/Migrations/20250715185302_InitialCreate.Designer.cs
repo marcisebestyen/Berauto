@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Beruato.Migrations
+namespace Database.Migrations
 {
     [DbContext(typeof(BerautoDbContext))]
-    [Migration("20250521164638_Initial")]
-    partial class Initial
+    [Migration("20250715185302_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -52,6 +52,12 @@ namespace Beruato.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsAutomatic")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRented")
                         .HasColumnType("bit");
 
                     b.Property<string>("LicencePlate")
@@ -213,6 +219,41 @@ namespace Beruato.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Database.Models.WaitingList", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CarId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("NotifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("QueuePosition")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("QueuedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WaitingList");
+                });
+
             modelBuilder.Entity("Receipt", b =>
                 {
                     b.Property<int>("Id")
@@ -221,14 +262,30 @@ namespace Beruato.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BuyerInfoJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("IssueDate")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("IssuedBy")
                         .HasColumnType("int");
 
+                    b.Property<string>("LineItemsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("RentId")
                         .HasColumnType("int");
+
+                    b.Property<string>("SellerInfoJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("TotalCost")
                         .HasColumnType("decimal(18, 2)");
@@ -283,6 +340,25 @@ namespace Beruato.Migrations
                     b.Navigation("Renter");
                 });
 
+            modelBuilder.Entity("Database.Models.WaitingList", b =>
+                {
+                    b.HasOne("Database.Models.Car", "Car")
+                        .WithMany("WaitingLists")
+                        .HasForeignKey("CarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Database.Models.User", "User")
+                        .WithMany("WaitingLists")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Car");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Receipt", b =>
                 {
                     b.HasOne("Database.Models.User", "IssuerOperator")
@@ -302,10 +378,20 @@ namespace Beruato.Migrations
                     b.Navigation("Rent");
                 });
 
+            modelBuilder.Entity("Database.Models.Car", b =>
+                {
+                    b.Navigation("WaitingLists");
+                });
+
             modelBuilder.Entity("Database.Models.Rent", b =>
                 {
                     b.Navigation("Receipt")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Database.Models.User", b =>
+                {
+                    b.Navigation("WaitingLists");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,5 +1,6 @@
 ﻿using Database.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Database.Data
 {
@@ -16,12 +17,25 @@ namespace Database.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            string connectionString = "Server=ROMEOPC;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // romeo
-            // string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
+            // // string connectionString = "Server=ROMEOPC;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // romeo
+            // // string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
             // string connectionString = "Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
+            //
+            //
+            // optionsBuilder.UseSqlServer(connectionString);
 
-
-            optionsBuilder.UseSqlServer(connectionString);
+            // if (!optionsBuilder.IsConfigured)
+            // {
+            //     IConfigurationRoot configuration = new ConfigurationBuilder()
+            //         .SetBasePath(Path.Combine(Directory.GetCurrentDirectory()))
+            //         .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            //         .AddJsonFile("appsettings.Development.json", optional: true)
+            //         .Build();
+            //     
+            //     var connectionString = configuration.GetConnectionString("Sebi");
+            //     
+            //     optionsBuilder.UseSqlServer(connectionString);
+            // }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -14,8 +14,8 @@ public class WaitingList
     public int UserId { get; set; }
     public int CarId { get; set; }
     public int QueuePosition { get; set; }
-    public DateTime QueuedAt { get; set; }
-    public DateTime NotifiedAt { get; set; }
+    public DateTime? QueuedAt { get; set; }
+    public DateTime? NotifiedAt { get; set; }
     public Status Status { get; set; }
     
     public User User { get; set; }

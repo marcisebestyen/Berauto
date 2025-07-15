@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Beruato.Migrations
+namespace Database.Migrations
 {
     [DbContext(typeof(BerautoDbContext))]
     partial class BerautoDbContextModelSnapshot : ModelSnapshot
@@ -227,13 +227,13 @@ namespace Beruato.Migrations
                     b.Property<int>("CarId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("NotifiedAt")
+                    b.Property<DateTime?>("NotifiedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("QueuePosition")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("QueuedAt")
+                    b.Property<DateTime?>("QueuedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
@@ -248,7 +248,7 @@ namespace Beruato.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("WaitingLists");
+                    b.ToTable("WaitingList");
                 });
 
             modelBuilder.Entity("Receipt", b =>
@@ -342,13 +342,13 @@ namespace Beruato.Migrations
                     b.HasOne("Database.Models.Car", "Car")
                         .WithMany("WaitingLists")
                         .HasForeignKey("CarId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Database.Models.User", "User")
                         .WithMany("WaitingLists")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Car");

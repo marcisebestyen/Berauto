@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Beruato.Migrations
+namespace Database.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -26,7 +26,9 @@ namespace Beruato.Migrations
                     PricePerDay = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     IsAutomatic = table.Column<bool>(type: "bit", nullable: false),
                     ActualKilometers = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    InProperCondition = table.Column<bool>(type: "bit", nullable: false)
+                    InProperCondition = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    IsRented = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -113,6 +115,36 @@ namespace Beruato.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WaitingList",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    CarId = table.Column<int>(type: "int", nullable: false),
+                    QueuePosition = table.Column<int>(type: "int", nullable: false),
+                    QueuedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    NotifiedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WaitingList", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WaitingList_Cars_CarId",
+                        column: x => x.CarId,
+                        principalTable: "Cars",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_WaitingList_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Receipts",
                 columns: table => new
                 {
@@ -121,7 +153,11 @@ namespace Beruato.Migrations
                     RentId = table.Column<int>(type: "int", nullable: false),
                     IssuedBy = table.Column<int>(type: "int", nullable: false),
                     TotalCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    IssueDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    IssueDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    InvoiceNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SellerInfoJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    BuyerInfoJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LineItemsJson = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -201,6 +237,16 @@ namespace Beruato.Migrations
                 table: "Users",
                 column: "UserName",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WaitingList_CarId",
+                table: "WaitingList",
+                column: "CarId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WaitingList_UserId",
+                table: "WaitingList",
+                column: "UserId");
         }
 
         /// <inheritdoc />
@@ -208,6 +254,9 @@ namespace Beruato.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Receipts");
+
+            migrationBuilder.DropTable(
+                name: "WaitingList");
 
             migrationBuilder.DropTable(
                 name: "Rents");

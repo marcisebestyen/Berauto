@@ -46,8 +46,7 @@ namespace Beruato
             builder.Services.AddDbContext<BerautoDbContext>(options =>
                 options.UseSqlServer(builder.Configuration
                         .GetConnectionString(
-                            "Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"),
-                    b => b.MigrationsAssembly("Beruato")));
+                            "Sebi"), b => b.MigrationsAssembly("Beruato")));
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<ICarService, CarService>();
