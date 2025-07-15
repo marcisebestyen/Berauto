@@ -8,6 +8,7 @@ using Services.Services;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
+using Services.Configurations;
 
 
 namespace Beruato
@@ -132,6 +133,10 @@ namespace Beruato
                     }
                 });
             });
+            
+            builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+
+            builder.Services.AddTransient<IEmailService, EmailService>();
 
             var app = builder.Build();
 

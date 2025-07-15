@@ -1,4 +1,7 @@
-﻿using Database.Dtos.RentDtos;
+﻿using System.Security.Claims;
+using Database.Dtos;
+using Database.Dtos.RentDtos;
+using Database.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,14 +19,16 @@ namespace Services.Controllers
     public class RentController : Controller 
     {
         private readonly IRentService _rentService;
+        private readonly IUserService _userService;
 
         /// <summary>
         /// RentController konstruktor.
         /// </summary>
         /// <param name="rentService">A kölcsönzések üzleti logikáját kezelő szerviz.</param>
-        public RentController(IRentService rentService)
+        public RentController(IRentService rentService,  IUserService userService)
         {
             _rentService = rentService ?? throw new ArgumentNullException(nameof(rentService));
+            _userService = userService ?? throw new ArgumentNullException(nameof(userService));
         }
 
         /// <summary>
@@ -129,6 +134,88 @@ namespace Services.Controllers
             }
         }
 
+        /// </summary>
+        /// <param name="carId">Az autó azonosítója, amire a felhasználó várólistára szeretne feliratkozni.</param>
+        /// <returns>A létrehozott várólista bejegyzés vagy információ a már létező bejegyzésről.</returns>
+        /// <response code="200">Sikeresen feliratkozott a várólistára, vagy már rajta van.</response>
+        /// <response code="400">Érvénytelen CarId, vagy az autó szabad (nincs szükség várólistára).</response>
+        /// <response code="401">A felhasználó nincs bejelentkezve (az Authorize attribútum kezeli).</response>
+        /// <response code="403">A felhasználó guest, és nem iratkozhat fel várólistára.</response>
+        /// <response code="404">Az autó nem található.</response>
+        /// <response code="500">Szerver oldali hiba történt.</response>
+        [HttpPost("add-to-waiting-list/carId:int")]
+        public async Task<IActionResult> AddToWaitingList(int carId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Unauthorized("A felhasználó nincs bejelentkezve.");
+            }
+            
+            var user = await _userService.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return Unauthorized("Felhasználói adatok nem találhatóak.");
+            }
 
+            if (!user.RegisteredUser)
+            {
+                return Forbid("Vendég felhasználók nem iratkozhatnak fel várólistára.");
+            }
+
+            var waitingListDto = new WaitingListCreateDto
+            {
+                CarId = carId,
+                UserId = userId
+            };
+
+            try
+            {
+                var result = await _rentService.AddToWaitingListAsync(waitingListDto);
+
+                if (result == null)
+                {
+                    return BadRequest("Az autó jelenleg szabad, nincs szükség várólistára. Kérjük, próbálja meg lefoglalni közvetlenül.");
+                }
+                else if (result.Status == Status.Active && result.NotifiedAt == null)
+                {
+                    return Ok(new
+                    {
+                        Message = "Sikeresen feliratkozott a várólistára.",
+                        WaitingListId = result.Id,
+                        CarId = result.CarId,
+                        UserId = result.UserId,
+                        QueuePosition = result.QueuePosition,
+                        QueuedAt = result.QueuedAt,
+                        Status = result.Status.ToString()
+                    });
+                }
+                else
+                {
+                    return Ok(new
+                    {
+                        Message = "A felhasználó már várólistán van ehhez az autóhoz, vagy a bejegyzés más állapotban van.",
+                        WaitingListId = result.Id,
+                        CarId = result.CarId,
+                        UserId = result.UserId,
+                        QueuePosition = result.QueuePosition,
+                        QueuedAt = result.QueuedAt,
+                        Status = result.Status.ToString()
+                    });
+                }
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Hiba történt a várólistára való feliratkozás során: {ex.Message}");
+            }
+        }
     }
 }

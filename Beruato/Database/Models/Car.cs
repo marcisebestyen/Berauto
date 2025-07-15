@@ -32,6 +32,8 @@
         public bool InProperCondition { get; set; } // műszaki állapota megfelelő 
         public bool IsDeleted { get; set; } = false;
         public bool IsRented { get; set; } = false;
+        
+        public ICollection<WaitingList> WaitingLists { get; set; } = new List<WaitingList>();
     }
 }
 

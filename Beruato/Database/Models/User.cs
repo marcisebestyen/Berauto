@@ -24,5 +24,7 @@
 
         // regisztrált userekhez
         public string? Password { get; set; }
+        
+        public ICollection<WaitingList> WaitingLists { get; set; } = new List<WaitingList>();
     }
 }

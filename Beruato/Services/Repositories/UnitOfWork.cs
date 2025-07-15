@@ -9,6 +9,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<Receipt> ReceiptRepository { get; }
     IRepository<Rent>  RentRepository { get; }
     IRepository<User> UserRepository { get; }
+    IRepository<WaitingList> WaitingListRepository { get; }
 
     Task SaveAsync();
 }
@@ -21,6 +22,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<Receipt> ReceiptRepository { get; set; }
     public IRepository<Rent> RentRepository { get; set; }
     public IRepository<User> UserRepository { get; set; }
+    public IRepository<WaitingList> WaitingListRepository { get; set; }
 
     public UnitOfWork(BerautoDbContext context)
     {
@@ -29,6 +31,7 @@ public class UnitOfWork : IUnitOfWork
         ReceiptRepository = new Repository<Receipt>(_context);
         RentRepository = new Repository<Rent>(_context);
         UserRepository = new Repository<User>(_context);
+        WaitingListRepository = new Repository<WaitingList>(_context);
     }
 
     public async Task SaveAsync()
