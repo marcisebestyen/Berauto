@@ -22,6 +22,7 @@ namespace Services.Services
         private readonly IMapper _mapper;
         private readonly ILogger<StaffService> _logger;
         private readonly IReceiptService _receiptService;
+        private readonly IRentService _rentService;
 
         public StaffService(
             IUnitOfWork unitOfWork,
@@ -34,6 +35,7 @@ namespace Services.Services
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _receiptService = receiptService ?? throw new ArgumentNullException(nameof(receiptService));
+            _rentService = rentService ?? throw new ArgumentNullException(nameof(rentService));
         }
 
         public async Task<RentGetDto> ApprovedBy(int staffId, int rentId)
@@ -365,6 +367,8 @@ namespace Services.Services
                 await _unitOfWork.RentRepository.UpdateAsync(rent);
                 await _unitOfWork.CarRepository.UpdateAsync(rent.Car);
                 await _unitOfWork.SaveAsync();
+                
+                await _rentService.HandleRentCompletion(rentId);
             }
             catch (Exception ex)
             {

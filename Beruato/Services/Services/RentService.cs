@@ -29,7 +29,7 @@ namespace Services.Services
         Task<RentGetDto?> GetRentByIdAsync(int id);
         Task<RentGetDto> AddGuestRentAsync(GuestRentCreateDto createGuestRentDto);
         Task<WaitingList?> AddToWaitingListAsync(WaitingListCreateDto waitingListDto);
-        Task ProcessCarREturnForWaitingListAsync(int carId);
+        Task ProcessCarReturnForWaitingListAsync(int carId);
         Task HandleRentCompletion(int rentId);
     }
 
@@ -250,7 +250,7 @@ namespace Services.Services
             return newWaitingListEntry;
         }
 
-        public async Task ProcessCarREturnForWaitingListAsync(int carId)
+        public async Task ProcessCarReturnForWaitingListAsync(int carId)
         {
             var car = (await _unitOfWork.CarRepository.GetAsync(c => c.Id == carId)).FirstOrDefault();
             if (car == null)
@@ -265,7 +265,10 @@ namespace Services.Services
 
             var nextInQueue =
                 (await _unitOfWork.WaitingListRepository.GetAsync(wl =>
-                    wl.CarId == carId && wl.Status == Status.Active, includeProperties: new[] { "User", "Car" }))
+                    wl.CarId == carId && 
+                    wl.Status == Status.Active && 
+                    wl.NotifiedAt == null, 
+                    includeProperties: new[] { "User", "Car" }))
                 .OrderBy(wl => wl.QueuePosition)
                 .FirstOrDefault();
 
@@ -288,6 +291,7 @@ namespace Services.Services
 
                 nextInQueue.Status = Status.Notified;
                 nextInQueue.QueuedAt = DateTime.UtcNow;
+                
                 await _unitOfWork.WaitingListRepository.UpdateAsync(nextInQueue);
                 await _unitOfWork.SaveAsync();
             }
@@ -301,26 +305,27 @@ namespace Services.Services
             {
                 var waitingListEntriesForCar =
                     await _unitOfWork.WaitingListRepository.GetAsync(wl =>
-                        wl.CarId == completedRent.CarId && wl.Status == Status.Active
+                        wl.CarId == completedRent.CarId && 
+                        wl.Status == Status.Active || wl.Status == Status.Notified
                     );
-
+                
                 foreach (var entry in waitingListEntriesForCar)
                 {
                     if (entry.UserId == completedRent.RenterId && entry.Status == Status.Notified)
                     {
                         entry.Status = Status.Booked;
+                        await _unitOfWork.WaitingListRepository.UpdateAsync(entry);  
                     }
-                    else if (entry.Status == Status.Active)
+                    else if (entry.Status == Status.Notified && entry.UserId != completedRent.RenterId)
                     {
                         entry.Status = Status.Canceled;
+                        await _unitOfWork.WaitingListRepository.UpdateAsync(entry);
                     }
-
-                    await _unitOfWork.WaitingListRepository.UpdateAsync(entry);
                 }
 
                 await _unitOfWork.SaveAsync();
 
-                await ProcessCarREturnForWaitingListAsync(completedRent.CarId);
+                await ProcessCarReturnForWaitingListAsync(completedRent.CarId);
             }
         }
     }
