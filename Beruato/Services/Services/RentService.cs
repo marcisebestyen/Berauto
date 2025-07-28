@@ -31,6 +31,8 @@ namespace Services.Services
         Task<WaitingList?> AddToWaitingListAsync(WaitingListCreateDto waitingListDto);
         Task ProcessCarReturnForWaitingListAsync(int carId);
         Task HandleRentCompletion(int rentId);
+        Task<IEnumerable<RentGetDto>> GetRentsByCarIdAsync(int carId);
+
     }
 
     public class RentService : IRentService
@@ -327,6 +329,24 @@ namespace Services.Services
 
                 await ProcessCarReturnForWaitingListAsync(completedRent.CarId);
             }
+        }
+        public async Task<RentGetDto?> GetRentByCarId(int carId)
+        {
+            var rent = (await _unitOfWork.RentRepository.GetAsync(r => r.CarId == carId)).FirstOrDefault();
+            if (rent == null)
+            {
+                return null;
+            }
+            return _mapper.Map<RentGetDto>(rent);
+        }
+
+        public async Task<IEnumerable<RentGetDto>> GetRentsByCarIdAsync(int carId)
+        {
+            string[] includeProps = { "Car", "Renter" };
+            var rents = await _unitOfWork.RentRepository.GetAsync(r => r.CarId == carId, includeProperties: includeProps);
+
+         
+            return _mapper.Map<IEnumerable<RentGetDto>>(rents);
         }
     }
 }

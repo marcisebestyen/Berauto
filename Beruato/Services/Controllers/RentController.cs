@@ -68,6 +68,26 @@ namespace Services.Controllers
         }
 
         /// <summary>
+        /// Lekérdezi a megadott autóhoz tartozó kölcsönzéseket.
+        /// </summary>
+        /// <param name="carId">Az autó azonosítója.</param> // Kijavítva a paraméter neve
+        /// <returns>A megadott autóhoz tartozó kölcsönzések listája.</returns> // Kijavítva
+        /// <response code="200">Sikeresen visszaadja a kért kölcsönzések listáját. A válasz teste: IEnumerable&lt;RentGetDto&gt;</response> // Kijavítva
+        /// <response code="404">A megadott autó azonosítóval nem található kölcsönzés.</response> // Maradhat, de általában üres listát adunk vissza
+        /// <response code="500">Szerver oldali hiba történt.</response>
+        [HttpGet("get-rents-by-carId/{carId:int}")]
+        public async Task<IActionResult> GetRentsByCarId(int carId)
+        {
+            var rents = await _rentService.GetRentsByCarIdAsync(carId);
+
+            if (rents == null || !rents.Any())
+            {
+                return Ok(new List<RentGetDto>());
+            }
+            return Ok(rents);
+        }
+
+        /// <summary>
         /// Új kölcsönzési igényt ad hozzá a rendszerhez.
         /// </summary>
         /// <param name="createRentDto">Az új kölcsönzés létrehozásához szükséges adatok.</param>

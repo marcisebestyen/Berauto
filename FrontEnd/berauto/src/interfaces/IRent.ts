@@ -66,4 +66,12 @@ export interface IRentGetDto {
     carModel?: string | null;
 
     totalCost?: number | null;
+    finished: boolean;
+}
+
+export interface IRentForCalendar extends IRentGetDto {
+    parsedPlannedStart: Date;
+    parsedPlannedEnd: Date;
+    parsedActualStart?: Date | null;
+    parsedActualEnd?: Date | null;
 }

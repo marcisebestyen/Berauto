@@ -13,6 +13,9 @@ import UpdateCar from "../pages/UpdateCar.tsx";
 import ReceiptListPage from "../pages/ReceiptListPage";
 import MyReceiptsPage from "../pages/MyReceiptsPage";
 import DeleteCarPage from "../pages/DeleteCarPage.tsx";
+import CarListPage from "../pages/CarList.tsx";
+import CarDetailsPage from "../pages/CarDetails.tsx";
+
 
 
 export const ROLES = {
@@ -98,6 +101,18 @@ export const routes = [
     {
         path: "admin/delete",
         component: <DeleteCarPage/>,
+        isPrivate: true,
+        roles: [ROLES.ADMIN],
+    },
+    {
+        path: "admin/list-cars",
+        component: <CarListPage/>,
+        isPrivate: true,
+        roles: [ROLES.ADMIN],
+    },
+    {
+        path: "admin/cars/:id",
+        component: <CarDetailsPage/>,
         isPrivate: true,
         roles: [ROLES.ADMIN],
     },

@@ -1,7 +1,7 @@
 import axiosInstance from "./axios.config.ts";
 import {CarFormData, ICar} from "../interfaces/ICar.ts";
 import {IUserProfile} from "../interfaces/IUser.ts";
-import { ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto } from "../interfaces/IRent.ts";
+import {ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto} from "../interfaces/IRent.ts";
 import { IReceipt, IReceiptCreateDto } from "../interfaces/IReceipt";
 import { IHandOverRequestDto, ITakeBackRequestDto, IRejectRequestDto, IRejectSuccessResponse } from "../interfaces/RequestDto.ts";
 
@@ -11,6 +11,7 @@ interface JsonPatchOperation {
     value?: any;
     from?: string;
 }
+
 
 const Cars = {
     getAvailableCars: (startDate: Date, endDate: Date) => {
@@ -49,6 +50,9 @@ const Cars = {
     },
     deleteCar: (carId: number) => {
         return axiosInstance.delete<void>(`/cars/delete/${carId}`);
+    },
+    getCarById(carId: number) {
+        return axiosInstance.get<ICar>(`/cars/get/${carId}`);
     }
 };
 
@@ -93,6 +97,9 @@ const Rents = {
 
     getRentsGloballyByFilter: (filter: "Open" | "Closed" | "Running" | "All" | "ApprovedForHandover") => {
         return axiosInstance.get<IRentGetDto[]>(`/Rent?filter=${filter}`);
+    },
+    getRentsByCarId(carId: number) {
+        return axiosInstance.get<IRentGetDto[]>(`/Rent/get-rents-by-carId/${carId}`);
     }
 };
 

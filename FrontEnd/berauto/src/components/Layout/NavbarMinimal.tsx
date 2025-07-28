@@ -10,7 +10,8 @@ import {
     IconRun,
     IconLockCheck,
     IconPlus,
-    IconCircleMinus
+    IconCircleMinus,
+    IconList
 } from "@tabler/icons-react";
 import classes from "./NavbarMinimalColored.module.css";
 import {useNavigate, useLocation} from "react-router-dom";
@@ -88,7 +89,8 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
             { icon: IconCar, label: "Autó adatok szerkesztése", url: "/admin/update", color: "green" },
             {
                 icon: IconCircleMinus, label: "Autó eltávolítása", url: "/admin/delete", color: "red"
-            }
+            },
+            { icon: IconList, label: "Autók" , url: "/admin/list-cars", color: "blue" },
         ];
 
 
