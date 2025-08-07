@@ -4,6 +4,7 @@ import {
     Group,
     Table,
     Box,
+    Badge,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useState } from 'react';
@@ -12,7 +13,7 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 import 'dayjs/locale/hu';
 
 import api from '../api/api.ts';
-import { ICar } from '../interfaces/ICar.ts';
+import { ICar, CarAvailabilityStatus } from '../interfaces/ICar.ts';
 import { notifications } from '@mantine/notifications';
 import BookingModal from '../modals/BookingModal';
 
@@ -27,7 +28,7 @@ const Cars = () => {
     const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
     const [bookingOpen, setBookingOpen] = useState(false);
 
-    const fetchAvailableCars = async () => {
+    const fetchAllCarsWithAvailability = async () => {
         if (!startDate || !endDate) {
             notifications.show({
                 title: 'Hiányzó dátumok',
@@ -114,17 +115,33 @@ const Cars = () => {
         }
     };
 
+    const renderStatusBadge = (status: CarAvailabilityStatus) => {
+        switch (status) {
+            case CarAvailabilityStatus.Available:
+                return <Badge color="green">Elérhető</Badge>;
+            case CarAvailabilityStatus.Rented:
+                return <Badge color="red">Foglalt</Badge>;
+            case CarAvailabilityStatus.NotProperCondition:
+                return <Badge color="yellow">Hibás műszaki állapot</Badge>;
+            case CarAvailabilityStatus.Deleted:
+                return <Badge color="gray">Törölve</Badge>;
+            default:
+                return <Badge color="gray">Ismeretlen</Badge>;
+        }
+    };
+
     const rows = items.map((element) => (
         <Table.Tr key={element.id}>
             <Table.Td>{element.brand}</Table.Td>
             <Table.Td>{element.model}</Table.Td>
-            <Table.Td>{element.pricePerDay} Ft/nap  </Table.Td>
+            <Table.Td>{element.pricePerDay} Ft/nap</Table.Td>
             <Table.Td>{element.isAutomatic ? 'Automata' : 'Manuális'}</Table.Td>
+            <Table.Td>{renderStatusBadge(element.status)}</Table.Td>
             <Table.Td>
                 <Button
                     size="xs"
                     onClick={() => openBookingModal(element.id)}
-                    disabled={!startDate || !endDate}
+                    disabled={element.status !== CarAvailabilityStatus.Available}
                 >
                     Foglalás
                 </Button>
@@ -157,8 +174,8 @@ const Cars = () => {
                         minDate={startDate ? dayjs(startDate).add(0, 'day').toDate() : new Date()}
                     />
                 </Group>
-                <Button onClick={fetchAvailableCars} mt="md" loading={isLoading} disabled={!startDate || !endDate}>
-                    Elérhető autók keresése
+                <Button onClick={fetchAllCarsWithAvailability} mt="md" loading={isLoading} disabled={!startDate || !endDate}>
+                    Autók elérhetőségének ellenőrzése
                 </Button>
             </Card>
 
@@ -171,6 +188,7 @@ const Cars = () => {
                                 <Table.Th>Modell</Table.Th>
                                 <Table.Th>Ár</Table.Th>
                                 <Table.Th>Váltó</Table.Th>
+                                <Table.Th>Státusz</Table.Th>
                                 <Table.Th>Műveletek</Table.Th>
                             </Table.Tr>
                         </Table.Thead>

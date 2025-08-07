@@ -21,7 +21,6 @@ import { notifications } from '@mantine/notifications';
 
 import api from '../api/api.ts';
 import { ICar } from '../interfaces/ICar.ts';
-// Importáld az összes szükséges interfészt az IRent.ts-ből
 import { IRentGetDto, IRentForCalendar } from '../interfaces/IRent.ts';
 
 import '@mantine/dates/styles.css';
@@ -47,17 +46,15 @@ const CarDetailsPage = () => {
                     message: 'Érvénytelen autóazonosító.',
                     color: 'red',
                 });
-                navigate('/admin/cars');
+                navigate('/admin/list-cars');
                 return;
             }
 
             setIsLoading(true);
             try {
-                // Explicit típusmegadás a carRes.data-nak
                 const carRes = await api.Cars.getCarById(parseInt(id));
                 setCar(carRes.data as ICar); // ITT A MÓDOSÍTÁS!
 
-                // Explicit típusmegadás a rentsRes.data-nak
                 const rentsRes = await api.Rents.getRentsByCarId(parseInt(id));
                 const rentsData: IRentGetDto[] = rentsRes.data as IRentGetDto[]; // ITT A MÓDOSÍTÁS!
 
@@ -88,7 +85,7 @@ const CarDetailsPage = () => {
     }, [id, navigate]);
 
     const renderDay = (dateStr: string) => {
-        const day = dayjs(dateStr); // dateStr helyett nem Date, hanem string
+        const day = dayjs(dateStr);
         const currentRent = rents.find(rent => {
             const plannedStart = dayjs(rent.parsedPlannedStart);
             const plannedEnd = dayjs(rent.parsedPlannedEnd);
@@ -141,7 +138,7 @@ const CarDetailsPage = () => {
             <Card shadow="sm" padding="lg" radius="md" withBorder>
                 <Box ta="center" py="lg">
                     <Text>Az autó nem található, vagy hiba történt a betöltés során.</Text>
-                    <Button mt="md" onClick={() => navigate('/admin/cars')}>Vissza az autókhoz</Button>
+                    <Button mt="md" onClick={() => navigate('/admin/list-cars')}>Vissza az autókhoz</Button>
                 </Box>
             </Card>
         );
@@ -175,7 +172,7 @@ const CarDetailsPage = () => {
         <div>
             <Group justify="space-between" mb="lg">
                 <Title order={2}>{car.brand} {car.model} - {car.licencePlate}</Title>
-                <Button onClick={() => navigate('/admin/cars')}>Vissza az autókhoz</Button>
+                <Button onClick={() => navigate('/admin/list-cars')}>Vissza az autókhoz</Button>
             </Group>
 
             <Card shadow="sm" padding="lg" radius="md" withBorder mb="lg">

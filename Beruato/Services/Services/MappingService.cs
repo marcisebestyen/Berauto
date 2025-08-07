@@ -32,6 +32,7 @@ public class MappingService : Profile
         
         CreateMap<CarUpdateDto, Car>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+        CreateMap<Car, CarGetWithStatusDto>();
 
         // Rent mappings 
 

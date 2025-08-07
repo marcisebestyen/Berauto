@@ -17,7 +17,7 @@ public interface ICarService
     Task<CarGetDto> AddCarAsync(CarCreateDto createCarDto);
     Task<ServiceResult> UpdateCarAsync(int id, JsonPatchDocument<Car> patchDocument, ModelStateDictionary modelState);
     Task DeleteCarAsync(int id);
-    Task<IEnumerable<CarGetDto>> GetAvailableCarsAsync(DateTime startDate, DateTime endDate);
+    Task<IEnumerable<CarGetWithStatusDto>> GetAllCarsWithAvailabilityAsync(DateTime startDate, DateTime endDate);
 }
 
 public class CarService : ICarService
@@ -137,25 +137,42 @@ public class CarService : ICarService
         await _unitOfWork.CarRepository.UpdateAsync(carToDelete);
         await _unitOfWork.SaveAsync();
     }
-
-
-    public async Task<IEnumerable<CarGetDto>> GetAvailableCarsAsync(DateTime startDate, DateTime endDate)
+    public async Task<IEnumerable<CarGetWithStatusDto>> GetAllCarsWithAvailabilityAsync(DateTime startDate, DateTime endDate)
     {
-        var rentedCarIds =
-            (await _unitOfWork.RentRepository.GetAsync(rent =>
+        var rentedCarIds = (await _unitOfWork.RentRepository.GetAsync(rent =>
                 rent.PlannedStart < endDate && rent.PlannedEnd > startDate
             ))
             .Select(rent => rent.CarId)
             .Distinct()
             .ToList();
 
-        var availableCarsEntities =
-            await _unitOfWork.CarRepository.GetAsync(car =>
-                car.InProperCondition &&
-                !rentedCarIds.Contains(car.Id) &&
-                !car.IsDeleted
-            );
+        var allCars = await _unitOfWork.CarRepository.GetAllAsync();
+        var resultList = new List<CarGetWithStatusDto>();
 
-        return _mapper.Map<IEnumerable<CarGetDto>>(availableCarsEntities);
+        foreach (var car in allCars)
+        {
+            var carDto = _mapper.Map<CarGetWithStatusDto>(car);
+
+            if (car.IsDeleted)
+            {
+                carDto.Status = CarAvailabilityStatus.Deleted;
+            }
+            else if (!car.InProperCondition)
+            {
+                carDto.Status = CarAvailabilityStatus.NotProperCondition;
+            }
+            else if (rentedCarIds.Contains(car.Id))
+            {
+                carDto.Status = CarAvailabilityStatus.Rented;
+            }
+            else
+            {
+                carDto.Status = CarAvailabilityStatus.Available;
+            }
+
+            resultList.Add(carDto);
+        }
+
+        return resultList;
     }
 }

@@ -199,7 +199,7 @@ namespace Berauto.Controllers
             {
                 return BadRequest("Start date must be before end date.");
             }
-            var cars = await _carService.GetAvailableCarsAsync(startDate, endDate);
+            var cars = await _carService.GetAllCarsWithAvailabilityAsync(startDate, endDate);
             return Ok(cars);
         }
     }
