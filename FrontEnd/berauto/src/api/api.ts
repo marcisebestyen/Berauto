@@ -3,6 +3,7 @@ import {CarFormData, ICar} from "../interfaces/ICar.ts";
 import {IUserProfile} from "../interfaces/IUser.ts";
 import {ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto} from "../interfaces/IRent.ts";
 import { IReceipt, IReceiptCreateDto } from "../interfaces/IReceipt";
+import { IWaitingListResponse } from "../interfaces/IWaitingList.ts";
 import { IHandOverRequestDto, ITakeBackRequestDto, IRejectRequestDto, IRejectSuccessResponse } from "../interfaces/RequestDto.ts";
 
 interface JsonPatchOperation {
@@ -100,6 +101,9 @@ const Rents = {
     },
     getRentsByCarId(carId: number) {
         return axiosInstance.get<IRentGetDto[]>(`/Rent/get-rents-by-carId/${carId}`);
+    },
+    addToWaitingList(carId: number) {
+        return axiosInstance.post<IWaitingListResponse>(`/Rent/add-to-waiting-list/${carId}`);
     }
 };
 
