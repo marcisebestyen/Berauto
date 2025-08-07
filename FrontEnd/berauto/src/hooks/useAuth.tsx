@@ -11,6 +11,7 @@ interface User {
     firstName?: string;
     lastName?: string;
     licenceId?: string;
+    phoneNumber?: string;
 }
 
 interface DecodedJwtPayload {
@@ -64,7 +65,9 @@ const useAuth = () => {
                         role: decodedPayload.role || 'defaultRoleOnError',
                         username: decodedPayload.unique_name || 'defaultUsernameOnError',
                         firstName: userDto.firstName || '',
-                        lastName: userDto.lastName || ''
+                        lastName: userDto.lastName || '',
+                        licenceId: userDto.licenceId || '',
+                        phoneNumber: userDto.phoneNumber || ''
                     };
 
                     if (mappedUser.id !== 'defaultIdOnError' && mappedUser.email !== 'defaultEmailOnError') {
