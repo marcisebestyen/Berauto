@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Services/Services/WeeklySummaryJob.cs
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,27 +26,33 @@ namespace Services.Services
             Console.WriteLine("WeeklySummaryJob: Indul a heti összefoglaló küldése.");
 
             var allUsers = await _unitOfWork.UserRepository.GetAsync(u => u.RegisteredUser);
+            Console.WriteLine($"WeeklySummaryJob: Talált regisztrált felhasználók száma: {allUsers.Count()}");
 
-            foreach(var user in allUsers)
+            foreach (var user in allUsers)
             {
                 var userId = user.Id;
 
-                var upcomingRents = await _unitOfWork.RentRepository.GetAsync(r => r.RenterId == userId && r.PlannedEnd <= DateTime.Now.AddDays(7) && r.ActualEnd.HasValue == false, new string[] { "Car" });
+                var upcomingRents = await _unitOfWork.RentRepository.GetAsync(
+                    r => r.RenterId == userId
+                         && r.PlannedEnd >= DateTime.Now
+                         && r.PlannedEnd <= DateTime.Now.AddDays(7)
+                         && r.ActualEnd.HasValue == false,
+                    new string[] { "Car" });
 
                 if (upcomingRents.Any())
                 {
                     var emailContent = $"Szia {user.FirstName}! \n\n" +
-                                       $"Összefoglaló a héten lejáró bérléseidről:\n\n" +
-                                       $"{string.Join("\n", upcomingRents.Select(r => $"  - Autó: {r.Car.Brand} {r.Car.Model}, Lejárati dátum: {r.PlannedEnd.ToShortDateString()}"))}\n\n" +
-                                       "Kérjük, győződj meg róla, hogy időben visszahozod az autót.\n\n" +
-                                       "Üdv,\n" +
-                                       "A Berauto csapata";
+                                        $"Összefoglaló a héten lejáró bérléseidről:\n\n" +
+                                        $"{string.Join("\n", upcomingRents.Select(r => $"  - Autó: {r.Car.Brand} {r.Car.Model}, Lejárati dátum: {r.PlannedEnd.ToShortDateString()}"))}\n\n" +
+                                        "Kérjük, győződj meg róla, hogy időben visszahozod az autót.\n\n" +
+                                        "Üdv,\n" +
+                                        "A Berauto csapata";
 
                     Console.WriteLine($"WeeklySummaryJob: E-mail küldése {user.Email} címre.");
                     await _emailService.SendEmailAsync(user.Email, "Heti bérlési összefoglaló", emailContent);
                 }
-                Console.WriteLine("WeeklySummaryJob: A feladat befejeződött.");
             }
+            Console.WriteLine("WeeklySummaryJob: A feladat befejeződött.");
         }
     }
 }
