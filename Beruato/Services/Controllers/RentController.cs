@@ -163,7 +163,7 @@ namespace Services.Controllers
         /// <response code="403">A felhasználó guest, és nem iratkozhat fel várólistára.</response>
         /// <response code="404">Az autó nem található.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
-        [HttpPost("add-to-waiting-list/carId:int")]
+        [HttpPost("add-to-waiting-list/{carId}")]
         public async Task<IActionResult> AddToWaitingList(int carId)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);

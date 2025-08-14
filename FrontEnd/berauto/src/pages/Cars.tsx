@@ -25,6 +25,7 @@ const Cars = () => {
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isWaitingListLoading, setIsWaitingListLoading] = useState<number | null>(null);
     const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
     const [bookingOpen, setBookingOpen] = useState(false);
 
@@ -75,6 +76,55 @@ const Cars = () => {
             setItems([]);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleAddToWaitingList = async (carId: number) => {
+        setIsWaitingListLoading(carId);
+        try {
+            const response = await api.Rents.addToWaitingList(carId);
+
+            notifications.show({
+                title: 'Sikeres feliratkozás',
+                message: `Sikeresen feliratkoztál a várólistára. Pozíciód: ${response.data.queuePosition}`,
+                color: 'green',
+            });
+        } catch (error: any) {
+            console.error('Waiting list error:', error);
+
+            if (error.response?.status === 400) {
+                notifications.show({
+                    title: 'Hiba',
+                    message: error.response.data?.Message || error.response.data?.message || 'Az autó jelenleg szabad, nincs szükség várólistára.',
+                    color: 'orange',
+                });
+            } else if (error.response?.status === 401) {
+                notifications.show({
+                    title: 'Hitelesítési hiba',
+                    message: 'Kérlek, jelentkezz be a várólistára való feliratkozáshoz.',
+                    color: 'red',
+                });
+            } else if (error.response?.status === 403) {
+                notifications.show({
+                    title: 'Hozzáférés megtagadva',
+                    message: 'Vendég felhasználók nem iratkozhatnak fel várólistára.',
+                    color: 'red',
+                });
+            } else if (error.response?.status === 404) {
+                notifications.show({
+                    title: 'Nem található',
+                    message: 'Az autó nem található.',
+                    color: 'red',
+                });
+            } else {
+                notifications.show({
+                    title: 'Hiba',
+                    message: 'Váratlan hiba történt a várólistára való feliratkozás során.',
+                    color: 'red',
+                });
+            }
+        } finally {
+            setIsWaitingListLoading(null);
         }
     };
 
@@ -138,13 +188,23 @@ const Cars = () => {
             <Table.Td>{element.isAutomatic ? 'Automata' : 'Manuális'}</Table.Td>
             <Table.Td>{renderStatusBadge(element.status)}</Table.Td>
             <Table.Td>
-                <Button
-                    size="xs"
-                    onClick={() => openBookingModal(element.id)}
-                    disabled={element.status !== CarAvailabilityStatus.Available}
-                >
-                    Foglalás
-                </Button>
+                <Group gap="xs">
+                    <Button
+                        size="xs"
+                        onClick={() => openBookingModal(element.id)}
+                        disabled={element.status !== CarAvailabilityStatus.Available}
+                    >
+                        Foglalás
+                    </Button>
+                    <Button
+                        size="xs"
+                        onClick={() => handleAddToWaitingList(element.id)}
+                        disabled={element.status === CarAvailabilityStatus.Available || element.status === CarAvailabilityStatus.NotProperCondition}
+                        loading={isWaitingListLoading === element.id}
+                    >
+                        Feliratkozás
+                    </Button>
+                </Group>
             </Table.Td>
         </Table.Tr>
     ));
