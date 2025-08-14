@@ -1,14 +1,15 @@
 using Database.Data;
+using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Services.Configurations;
 using Services.Repositories;
 using Services.Services;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
-using Services.Configurations;
 
 
 namespace Beruato
@@ -22,13 +23,19 @@ namespace Beruato
 
             var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-            builder.Services.AddControllers();
-            builder.Services.AddControllers().AddNewtonsoftJson();
+            builder.Services.AddHangfire(config =>
+            {
+                config.UseSqlServerStorage(builder.Configuration.GetConnectionString("Mark"));
+            });
+
+            builder.Services.AddHangfireServer();
+
             builder.Services.AddControllers()
-                .AddJsonOptions(options =>
-                {
-                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-                });
+                        .AddNewtonsoftJson()
+                        .AddJsonOptions(options =>
+                        {
+                            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                        });
 
             builder.Services.AddCors(options =>
             {
@@ -56,6 +63,8 @@ namespace Beruato
             builder.Services.AddScoped<IReceiptService, ReceiptService>();
             builder.Services.AddScoped<IInvoicePdfService, InvoicePdfService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<WeeklySummaryJob>();
+            builder.Services.AddScoped<AdminStaffSummaryJob>();
 
             builder.Services.Configure<Services.Configurations.MailSettings>(
             builder.Configuration.GetSection("MailtrapSettings"));
@@ -88,14 +97,6 @@ namespace Beruato
                 });
             
             builder.Services.AddAuthorization();
-
-            // builder.Services.AddAuthorization(options =>
-            // {
-            //     options.AddPolicy("GuestPolicy", policy => policy.RequireRole("Guest"));
-            //     options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
-            //     options.AddPolicy("UserPolicy", policy => policy.RequireRole("User"));
-            //     options.AddPolicy("DirectorPolicy", policy => policy.RequireRole("Director"));
-            // });
 
             builder.Services.AddAutoMapper(typeof(Services.Services.MappingService).Assembly);
 
@@ -147,6 +148,19 @@ namespace Beruato
             {
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Berauto API v1"));
+                app.UseHangfireDashboard();
+
+                RecurringJob.AddOrUpdate<WeeklySummaryJob>(
+                    "weekly-summary",
+                    job => job.SendWeeklySummaryAsync(),
+                    "0 9 * * 0");
+                RecurringJob.AddOrUpdate<AdminStaffSummaryJob>(
+                    "admin-staff-summary-emails",
+                    job => job.SendAdminStaffSummaryAsync(),
+                    "0 9 * * 0");
+
+                BackgroundJob.Enqueue<WeeklySummaryJob>(job => job.SendWeeklySummaryAsync());
+                BackgroundJob.Enqueue<AdminStaffSummaryJob>(job => job.SendAdminStaffSummaryAsync());
             }
 
             app.UseHttpsRedirection();
