@@ -53,10 +53,10 @@ const CarDetailsPage = () => {
             setIsLoading(true);
             try {
                 const carRes = await api.Cars.getCarById(parseInt(id));
-                setCar(carRes.data as ICar); // ITT A MÓDOSÍTÁS!
+                setCar(carRes.data as ICar);
 
                 const rentsRes = await api.Rents.getRentsByCarId(parseInt(id));
-                const rentsData: IRentGetDto[] = rentsRes.data as IRentGetDto[]; // ITT A MÓDOSÍTÁS!
+                const rentsData: IRentGetDto[] = rentsRes.data as IRentGetDto[];
 
                 const parsedRentsForCalendar: IRentForCalendar[] = rentsData.map((rentDto: IRentGetDto) => ({
                     ...rentDto,
@@ -84,20 +84,29 @@ const CarDetailsPage = () => {
         fetchCarDetails();
     }, [id, navigate]);
 
-    const renderDay = (dateStr: string) => {
-        const day = dayjs(dateStr);
-        const currentRent = rents.find(rent => {
+    const renderDay = (date: string) => {
+        const day = dayjs(date);
+
+        const relevantRents = rents.filter(rent => {
             const plannedStart = dayjs(rent.parsedPlannedStart);
             const plannedEnd = dayjs(rent.parsedPlannedEnd);
-            return day.isBetween(plannedStart, plannedEnd, null, '[]');
+            return day.isBetween(plannedStart, plannedEnd, 'day', '[]');
         });
 
-        if (currentRent) {
-            const isFinishedRent = currentRent.finished || (currentRent.parsedActualEnd && dayjs(currentRent.parsedActualEnd).isBefore(dayjs(), 'day'));
+        if (relevantRents.length > 0) {
+            console.log('Relevant rents for', day.format('YYYY-MM-DD'), relevantRents.map(r => ({
+                id: r.id,
+                finished: r.finished,
+                finishedType: typeof r.finished
+            })));
 
-            const color = isFinishedRent ? 'var(--mantine-color-gray-2)' : 'var(--mantine-color-orange-light)';
-            const textColor = isFinishedRent ? 'var(--mantine-color-gray-7)' : 'var(--mantine-color-orange-light-color)';
-            const title = isFinishedRent ? 'Befejezett bérlés' : 'Aktív/Tervezett bérlés';
+            const hasActiveRent = relevantRents.some(rent => !rent.finished);
+
+            console.log('Has active rent:', hasActiveRent);
+
+            const color = hasActiveRent ? 'var(--mantine-color-orange-light)' : 'var(--mantine-color-gray-2)';
+            const textColor = hasActiveRent ? 'var(--mantine-color-orange-light-color)' : 'var(--mantine-color-gray-7)';
+            const title = hasActiveRent ? 'Aktív/Tervezett bérlés' : 'Befejezett bérlés';
 
             return (
                 <div
@@ -120,7 +129,6 @@ const CarDetailsPage = () => {
 
         return <div>{day.date()}</div>;
     };
-
 
     if (isLoading) {
         return (

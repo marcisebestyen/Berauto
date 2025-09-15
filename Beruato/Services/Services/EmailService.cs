@@ -89,6 +89,7 @@ namespace Services.Services
                         mailMessage.Subject = subject;
                         mailMessage.Body = body;
                         mailMessage.IsBodyHtml = true;
+                        
 
                         await client.SendMailAsync(mailMessage);
                     }

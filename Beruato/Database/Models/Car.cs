@@ -34,6 +34,8 @@
         public bool IsRented { get; set; } = false;
         
         public ICollection<WaitingList> WaitingLists { get; set; } = new List<WaitingList>();
+        public DateTime? LastTechnicalInspection { get; set; } // Utolsó műszaki dátuma
+        public decimal? KilometersAtLastInspection { get; set; } // Km állás az utolsó műszakinál
     }
 }
 

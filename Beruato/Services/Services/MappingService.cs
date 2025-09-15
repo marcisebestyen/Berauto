@@ -37,6 +37,7 @@ public class MappingService : Profile
         // Rent mappings 
 
         CreateMap<Rent, RentGetDto>()
+             .ForMember(dest => dest.Finished, opt => opt.MapFrom(src => src.ActualEnd.HasValue))
              .ForMember(dest => dest.ActualStart, opt => opt.MapFrom(src => src.ActualStart == DateTime.MinValue ? (DateTime?)null : src.ActualStart))
              .ForMember(dest => dest.ActualEnd, opt => opt.MapFrom(src => src.ActualEnd == DateTime.MinValue ? (DateTime?)null : src.ActualEnd))
              .ForMember(dest => dest.IssuedAt, opt => opt.MapFrom(src => src.IssuedAt == DateTime.MinValue ? (DateTime?)null : src.IssuedAt))

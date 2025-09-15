@@ -23,7 +23,6 @@ public class AdminStaffSummaryJob
         Console.WriteLine("AdminStaffSummaryJob: Indul az admin összefoglaló küldése.");
 
         var adminsAndStaff = await _unitOfWork.UserRepository.GetAsync(u => u.Role == Role.Admin || u.Role == Role.Staff);
-
         if (!adminsAndStaff.Any())
         {
             Console.WriteLine("AdminStaffSummaryJob: Nincsenek admin vagy staff felhasználók, a feladat befejeződött.");
@@ -32,7 +31,23 @@ public class AdminStaffSummaryJob
 
         var allCars = await _unitOfWork.CarRepository.GetAllAsync();
 
-        var carsNeedingService = allCars.Where(c => c.ActualKilometers > 25000);
+        var carsNeedingInspection = allCars.Where(c =>
+        {
+            if (c.IsDeleted || !c.LastTechnicalInspection.HasValue)
+                return false;
+
+            var oneYearFromLastInspection = c.LastTechnicalInspection.Value.AddYears(1);
+            var timeBasedDue = oneYearFromLastInspection <= DateTime.Now.AddDays(7);
+
+            var kmBasedDue = false;
+            if (c.KilometersAtLastInspection.HasValue)
+            {
+                var kmsSinceLastInspection = c.ActualKilometers - c.KilometersAtLastInspection.Value;
+                kmBasedDue = kmsSinceLastInspection >= 9500;
+            }
+
+            return timeBasedDue || kmBasedDue;
+        });
 
         var upcomingRents = await _unitOfWork.RentRepository.GetAsync(
             r => r.PlannedEnd >= DateTime.Now && r.PlannedEnd <= DateTime.Now.AddDays(7),
@@ -42,13 +57,33 @@ public class AdminStaffSummaryJob
         emailContent.AppendLine("<h1>Heti admin összefoglaló</h1>");
         emailContent.AppendLine($"<p>Összes autó a flottában: <strong>{allCars.Count()}</strong></p>");
 
-        if (carsNeedingService.Any())
+        if (carsNeedingInspection.Any())
         {
-            emailContent.AppendLine("<h3>Szervizelésre szoruló autók:</h3>");
+            emailContent.AppendLine("<h3>⚠️ SÜRGŐS: Szervíz esedékes:</h3>");
             emailContent.AppendLine("<ul>");
-            foreach (var car in carsNeedingService)
+            foreach (var car in carsNeedingInspection)
             {
-                emailContent.AppendLine($"<li><strong>{car.Brand} {car.Model}</strong> ({car.LicencePlate}) - Jelenlegi km: {car.ActualKilometers}</li>");
+                var reason = "";
+                if (car.LastTechnicalInspection.HasValue)
+                {
+                    var oneYearFromLast = car.LastTechnicalInspection.Value.AddYears(1);
+                    var daysUntilOneYear = (oneYearFromLast - DateTime.Now).Days;
+
+                    var kmsSinceLast = car.KilometersAtLastInspection.HasValue
+                        ? car.ActualKilometers - car.KilometersAtLastInspection.Value
+                        : 0;
+
+                    if (daysUntilOneYear <= 7)
+                        reason += $"1 év telik el: {oneYearFromLast.ToShortDateString()} ({daysUntilOneYear} nap)";
+
+                    if (kmsSinceLast >= 9500)
+                    {
+                        if (!string.IsNullOrEmpty(reason)) reason += " ÉS ";
+                        reason += $"Futott: {kmsSinceLast:F0} km";
+                    }
+                }
+
+                emailContent.AppendLine($"<li><strong>{car.Brand} {car.Model}</strong> ({car.LicencePlate}) - {reason}</li>");
             }
             emailContent.AppendLine("</ul>");
         }
@@ -76,7 +111,15 @@ public class AdminStaffSummaryJob
         {
             if (!string.IsNullOrWhiteSpace(user.Email))
             {
-                await _emailService.SendEmailAsync(user.Email, "Heti admin összefoglaló", emailContent.ToString());
+                try
+                {
+                    await _emailService.SendEmailAsync(user.Email, "Heti admin összefoglaló", emailContent.ToString());
+                    await Task.Delay(10000);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Hiba az email küldése során: {ex.Message}");
+                }
             }
         }
 

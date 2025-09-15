@@ -16,6 +16,8 @@ public class RentGetDto
     public bool InvoiceRequest { get; set; }
     public DateTime? IssuedAt { get; set; } // Számla kiállítási dátuma (a bérléshez kapcsolódóan)
 
+    public bool Finished { get; set; }
+
     // Kapcsolódó entitások egyszerűsített formában
     public int RenterId { get; set; }
     public int CarId { get; set; }
