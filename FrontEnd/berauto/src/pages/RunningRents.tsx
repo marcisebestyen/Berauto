@@ -127,7 +127,7 @@ export function RunningRents() {
                                 const parsed = new Date(value);
                                 setActualEndDate(parsed);
                             }}
-
+                            minDate={selectedRent.actualStart ? new Date(selectedRent.actualStart) : undefined}
                             leftSection={<IconCalendarTime size="1.2rem" />}
                             clearable
                         />
