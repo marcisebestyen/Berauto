@@ -7,6 +7,7 @@ using Microsoft.OpenApi.Models;
 using Services.Configurations;
 using Services.Repositories;
 using Services.Services;
+using System;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -20,6 +21,7 @@ namespace Beruato
         {
             QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
             var builder = WebApplication.CreateBuilder(args);
+            var geminiApiKey = builder.Configuration["Gemini:ApiKey"];
 
             var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
@@ -65,6 +67,12 @@ namespace Beruato
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<WeeklySummaryJob>();
             builder.Services.AddScoped<AdminStaffSummaryJob>();
+            builder.Services.AddScoped<FaqService>(provider =>
+            {
+                var dbContext = provider.GetRequiredService<BerautoDbContext>();
+                var logger = provider.GetRequiredService<ILogger<FaqService>>();
+                return new FaqService(dbContext, geminiApiKey, logger);
+            });
 
             builder.Services.Configure<Services.Configurations.MailSettings>(
             builder.Configuration.GetSection("MailtrapSettings"));

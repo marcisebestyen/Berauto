@@ -10,6 +10,7 @@ namespace Database.Data
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<Rent> Rents { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<Faq> Faqs { get; set; }
 
         public BerautoDbContext(DbContextOptions<BerautoDbContext> options) : base(options)
         {

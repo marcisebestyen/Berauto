@@ -6,14 +6,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <EntityFrameworkCoreMigrationsAssembly>Beruato</EntityFrameworkCoreMigrationsAssembly>
     <EntityFrameworkCoreDesignToolsProjectPath>$(MSBuildProjectDirectory)\..\Database</EntityFrameworkCoreDesignToolsProjectPath>
+    <UserSecretsId>91090492-a967-478b-8a82-4c5b71c90a01</UserSecretsId>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget>anycpu</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <PlatformTarget>x64</PlatformTarget>
+    <PlatformTarget>anycpu</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
