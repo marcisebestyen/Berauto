@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Database.Results;
 using Database.Dtos.ReceiptDtos;
 using Database.Models;
+using Microsoft.Extensions.Options;
+using Services.Configurations;
 
 namespace Services.Services
 {
@@ -23,19 +25,28 @@ namespace Services.Services
         private readonly ILogger<StaffService> _logger;
         private readonly IReceiptService _receiptService;
         private readonly IRentService _rentService;
+        private readonly IEmailService _emailService;
+        private readonly MailSettings _mailSettings;
+
+        private const string _satisfactionSurveyUrl =
+            "https://docs.google.com/forms/d/e/1FAIpQLSfurfBtlw_PvUSYqMQ4DuVF1DwMkFWmS-KkRH46d3utB2P0pA/viewform?usp=header";
 
         public StaffService(
             IUnitOfWork unitOfWork,
             IMapper mapper,
             ILogger<StaffService> logger,
             IReceiptService receiptService,
-            IRentService rentService)
+            IRentService rentService,
+            IEmailService emailService,
+            IOptions<MailSettings> mailSettings)
         {
             _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _receiptService = receiptService ?? throw new ArgumentNullException(nameof(receiptService));
             _rentService = rentService ?? throw new ArgumentNullException(nameof(rentService));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
+            _mailSettings = mailSettings.Value ?? throw new ArgumentNullException(nameof(mailSettings));
         }
 
         public async Task<RentGetDto> ApprovedBy(int staffId, int rentId)
@@ -288,7 +299,9 @@ namespace Services.Services
 
             if (!rent.Car.IsRented)
             {
-                _logger.LogWarning("Car with ID {CarId} for Rent ID {RentId} is not marked as rented but is being taken back.", rent.Car.Id, rentId);
+                _logger.LogWarning(
+                    "Car with ID {CarId} for Rent ID {RentId} is not marked as rented but is being taken back.",
+                    rent.Car.Id, rentId);
             }
 
             rent.TakenBackBy = staffId;
@@ -359,7 +372,7 @@ namespace Services.Services
                     }
                 }
             }
-            
+
             rent.Car.IsRented = false;
 
             try
@@ -367,8 +380,10 @@ namespace Services.Services
                 await _unitOfWork.RentRepository.UpdateAsync(rent);
                 await _unitOfWork.CarRepository.UpdateAsync(rent.Car);
                 await _unitOfWork.SaveAsync();
-                
+
                 await _rentService.HandleRentCompletion(rentId);
+                
+                await SendSatisfactionSurvey(rent); 
             }
             catch (Exception ex)
             {
@@ -379,6 +394,54 @@ namespace Services.Services
             var updatedRentWithIncludes = (await _unitOfWork.RentRepository.GetAsync(r => r.Id == rent.Id,
                 includeProperties: new[] { "Car", "Renter", "Receipt" })).FirstOrDefault();
             return _mapper.Map<RentGetDto>(updatedRentWithIncludes);
+        }
+
+        private async Task SendSatisfactionSurvey(Rent rent)
+        {
+            if (rent.Renter == null)
+            {
+                _logger.LogWarning("Cannot send satisfaction survey for Rent ID {RentId}: Renter data missing.",
+                    rent.Id);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(rent.Renter.Email))
+            {
+                _logger.LogWarning("Cannot send satisfaction survey for Rent ID {RentId}: Renter email missing.",
+                    rent.Id);
+                return;
+            }
+
+            var toEmail = rent.Renter.Email;
+            var subject = "Véleménye fontos számunkra! Autóbérlés visszajelzés";
+
+            var body = $@"
+            <html>
+                <body>
+                    <p>Kedves {rent.Renter.Name},</p>
+                    <p>Köszönjük, hogy minket választott! A bérelt járművet sikeresen visszavettük. (Szerződés azonosító: <strong>#{rent.Id}</strong>)</p>
+                    <p>Ahhoz, hogy szolgáltatásunkat még jobban tudjuk fejleszteni, kérjük, szánjon 1 percet az alábbi rövid elégedettségi kérdőív kitöltésére:</p>
+                    <p style='margin: 20px 0;'>
+                        <a href='{_satisfactionSurveyUrl}' style='padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;'>
+                            Kérdőív kitöltése
+                        </a>
+                    </p>
+                    <p>Az Ön visszajelzése rendkívül értékes számunkra!</p>
+                    <p>Üdvözlettel,<br>{_mailSettings.FromName} csapata</p>
+                </body>
+            </html>";
+
+            try
+            {
+                await _emailService.SendEmailAsync(toEmail, subject, body);
+                _logger.LogInformation("Satisfaction survey email sent for Rent ID {RentId} to {Email}.", rent.Id,
+                    toEmail);
+            }
+            catch (Exception ex)
+            {
+                // Log the failure, but don't re-throw, as failing to send a survey shouldn't halt the main process.
+                _logger.LogError(ex, "Failed to send satisfaction survey email for Rent ID {RentId}.", rent.Id);
+            }
         }
     }
 }
