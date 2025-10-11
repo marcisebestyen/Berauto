@@ -8,7 +8,7 @@ namespace Services.Services;
 
 public interface IPasswordResetService
 {
-    Task<ServiceResult> InitiatePasswordResetAsync(int userId);
+    Task<ServiceResult> InitiatePasswordResetAsync(string email);
     Task<ServiceResult> ValidateAndResetPasswordAsync(string token, string newPassword);
     Task RevokeExpiredTokensAsync();
 }
@@ -28,21 +28,21 @@ public class PasswordResetService : IPasswordResetService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<ServiceResult> InitiatePasswordResetAsync(int userId)
+    public async Task<ServiceResult> InitiatePasswordResetAsync(string email)
     {
         try
         {
-            var user = (await _unitOfWork.UserRepository.GetAsync(u => u.Id == userId)).FirstOrDefault();
+            var user = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email)).FirstOrDefault();
 
             if (user == null)
             {
-                _logger.LogWarning("Password reset initiated for non-existent user ID: {UserId}", userId);
+                _logger.LogWarning("Password reset initiated for non-existent user: {Email}", email);
                 return ServiceResult.Failed("A felhasználó nem található.");
             }
 
             if (!user.RegisteredUser)
             {
-                _logger.LogWarning("Password reset attempted for guest user ID: {UserId}", userId);
+                _logger.LogWarning("Password reset attempted for guest user: {Email}", email);
                 return ServiceResult.Failed("Jelszó visszaállítás csak regisztrált felhasználóknak érhető el.");
             }
 
@@ -60,7 +60,7 @@ public class PasswordResetService : IPasswordResetService
 
             var passwordReset = new PasswordReset
             {
-                UserId = userId,
+                UserId = user.Id,
                 Token = token,
                 RequestedAt = now,
                 ExpiredAt = now.AddMinutes(TOKEN_EXPIRATION_MINUTES),
@@ -86,12 +86,12 @@ public class PasswordResetService : IPasswordResetService
             
             await _emailService.SendEmailAsync(user.Email, emailSubject, emailBody);
             
-            _logger.LogInformation("Password reset token generated and sent for user ID: {UserId}", userId);
+            _logger.LogInformation("Password reset token generated and sent for user: {Email}", email);
             return ServiceResult.Success("A jelszó visszaállítási token elküldve az email címedre.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error initiating password reset for user ID: {UserId}", userId);
+            _logger.LogError(ex, "Error initiating password reset for user: {Email}", email);
             return ServiceResult.Failed("Hiba történt a jelszó visszaállítás kezdeményezése közben.");
         }
     }

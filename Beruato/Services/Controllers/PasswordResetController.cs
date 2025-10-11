@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Database.Dtos;
 using Microsoft.AspNetCore.Authorization;
@@ -24,25 +25,20 @@ public class PasswordResetController : ControllerBase
     }
     
     [HttpPost("initiate")]
-    [Authorize]
-    public async Task<IActionResult> InitiatePasswordReset()
+    [AllowAnonymous]
+    public async Task<IActionResult> InitiatePasswordReset([FromBody] InitiatePasswordResetRequest request)
     {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
         try
         {
-            var userId = GetCurrentUserIdFromToken();
-            var result = await _passwordResetService.InitiatePasswordResetAsync(userId);
+            var result = await _passwordResetService.InitiatePasswordResetAsync(request.Email);
 
-            if (result.Succeeded)
-            {
-                return Ok(new { message = result.Messages });
-            }
-
-            return BadRequest(new { message = result.Messages });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger.LogError(ex, "Unauthorized access in InitiatePasswordReset");
-            return Unauthorized(new { message = ex.Message });
+            // Always return success to prevent email enumeration
+            return Ok(new { message = result.Messages });
         }
         catch (Exception ex)
         {
@@ -53,6 +49,7 @@ public class PasswordResetController : ControllerBase
 
     
     [HttpPost("reset")]
+    [AllowAnonymous]
     public async Task<IActionResult> ResetPassword([FromBody] PasswordResetRequest request)
     {
         if (!ModelState.IsValid)
@@ -71,18 +68,5 @@ public class PasswordResetController : ControllerBase
         }
 
         return BadRequest(new { message = result.Messages });
-    }
-
-    private int GetCurrentUserIdFromToken()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-        {
-            _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token.");
-            throw new UnauthorizedAccessException(
-                "A felhasználói azonosító nem található vagy érvénytelen a tokenben.");
-        }
-
-        return userId;
     }
 }
