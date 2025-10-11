@@ -20,8 +20,6 @@ public interface IUserService
     Task<LoginResult> LoginAsync(UserLoginDto loginDto);
     Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto);
     Task<User> GetOrCreateGuestUserAsync(UserCreateGuestDto guestDto);
-    Task<bool> CheckEmailExistsAndRegisteredAsync(string email);
-    Task<ServiceResult> ResetPasswordAsync(string email, string newPassword);
 }
 
 public class UserService : IUserService
@@ -298,61 +296,5 @@ public class UserService : IUserService
         await _unitOfWork.SaveAsync();
         _logger.LogInformation("New guest user created with email: {Email}, ID: {UserId}", guestDto.Email, newUser.Id);
         return newUser;
-    }
-
-
-    public async Task<bool> CheckEmailExistsAndRegisteredAsync(string email)
-    {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            _logger.LogWarning("CheckEmailExistsAndRegisteredAsync called with empty email.");
-            return false;
-        }
-
-        var user =
-            (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email && u.RegisteredUser)).FirstOrDefault();
-
-        return user != null;
-    }
-
-    public async Task<ServiceResult> ResetPasswordAsync(string email, string newPassword)
-    {
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(newPassword))
-        {
-            _logger.LogWarning("ResetPasswordAsync called with empty email and password.");
-            return ServiceResult.Failed("Az e-mail cím és az új jelszó megadása kötelező.");
-        }
-
-        var user =
-            (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email && u.RegisteredUser)).FirstOrDefault();
-
-        if (user == null)
-        {
-            _logger.LogWarning("DirectResetPasswordAsync called for non-existent or non-registered user email: {Email}",
-                email);
-            return ServiceResult.Failed("A megadott e-mail címmel nem található regisztrált felhasználó.");
-        }
-
-        user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
-
-        try
-        {
-            await _unitOfWork.UserRepository.UpdateAsync(user);
-            await _unitOfWork.SaveAsync();
-            _logger.LogInformation(
-                "Password directly reset for user {UserId} (Email: {Email}) in university project mode.", user.Id,
-                email);
-            return ServiceResult.Success("A jelszó sikeresen megváltoztatva.");
-        }
-        catch (DbUpdateException dbEx)
-        {
-            _logger.LogError(dbEx, "Database error during direct password reset for email {Email}", email);
-            return ServiceResult.Failed($"Adatbázis hiba történt: {dbEx.InnerException?.Message ?? dbEx.Message}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error during direct password reset for email {Email}", email);
-            return ServiceResult.Failed("Váratlan hiba történt a jelszó módosítása közben.");
-        }
     }
 }

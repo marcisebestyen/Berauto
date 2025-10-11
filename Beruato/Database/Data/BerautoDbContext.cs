@@ -43,6 +43,23 @@ namespace Database.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<PasswordReset>(password =>
+            {
+                password.HasKey(pr => pr.Id); // PK 
+            
+                password.HasIndex(pr => pr.Token)
+                    .IsUnique(); // index, business ID, every token must be unique
+                password.Property(pr => pr.Token)
+                    .HasMaxLength(256)
+                    .IsRequired();
+            
+                // foreign key setting
+                password.HasOne(pr => pr.User)
+                    .WithMany()
+                    .HasForeignKey(pr => pr.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id);

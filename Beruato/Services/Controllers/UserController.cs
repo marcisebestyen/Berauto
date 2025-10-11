@@ -63,7 +63,7 @@ public class UserController : Controller
     [Authorize]
     [HttpPatch("updateProfile")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)] 
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -171,45 +171,9 @@ public class UserController : Controller
         {
             return BadRequest(new { Errors = registrationResult.Errors });
         }
+
         return CreatedAtAction(nameof(GetMyProfile), new { userId = registrationResult.User.Id },
             registrationResult.User);
-    }
-
-    [HttpPost("check-email-for-direct-reset")]
-    [ProducesResponseType(typeof(object),
-        StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> CheckEmailForReset([FromBody] ForgotPasswordRequest req)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        bool emailExists = await _userService.CheckEmailExistsAndRegisteredAsync(req.Email);
-        return Ok(new { emailExists = emailExists });
-    }
-
-    [HttpPost("direct-reset-password")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        var result = await _userService.ResetPasswordAsync(dto.Email, dto.NewPassword);
-
-        if (result.Succeeded)
-        {
-            string successMessage = result.Messages.FirstOrDefault() ?? "A jelszó sikeresen módosítva.";
-            return Ok(new { Message = successMessage });
-        }
-
-        return BadRequest(new
-            { Message = result.Errors.FirstOrDefault() ?? "A jelszó módosítása sikertelen.", Errors = result.Errors });
     }
 
     /// <summary>
@@ -229,5 +193,4 @@ public class UserController : Controller
 
         return userId;
     }
-
 }

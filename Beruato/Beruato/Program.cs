@@ -65,6 +65,7 @@ namespace Beruato
             builder.Services.AddScoped<IReceiptService, ReceiptService>();
             builder.Services.AddScoped<IInvoicePdfService, InvoicePdfService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
             builder.Services.AddScoped<WeeklySummaryJob>();
             builder.Services.AddScoped<AdminStaffSummaryJob>();
             builder.Services.AddScoped<FaqService>(provider =>

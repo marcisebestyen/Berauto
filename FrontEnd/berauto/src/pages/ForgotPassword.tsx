@@ -1,16 +1,18 @@
 import { useState, FormEvent } from "react";
 import { useNavigate } from 'react-router-dom';
 import AuthContainer from "../components/AuthContainer.tsx";
+import { Stack, TextInput, PasswordInput, Button, Text, Alert } from "@mantine/core";
+import axiosInstance from '../api/axios.config.ts';
 
-type ViewMode = 'enterEmail' | 'enterNewPassword' | 'success';
+type ViewMode = 'enterEmail' | 'enterToken' | 'enterNewPassword' | 'success';
 
 const ForgotPassword = () => {
     const navigate = useNavigate();
 
     const [viewMode, setViewMode] = useState<ViewMode>("enterEmail");
-    const [email, setEmail] = useState<string>('');
-    const [verifiedEmail, setVerifiedEmail] = useState<string>('');
 
+    const [email, setEmail] = useState<string>('');
+    const [token, setToken] = useState<string>('');
     const [newPassword, setNewPassword] = useState<string>('');
     const [confirmNewPassword, setConfirmNewPassword] = useState<string>('');
 
@@ -18,46 +20,54 @@ const ForgotPassword = () => {
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
 
-    const handleEmailCheck = async (event: FormEvent<HTMLFormElement>) => {
+    // Step 1: Enter email and request token
+    const handleEmailSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setLoading(true);
         setError('');
         setMessage('');
 
         try {
-            const apiUrl = 'https://localhost:7205/api/users/check-email-for-direct-reset';
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({email}),
+            const response = await axiosInstance.post('/password_reset/initiate', {
+                email: email
             });
-            const data = await response.json();
 
-            if (!response.ok) {
-                setError(data.message || 'Hiba az e-mail ellenőrzésekor.');
-            } else {
-                if (data.emailExists) {
-                    setVerifiedEmail(email);
-                    setViewMode('enterNewPassword');
-                } else {
-                    setError('Ez az e-mail cím nem található a regisztrált felhasználók között, vagy nem aktív.');
-                }
+            if (response.status === 200) {
+                setMessage(response.data.message || 'Ha az e-mail cím regisztrálva van, egy tokent küldtünk rá.');
+                setViewMode('enterToken');
             }
-        } catch (err) {
-            setError('Ismeretlen hiba történt.');
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Hiba történt a token generálása közben.');
         } finally {
             setLoading(false);
         }
     };
 
+    // Step 2: Validate token format and move to password reset
+    const handleTokenSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (token.length !== 6) {
+            setError('A tokennek 6 számjegyből kell állnia.');
+            return;
+        }
+
+        setMessage('Token elfogadva. Add meg az új jelszavadat.');
+        setError('');
+        setViewMode('enterNewPassword');
+    };
+
+    // Step 3: Reset password with token
     const handlePasswordReset = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
         if (newPassword !== confirmNewPassword) {
             setError('A két jelszó nem egyezik.');
             return;
         }
-        if (newPassword.length < 8) {
-            setError('A jelszónak legalább 8 karakter hosszúnak kell lennie.');
+
+        if (newPassword.length < 6) {
+            setError('A jelszónak legalább 6 karakter hosszúnak kell lennie.');
             return;
         }
 
@@ -66,94 +76,192 @@ const ForgotPassword = () => {
         setMessage('');
 
         try {
-            const apiUrl = 'https://localhost:7205/api/users/direct-reset-password';
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({email: verifiedEmail, newPassword: newPassword}),
+            const response = await axiosInstance.post('/password_reset/reset', {
+                token: token,
+                newPassword: newPassword
             });
-            const data = await response.json();
 
-            if (!response.ok) {
-                setError(data.message || data.Errors?.join(', ') || 'Hiba a jelszó módosításakor.');
-            } else {
-                setMessage(data.message || 'A jelszó sikeresen módosítva!');
+            if (response.status === 200) {
+                setMessage(response.data.message || 'A jelszó sikeresen módosítva!');
                 setViewMode('success');
+                // Clear sensitive data
                 setEmail('');
+                setToken('');
                 setNewPassword('');
                 setConfirmNewPassword('');
             }
-        } catch (err) {
-            setError('Ismeretlen hiba történt.');
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Hiba a jelszó módosításakor.');
         } finally {
             setLoading(false);
         }
     };
 
     const handleGoToLogin = () => {
-      navigate('/login');
+        navigate('/login');
+    };
+
+    const handleBackToEmail = () => {
+        setViewMode('enterEmail');
+        setError('');
+        setMessage('');
     };
 
     return (
         <AuthContainer title="Elfelejtett jelszó">
             <>
                 {viewMode === 'enterEmail' && (
-                    <form onSubmit={handleEmailCheck}>
-                        <p>Add meg az e-mail címedet a jelszó módosításához.</p>
-                        <div style={{marginBottom: '15px'}}>
-                            <label htmlFor="email">E-mail cím:</label>
-                            <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                                   required disabled={loading} style={{width: '100%', padding: '8px'}}/>
-                        </div>
-                        <button type="submit" disabled={loading} style={{width: '100%', padding: '10px'}}>
-                            {loading ? 'Ellenőrzés...' : 'E-mail ellenőrzése'}
-                        </button>
+                    <form onSubmit={handleEmailSubmit}>
+                        <Stack gap="md">
+                            <Text size="sm" c="dimmed">
+                                Add meg az e-mail címedet. Ha regisztrálva van, küldünk egy 6 számjegyű tokent,
+                                amely 10 percig érvényes.
+                            </Text>
+
+                            <TextInput
+                                label="E-mail cím"
+                                placeholder="pelda@email.com"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                disabled={loading}
+                                size="md"
+                            />
+
+                            <Button
+                                type="submit"
+                                loading={loading}
+                                fullWidth
+                                size="md"
+                            >
+                                {loading ? 'Küldés...' : 'Token kérése'}
+                            </Button>
+
+                            <Button
+                                variant="subtle"
+                                onClick={handleGoToLogin}
+                                fullWidth
+                                size="sm"
+                            >
+                                Vissza a bejelentkezéshez
+                            </Button>
+                        </Stack>
+                    </form>
+                )}
+
+                {viewMode === 'enterToken' && (
+                    <form onSubmit={handleTokenSubmit}>
+                        <Stack gap="md">
+                            {message && (
+                                <Alert color="green" title="Token elküldve">
+                                    {message}
+                                </Alert>
+                            )}
+
+                            <Text size="sm" c="dimmed">
+                                Ellenőrizd az email fiókod (<strong>{email}</strong>) és add meg
+                                a 6 számjegyű tokent.
+                            </Text>
+
+                            <TextInput
+                                label="Token"
+                                placeholder="123456"
+                                value={token}
+                                onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
+                                required
+                                maxLength={6}
+                                disabled={loading}
+                                size="md"
+                            />
+
+                            <Button
+                                type="submit"
+                                loading={loading}
+                                fullWidth
+                                size="md"
+                            >
+                                Tovább
+                            </Button>
+
+                            <Button
+                                variant="subtle"
+                                onClick={handleBackToEmail}
+                                fullWidth
+                                size="sm"
+                            >
+                                Vissza
+                            </Button>
+                        </Stack>
                     </form>
                 )}
 
                 {viewMode === 'enterNewPassword' && (
                     <form onSubmit={handlePasswordReset}>
-                        <p>E-mail cím: <strong>{verifiedEmail}</strong></p>
-                        <p>Add meg az új jelszavadat.</p>
-                        <div style={{marginBottom: '15px'}}>
-                            <label htmlFor="newPassword">Új jelszó:</label>
-                            <input type="password" id="newPassword" value={newPassword}
-                                   onChange={(e) => setNewPassword(e.target.value)} required disabled={loading}
-                                   style={{width: '100%', padding: '8px'}}/>
-                        </div>
-                        <div style={{marginBottom: '15px'}}>
-                            <label htmlFor="confirmNewPassword">Új jelszó megerősítése:</label>
-                            <input type="password" id="confirmNewPassword" value={confirmNewPassword}
-                                   onChange={(e) => setConfirmNewPassword(e.target.value)} required disabled={loading}
-                                   style={{width: '100%', padding: '8px'}}/>
-                        </div>
-                        <button type="submit" disabled={loading} style={{width: '100%', padding: '10px'}}>
-                            {loading ? 'Mentés...' : 'Új jelszó mentése'}
-                        </button>
+                        <Stack gap="md">
+                            {message && (
+                                <Alert color="blue" title="Token érvényes">
+                                    {message}
+                                </Alert>
+                            )}
+
+                            <PasswordInput
+                                label="Új jelszó"
+                                placeholder="Legalább 6 karakter"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                required
+                                disabled={loading}
+                                size="md"
+                            />
+
+                            <PasswordInput
+                                label="Új jelszó megerősítése"
+                                placeholder="Legalább 6 karakter"
+                                value={confirmNewPassword}
+                                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                required
+                                disabled={loading}
+                                size="md"
+                            />
+
+                            <Button
+                                type="submit"
+                                loading={loading}
+                                fullWidth
+                                size="md"
+                            >
+                                {loading ? 'Mentés...' : 'Jelszó megváltoztatása'}
+                            </Button>
+                        </Stack>
                     </form>
                 )}
 
                 {viewMode === 'success' && (
-                    <div style={{color: 'green', textAlign: 'center'}}>
-                        <p>{message || 'A jelszó sikeresen módosítva!'}</p>
-                        <button
+                    <Stack gap="md" align="center">
+                        <Alert color="green" title="Sikeres jelszó módosítás!" w="100%">
+                            {message || 'A jelszó sikeresen módosítva!'}
+                        </Alert>
+
+                        <Text size="sm" c="dimmed" ta="center">
+                            Most már bejelentkezhetsz az új jelszavaddal.
+                        </Text>
+
+                        <Button
                             onClick={handleGoToLogin}
-                            style={{
-                                marginTop: '20px',
-                                padding: '10px 20px',
-                                cursor: 'pointer',
-                                backgroundColor: '#007bff',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px'
-                            }}
+                            size="md"
+                            fullWidth
                         >
-                             Vissza a bejelentkezéshez
-                        </button>
-                    </div>
+                            Bejelentkezés
+                        </Button>
+                    </Stack>
                 )}
 
-                {error && <p style={{color: 'red', marginTop: '10px'}}>{error}</p>}
+                {error && (
+                    <Alert color="red" title="Hiba" mt="md">
+                        {error}
+                    </Alert>
+                )}
             </>
         </AuthContainer>
     );
