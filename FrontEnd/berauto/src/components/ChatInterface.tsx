@@ -1,12 +1,24 @@
-// src/components/ChatInterface.tsx
+import React, {useState, useEffect, useRef} from 'react';
+import {
+    Stack,
+    TextInput,
+    ActionIcon,
+    Paper,
+    Text,
+    Loader,
+    rem,
+    Group,
+    Title,
+    ScrollArea,
+    ThemeIcon,
+    useMantineTheme,
+} from '@mantine/core';
+import {IconSend, IconMessageChatbot, IconX} from '@tabler/icons-react';
+import dayjs from 'dayjs';
 
-import { useState, useEffect, useRef } from 'react';
-import { Stack, TextInput, ActionIcon, Paper, Text, Box, Loader, rem } from '@mantine/core';
-import { IconSend } from '@tabler/icons-react';
-import { getFaqAnswer } from '../api/faqApi';
-import { ChatMessage } from '../interfaces/chat';
+import {getFaqAnswer} from '../api/faqApi';
+import {ChatMessage} from '../interfaces/chat';
 
-// Initial welcome messages
 const INITIAL_MESSAGES: ChatMessage[] = [
     {
         id: 1,
@@ -16,15 +28,18 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     },
 ];
 
-const ChatInterface: React.FC = () => {
+interface ChatInterfaceProps {
+    onClose?: () => void;
+}
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({onClose}) => {
     const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
     const [inputValue, setInputValue] = useState('');
     const [isBotTyping, setIsBotTyping] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const viewport = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to bottom when messages change
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        viewport.current?.scrollTo({top: viewport.current.scrollHeight, behavior: 'smooth'});
     }, [messages, isBotTyping]);
 
     const handleSendMessage = async () => {
@@ -38,31 +53,24 @@ const ChatInterface: React.FC = () => {
             timestamp: new Date(),
         };
 
-        // Add user message and clear input
         setMessages((prev) => [...prev, newUserMessage]);
         setInputValue('');
-
-        // Start typing indicator
         setIsBotTyping(true);
 
         try {
-            // Call the backend RAG service
             const botAnswer = await getFaqAnswer(userQuestion);
-
             const botMessage: ChatMessage = {
                 id: Date.now() + 1,
                 text: botAnswer,
                 sender: 'bot',
                 timestamp: new Date(),
             };
-
             setMessages((prev) => [...prev, botMessage]);
-
         } catch (error) {
-            console.error("Chatbot API failed:", error);
+            console.error("Chatbot API hiba:", error);
             const errorMessage: ChatMessage = {
                 id: Date.now() + 1,
-                text: "Kritikus hiba: Nem sikerült a válasz lekérése a központi rendszertől.",
+                text: "Sajnálom, de hiba történt a válaszadás során. Kérlek, próbáld újra később.",
                 sender: 'bot',
                 timestamp: new Date(),
             };
@@ -80,93 +88,83 @@ const ChatInterface: React.FC = () => {
     };
 
     return (
-        <Stack gap="xs" style={{ width: rem(320), height: rem(450) }}>
-            {/* Chat Header */}
-            <Paper withBorder p="xs" radius="md" bg="blue.6">
-                <Text size="sm" fw={700} c="white">
-                    Ügyfélszolgálat
-                </Text>
-            </Paper>
-
-            {/* Messages Container */}
-            <Paper
-                withBorder
-                p="xs"
-                radius="md"
-                style={{
-                    flex: 1,
-                    overflowY: 'auto',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: rem(8),
-                }}
-            >
-                {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} />
-                ))}
-
-                {/* Typing Indicator */}
-                {isBotTyping && (
-                    <Box style={{ display: 'flex', alignItems: 'center', gap: rem(8) }}>
-                        <Loader size="xs" />
-                        <Text size="sm" c="dimmed">
-                            Gépelés...
-                        </Text>
-                    </Box>
+        <Paper
+            withBorder
+            shadow="md"
+            radius="md"
+            p="sm"
+            style={{width: rem(350), height: rem(500), display: 'flex', flexDirection: 'column'}}
+        >
+            <Group justify="space-between" pb="xs" mb="xs"
+                   style={{borderBottom: `1px solid var(--mantine-color-gray-2)`}}>
+                <Group gap="xs">
+                    <IconMessageChatbot size={20}/>
+                    <Title order={5}>Online Segítség</Title>
+                </Group>
+                {onClose && (
+                    <ActionIcon variant="subtle" color="gray" onClick={onClose} aria-label="Chat bezárása">
+                        <IconX size={18}/>
+                    </ActionIcon>
                 )}
+            </Group>
 
-                <div ref={messagesEndRef} />
-            </Paper>
+            <ScrollArea viewportRef={viewport} style={{flex: 1}} type="auto">
+                <Stack gap="md" p="xs">
+                    {messages.map((msg) => (
+                        <MessageBubble key={msg.id} message={msg}/>
+                    ))}
+                    {isBotTyping && <TypingIndicator/>}
+                </Stack>
+            </ScrollArea>
 
-            {/* Input Area */}
             <TextInput
-                placeholder="Írj egy üzenetet..."
+                mt="sm"
+                placeholder="Kérdezz valamit..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.currentTarget.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 disabled={isBotTyping}
                 rightSection={
-                    <ActionIcon
-                        onClick={handleSendMessage}
-                        disabled={inputValue.trim() === '' || isBotTyping}
-                        color="blue"
-                        variant="filled"
-                        size="sm"
-                    >
-                        <IconSend size={16} />
+                    <ActionIcon onClick={handleSendMessage} disabled={inputValue.trim() === '' || isBotTyping}
+                                variant="filled" size="lg" radius="xl">
+                        <IconSend size={16}/>
                     </ActionIcon>
                 }
+                radius="xl"
             />
-        </Stack>
+        </Paper>
     );
 };
 
-// Message Bubble Component
-const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
+const MessageBubble: React.FC<{ message: ChatMessage }> = ({message}) => {
     const isBot = message.sender === 'bot';
-
+    const theme = useMantineTheme();
     return (
-        <Box
-            style={{
-                display: 'flex',
-                justifyContent: isBot ? 'flex-start' : 'flex-end',
-                width: '100%',
-            }}
-        >
-            <Paper
-                p="xs"
-                radius="md"
-                bg={isBot ? 'gray.1' : 'blue.6'}
-                style={{
-                    maxWidth: '80%',
-                }}
-            >
-                <Text size="sm" c={isBot ? 'dark' : 'white'}>
-                    {message.text}
+        <Group gap="sm" wrap="nowrap" style={{alignSelf: isBot ? 'flex-start' : 'flex-end'}}>
+            {isBot && (
+                <ThemeIcon size="sm" radius="xl" variant="light">
+                    <IconMessageChatbot size={14}/>
+                </ThemeIcon>
+            )}
+            <Paper p="xs" radius="md" bg={isBot ? 'gray.1' : theme.primaryColor} style={{maxWidth: '85%'}}>
+                <Text size="sm" c={isBot ? 'dark' : 'white'}>{message.text}</Text>
+                <Text size="xs" c={isBot ? 'dimmed' : theme.colors.blue[1]} ta="right" mt={4}>
+                    {dayjs(message.timestamp).format('HH:mm')}
                 </Text>
             </Paper>
-        </Box>
+        </Group>
     );
 };
+
+const TypingIndicator = () => (
+    <Group gap="sm" wrap="nowrap" style={{alignSelf: 'flex-start'}}>
+        <ThemeIcon size="sm" radius="xl" variant="light">
+            <IconMessageChatbot size={14}/>
+        </ThemeIcon>
+        <Paper p="xs" radius="md" bg={'gray.1'}>
+            <Loader size="xs" type="dots"/>
+        </Paper>
+    </Group>
+);
 
 export default ChatInterface;

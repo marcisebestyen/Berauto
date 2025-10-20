@@ -15,7 +15,6 @@ public class RentCreateDto
 
     [Required(ErrorMessage = "A tervezett befejezési időpont megadása kötelező.")]
     public DateTime PlannedEnd { get; set; }
-    // Validáció: PlannedEnd > PlannedStart
 
     public bool InvoiceRequest { get; set; } = false;
 }

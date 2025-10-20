@@ -1,85 +1,50 @@
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, {useState, useEffect} from 'react';
 import api from '../api/api.ts';
-import { ICar, FuelType, RequiredLicenceType } from '../interfaces/ICar';
+import {ICar} from '../interfaces/ICar.ts';
 import {
     Container, Title, Text, Stack, Card, Button, Modal, TextInput,
-    NumberInput, Select, Checkbox, Group, Alert, Loader, List,
-    ThemeIcon, Paper, Grid, LoadingOverlay
+    NumberInput, Select, Checkbox, Group, Alert, Paper, Grid,
+    LoadingOverlay, ActionIcon, Box, Center, SimpleGrid,
+    rem,
 } from '@mantine/core';
 import {
     IconAlertCircle, IconSettings, IconGasStation, IconLicense,
-    IconCurrencyDollar, IconGauge, IconShieldCheck, IconCheck
+    IconCurrencyDollar, IconGauge, IconShieldCheck, IconCheck,
+    IconRefresh, IconCarOff, IconDeviceFloppy,
 } from '@tabler/icons-react';
-import { notifications } from '@mantine/notifications';
+import {notifications} from '@mantine/notifications';
+import {useDisclosure} from '@mantine/hooks';
+import {useForm} from '@mantine/form';
 
 interface JsonPatchOperation {
-    op: "replace" | "add" | "remove";
+    op: "replace";
     path: string;
     value?: any;
 }
 
-type CarPatchData = Partial<{ [K in keyof Omit<ICar, 'id'>]: ICar[K] | null }>;
+type CarPatchData = Partial<Omit<ICar, 'id'>>;
 
-const createPatchDocument = (originalCar: ICar, updatedFields: CarPatchData): JsonPatchOperation[] => {
-    const patchDoc: JsonPatchOperation[] = [];
-    for (const key in updatedFields) {
-        if (Object.prototype.hasOwnProperty.call(updatedFields, key)) {
-            const typedKey = key as keyof Omit<ICar, 'id'>;
-            if (originalCar[typedKey] !== (updatedFields as CarPatchData)[typedKey]) {
-                patchDoc.push({
-                    op: "replace",
-                    path: `/${typedKey}`,
-                    value: (updatedFields as CarPatchData)[typedKey]
-                });
-            }
-        }
-    }
-    return patchDoc;
-};
-
-function assignToCarPatchData<K extends keyof Omit<ICar, 'id'>>(
-    patchData: CarPatchData,
-    key: K,
-    value: ICar[K] | null
-) {
-    patchData[key] = value;
-}
-
-const fuelTypesData: { value: FuelType; label: string }[] = [
-    { value: "Diesel", label: "Dízel" },
-    { value: "Petrol", label: "Benzin" },
-    { value: "Hybrid", label: "Hibrid" },
-    { value: "Electric", label: "Elektromos" },
+const fuelTypesData = [
+    {value: "Diesel", label: "Dízel"},
+    {value: "Petrol", label: "Benzin"},
+    {value: "Hybrid", label: "Hibrid"},
+    {value: "Electric", label: "Elektromos"},
 ];
 
-const licenceTypesData: { value: RequiredLicenceType; label: string }[] = [
-    { value: "AM", label: "AM" },
-    { value: "A1", label: "A1" },
-    { value: "A2", label: "A2" },
-    { value: "A", label: "A" },
-    { value: "B", label: "B" },
+const licenceTypesData = [
+    {value: "AM", label: "AM"}, {value: "A1", label: "A1"},
+    {value: "A2", label: "A2"}, {value: "A", label: "A"}, {value: "B", label: "B"},
 ];
 
-const getFuelTypeLabel = (fuelType: number): string => {
-    switch (fuelType) {
-        case 0: return 'Dízel';
-        case 1: return 'Benzin';
-        case 2: return 'Hibrid';
-        case 3: return 'Elektromos';
-        default: return 'Ismeretlen';
-    }
-}
-const getLicenceTypeLabel = (licence: number): string => {
-    switch (licence) {
-        case 0: return 'AM';
-        case 1: return 'A1';
-        case 2: return 'A2';
-        case 3: return 'A';
-        case 4: return 'B';
-        default: return 'Ismeretlen';
-    }
-}
-
+const Stat = ({icon, label, value}: { icon: React.ReactNode, label: string, value: string | React.ReactNode }) => (
+    <Group gap="xs">
+        {icon}
+        <Stack gap={0}>
+            <Text size="xs" c="dimmed">{label}</Text>
+            <Text size="sm">{value}</Text>
+        </Stack>
+    </Group>
+);
 
 const UpdateCar: React.FC = () => {
     const [cars, setCars] = useState<ICar[]>([]);
@@ -87,15 +52,21 @@ const UpdateCar: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [editingCar, setEditingCar] = useState<ICar | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState<Partial<Omit<ICar, 'id'>> & {
-        pricePerDay?: number | '';
-        actualKilometers?: number | '';
-    }>({});
+    const [modalOpened, {open: openModal, close: closeModal}] = useDisclosure(false);
 
-    useEffect(() => {
-        fetchCars();
-    }, []);
+    const form = useForm<CarPatchData>({
+        initialValues: {
+            brand: '', model: '', licencePlate: '', fuelType: 'Petrol', requiredLicence: 'B',
+            pricePerDay: 0, actualKilometers: 0, isAutomatic: false, hasValidVignette: true,
+        },
+        validate: {
+            brand: (val) => (val && val.trim().length > 0 ? null : 'Márka megadása kötelező'),
+            model: (val) => (val && val.trim().length > 0 ? null : 'Modell megadása kötelező'),
+            licencePlate: (val) => (val && val.trim().length > 0 ? null : 'Rendszám megadása kötelező'),
+            pricePerDay: (val) => (val !== null && val !== undefined && val >= 0 ? null : 'Az ár nem lehet negatív'),
+            actualKilometers: (val) => (val !== null && val !== undefined && val >= 0 ? null : 'A kilométer nem lehet negatív'),
+        }
+    });
 
     const fetchCars = async () => {
         setIsLoading(true);
@@ -104,212 +75,164 @@ const UpdateCar: React.FC = () => {
             const response = await api.Cars.getAllCars();
             setCars(response.data);
         } catch (err) {
-            console.error("Failed to fetch cars:", err);
-            notifications.show({
-                title: 'Hiba',
-                message: 'Nem sikerült betölteni az autókat.',
-                color: 'red',
-                icon: <IconAlertCircle />,
-            });
+            setError('Nem sikerült betölteni az autókat.');
+            notifications.show({title: 'Hiba', message: 'Nem sikerült betölteni az autókat.', color: 'red'});
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleEdit = (car: ICar) => {
+    useEffect(() => {
+        fetchCars();
+    }, []);
+
+    const handleEditClick = (car: ICar) => {
         setEditingCar(car);
-        const { id, ...carDataForForm } = car;
-        setFormData({
-            ...carDataForForm,
-            pricePerDay: carDataForForm.pricePerDay ?? '',
-            actualKilometers: carDataForForm.actualKilometers ?? '',
-        });
-        setError(null);
-        setIsModalOpen(true);
+        form.setValues(car);
+        form.reset();
+        openModal();
     };
 
-    const handleModalClose = () => {
-        setIsModalOpen(false);
-        setEditingCar(null);
-        setFormData({});
-        setError(null);
-    };
-
-    const handleFormInputChange = (name: keyof typeof formData, value: any) => {
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const handleFormSubmit = async (values: CarPatchData) => {
         if (!editingCar) return;
-        setIsSubmitting(true);
-        setError(null);
 
-        const changedValuesForPatch: CarPatchData = {};
-        const formKeys = Object.keys(formData) as Array<keyof typeof formData>;
-
-        for (const formKey of formKeys) {
-            const carKey = formKey as keyof Omit<ICar, 'id'>;
-            const formValue = formData[formKey];
-            const originalCarValue = editingCar[carKey];
-
-            let valueToPatch: ICar[typeof carKey] | null = null;
-
-            if (carKey === 'pricePerDay' || carKey === 'actualKilometers') {
-                const numFormValue = formValue as number | '';
-                if (numFormValue === '' || numFormValue === null || numFormValue === undefined) {
-                    valueToPatch = null;
-                } else {
-                    const parsedNum = parseFloat(String(numFormValue));
-                    if (isNaN(parsedNum)) {
-                        valueToPatch = null;
-                    } else {
-                        valueToPatch = parsedNum as number;
-                    }
-                }
-            } else if (carKey === 'isAutomatic' || carKey === 'hasValidVignette') {
-                if (formValue === null || formValue === undefined) {
-                    valueToPatch = null;
-                } else {
-                    valueToPatch = Boolean(formValue) as ICar[typeof carKey];
-                }
-            } else {
-                if (formValue === '' || formValue === null || formValue === undefined) {
-                    valueToPatch = null;
-                } else {
-                    valueToPatch = formValue as ICar[typeof carKey];
-                }
-            }
-
-            const comparableOriginalValue = (originalCarValue === undefined && !(carKey in editingCar)) ? null : originalCarValue;
-
-            if (comparableOriginalValue !== valueToPatch) {
-                assignToCarPatchData(changedValuesForPatch, carKey, valueToPatch);
+        const patchDocument: JsonPatchOperation[] = [];
+        for (const key in form.values) {
+            if (form.isDirty(key)) {
+                patchDocument.push({
+                    op: "replace",
+                    path: `/${key.charAt(0).toUpperCase() + key.slice(1)}`,
+                    value: values[key as keyof CarPatchData]
+                });
             }
         }
 
-        if (Object.keys(changedValuesForPatch).length === 0) {
-            notifications.show({ title: 'Információ', message: 'Nincs érzékelt változás.', color: 'blue' });
-            setIsSubmitting(false);
-            return;
-        }
-        const patchDocument = createPatchDocument(editingCar, changedValuesForPatch);
         if (patchDocument.length === 0) {
-            notifications.show({ title: 'Információ', message: 'Nincs generálandó módosítás (az értékek megegyeznek az eredetivel).', color: 'yellow' });
-            setIsSubmitting(false);
+            notifications.show({title: 'Információ', message: 'Nincs menteni való változás.', color: 'blue'});
             return;
         }
+
+        setIsSubmitting(true);
         try {
             await api.Cars.updateCar(editingCar.id, patchDocument);
-            notifications.show({ title: 'Siker!', message: 'Autó sikeresen frissítve!', color: 'green', icon: <IconCheck /> });
-            handleModalClose();
+            notifications.show({
+                title: 'Siker!',
+                message: 'Az autó adatai frissültek.',
+                color: 'green',
+                icon: <IconCheck/>
+            });
+            closeModal();
             fetchCars();
         } catch (err: any) {
-            console.error("Failed to update car:", err);
-            const errorMessage = err.response?.data?.message || err.message || `Hiba az autó frissítésekor: ${editingCar.brand} ${editingCar.model}.`;
-            setError(errorMessage);
-            notifications.show({ title: 'Hiba történt', message: errorMessage, color: 'red', icon: <IconAlertCircle /> });
+            notifications.show({
+                title: 'Hiba',
+                message: err.response?.data?.message || 'Hiba történt a mentés során.',
+                color: 'red'
+            });
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    if (isLoading && !cars.length) {
-        return <Container style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 200px)' }}><Loader size="xl" /></Container>;
-    }
+    const emptyState = <Center p="xl" style={{flexDirection: 'column'}}> <IconCarOff size={48} stroke={1.5}
+                                                                                     style={{opacity: 0.5}}/> <Title
+        order={4} mt="md" fw={500}>Nincsenek autók a rendszerben</Title> <Text c="dimmed" size="sm" mt={4}>Még nem
+        rögzített egyetlen autót sem.</Text> </Center>;
+    const errorState = <Center p="xl"> <Alert icon={<IconAlertCircle size="1rem"/>} title="Hiba!" color="red"
+                                              radius="md" w="100%" maw={600}> {error} <Button color="red"
+                                                                                              variant="light"
+                                                                                              onClick={fetchCars}
+                                                                                              mt="md"> Próbálja
+        újra </Button> </Alert> </Center>;
+
+    const showGrid = !isLoading && !error && cars.length > 0;
+    const showEmptyState = !isLoading && !error && cars.length === 0;
+    const showErrorState = !isLoading && error;
 
     return (
         <Container fluid p="md">
-            <Title order={2} mb="xl" ta="center">Autók kezelése</Title>
-            {cars.length === 0 && !isLoading && (
-                <Paper p="xl" shadow="xs" ta="center"><Text>Nincsenek elérhető autók az adatbázisban.</Text></Paper>
-            )}
-            <Grid gutter="md">
-                {cars.map(car => (
-                    <Grid.Col key={car.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-                        <Card shadow="sm" padding="lg" radius="md" withBorder style={{ height: '100%' }}>
-                            <Stack justify="space-between" style={{ height: '100%' }}>
-                                <div>
-                                    <Title order={4}>{car.brand} {car.model}</Title>
-                                    <Text c="dimmed" size="sm" mb="sm">{car.licencePlate}</Text>
-                                    <List spacing={6} size="sm" center>
-                                        <List.Item icon={<ThemeIcon color="teal" size={20} radius="xl"><IconGasStation size={12} /></ThemeIcon>}>
-                                            Üzemanyag: {getFuelTypeLabel(parseInt(car.fuelType))}
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color="grape" size={20} radius="xl"><IconLicense size={12} /></ThemeIcon>}>
-                                            Jogosítvány: {getLicenceTypeLabel(parseInt(car.requiredLicence))}
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color="orange" size={20} radius="xl"><IconCurrencyDollar size={12} /></ThemeIcon>}>
-                                            Ár/nap: {car.pricePerDay} Ft
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color="blue" size={20} radius="xl"><IconGauge size={12} /></ThemeIcon>}>
-                                            Km óra: {car.actualKilometers} km
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color={car.isAutomatic ? "cyan" : "gray"} size={20} radius="xl"><IconSettings size={12} /></ThemeIcon>}>
-                                            Váltó: {car.isAutomatic ? 'Automata' : 'Manuális'}
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color={car.hasValidVignette ? "green" : "red"} size={20} radius="xl"><IconShieldCheck size={12} /></ThemeIcon>}>
-                                            Matrica: {car.hasValidVignette ? 'Érvényes' : 'Nincs/Lejárt'}
-                                        </List.Item>
-                                    </List>
-                                </div>
-                                <Button leftSection={<IconSettings size={16} />} variant="light" color="blue" fullWidth mt="md" onClick={() => handleEdit(car)}>
-                                    Adatok módosítása
-                                </Button>
-                            </Stack>
-                        </Card>
-                    </Grid.Col>
-                ))}
-            </Grid>
-            {editingCar && (
-                <Modal
-                    opened={isModalOpen} onClose={handleModalClose}
-                    title={<Title order={3}>Autó szerkesztése: {editingCar.brand} {editingCar.model}</Title>}
-                    size="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 3 }} centered
-                    closeOnClickOutside={!isSubmitting} withCloseButton={!isSubmitting}
-                >
-                    <LoadingOverlay visible={isSubmitting} zIndex={1000} overlayProps={{ blur: 2 }} />
-                    <form onSubmit={handleSubmit}>
-                        <Stack gap="md">
-                            {error && (
-                                <Alert icon={<IconAlertCircle size="1rem" />} title="Hiba!" color="red" withCloseButton onClose={() => setError(null)}>{error}</Alert>
-                            )}
-                            <TextInput label="Márka" placeholder="Pl. BMW" value={formData.brand || ''} onChange={(event) => handleFormInputChange('brand', event.currentTarget.value)} required disabled={isSubmitting} />
-                            <TextInput label="Modell" placeholder="Pl. M3" value={formData.model || ''} onChange={(event) => handleFormInputChange('model', event.currentTarget.value)} required disabled={isSubmitting} />
-                            <TextInput label="Rendszám" placeholder="Pl. ABC-123" value={formData.licencePlate || ''} onChange={(event) => handleFormInputChange('licencePlate', event.currentTarget.value)} required disabled={isSubmitting} />
-                            <Select
-                                label="Üzemanyag típus" placeholder="Válasszon típust" data={fuelTypesData}
-                                value={formData.fuelType || null} onChange={(value) => handleFormInputChange('fuelType', value as FuelType | null)}
-                                required searchable disabled={isSubmitting} allowDeselect={false}
-                            />
-                            <Select
-                                label="Szükséges jogosítvány" placeholder="Válasszon kategóriát" data={licenceTypesData}
-                                value={formData.requiredLicence || null} onChange={(value) => handleFormInputChange('requiredLicence', value as RequiredLicenceType | null)}
-                                required searchable disabled={isSubmitting} allowDeselect={false}
-                            />
-                            <NumberInput
-                                label="Ár per kilométer (Ft)" placeholder="Pl. 150" value={formData.pricePerDay ?? ''}
-                                onChange={(value) => handleFormInputChange('pricePerDay', value)}
-                                min={0} step={10} required disabled={isSubmitting}
-                            />
-                            <NumberInput
-                                label="Jelenlegi kilométeróra állás" placeholder="Pl. 125000" value={formData.actualKilometers ?? ''}
-                                onChange={(value) => handleFormInputChange('actualKilometers', value)}
-                                min={0} required disabled={isSubmitting}
-                            />
-                            <Checkbox label="Automata váltó" checked={formData.isAutomatic || false} onChange={(event) => handleFormInputChange('isAutomatic', event.currentTarget.checked)} disabled={isSubmitting} />
-                            <Checkbox label="Érvényes autópálya matrica" checked={formData.hasValidVignette || false} onChange={(event) => handleFormInputChange('hasValidVignette', event.currentTarget.checked)} disabled={isSubmitting} />
-                            <Group justify="flex-end" mt="lg">
-                                <Button variant="default" onClick={handleModalClose} disabled={isSubmitting}>Mégse</Button>
-                                <Button type="submit" color="blue" loading={isSubmitting}>Mentés</Button>
-                            </Group>
-                        </Stack>
-                    </form>
-                </Modal>
-            )}
+            <Paper shadow="sm" p="lg" withBorder>
+                <Group justify="space-between" mb="lg">
+                    <Title order={3}>Autók Módosítása</Title>
+                    <ActionIcon variant="light" onClick={fetchCars} loading={isLoading} aria-label="Autók frissítése">
+                        <IconRefresh style={{width: rem(18)}}/>
+                    </ActionIcon>
+                </Group>
+
+                <Box style={{position: 'relative', minHeight: '300px'}}>
+                    <LoadingOverlay visible={isLoading} overlayProps={{radius: 'sm', blur: 2}}/>
+                    {showErrorState && errorState}
+                    {showEmptyState && emptyState}
+                    {showGrid && (
+                        <Grid gutter="md">
+                            {cars.map(car => (
+                                <Grid.Col key={car.id} span={{base: 12, sm: 6, lg: 4}}>
+                                    <Card shadow="sm" padding="lg" radius="md" withBorder
+                                          style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+                                        <Stack justify="space-between" style={{flexGrow: 1}}>
+                                            <div>
+                                                <Title order={4}>{car.brand} {car.model}</Title>
+                                                <Text c="dimmed" size="sm">{car.licencePlate}</Text>
+                                                <SimpleGrid cols={2} spacing="sm" mt="md" verticalSpacing="sm">
+                                                    <Stat icon={<IconGasStation size={20}/>} label="Üzemanyag"
+                                                          value={fuelTypesData.find(f => f.value === car.fuelType)?.label ?? car.fuelType}/>
+                                                    <Stat icon={<IconLicense size={20}/>} label="Jogosítvány"
+                                                          value={car.requiredLicence}/>
+                                                    <Stat icon={<IconSettings size={20}/>} label="Váltó"
+                                                          value={car.isAutomatic ? 'Automata' : 'Manuális'}/>
+                                                    <Stat icon={<IconGauge size={20}/>} label="Km óra"
+                                                          value={`${car.actualKilometers} km`}/>
+                                                    <Stat icon={<IconShieldCheck size={20}/>} label="Matrica"
+                                                          value={car.hasValidVignette ? 'Érvényes' : 'Nincs'}/>
+                                                    <Stat icon={<IconCurrencyDollar size={20}/>} label="Ár/nap"
+                                                          value={`${car.pricePerDay} Ft`}/>
+                                                </SimpleGrid>
+                                            </div>
+                                            <Button leftSection={<IconSettings size={16}/>} variant="light" color="blue"
+                                                    fullWidth mt="lg" onClick={() => handleEditClick(car)}>
+                                                Adatok módosítása
+                                            </Button>
+                                        </Stack>
+                                    </Card>
+                                </Grid.Col>
+                            ))}
+                        </Grid>
+                    )}
+                </Box>
+            </Paper>
+
+            <Modal opened={modalOpened} onClose={closeModal}
+                   title={`Szerkesztés: ${editingCar?.brand} ${editingCar?.model}`} size="lg" centered>
+                <LoadingOverlay visible={isSubmitting}/>
+                <form onSubmit={form.onSubmit(handleFormSubmit)}>
+                    <Stack>
+                        <Grid>
+                            <Grid.Col span={{base: 12, sm: 6}}><TextInput withAsterisk
+                                                                          label="Márka" {...form.getInputProps('brand')} /></Grid.Col>
+                            <Grid.Col span={{base: 12, sm: 6}}><TextInput withAsterisk
+                                                                          label="Modell" {...form.getInputProps('model')} /></Grid.Col>
+                        </Grid>
+                        <TextInput withAsterisk label="Rendszám" {...form.getInputProps('licencePlate')} />
+                        <Select withAsterisk label="Üzemanyag típus"
+                                data={fuelTypesData} {...form.getInputProps('fuelType')} />
+                        <Select withAsterisk label="Szükséges jogosítvány"
+                                data={licenceTypesData} {...form.getInputProps('requiredLicence')} />
+                        <NumberInput withAsterisk label="Ár / nap (Ft)" {...form.getInputProps('pricePerDay')} min={0}
+                                     thousandSeparator=" "/>
+                        <NumberInput withAsterisk
+                                     label="Jelenlegi kilométeróra" {...form.getInputProps('actualKilometers')} min={0}
+                                     thousandSeparator=" "/>
+                        <Checkbox label="Automata váltó" {...form.getInputProps('isAutomatic', {type: 'checkbox'})} />
+                        <Checkbox
+                            label="Érvényes autópálya matrica" {...form.getInputProps('hasValidVignette', {type: 'checkbox'})} />
+                        <Group justify="flex-end" mt="md">
+                            <Button variant="default" onClick={closeModal} disabled={isSubmitting}>Mégse</Button>
+                            <Button type="submit" loading={isSubmitting}
+                                    leftSection={<IconDeviceFloppy size={16}/>}>Mentés</Button>
+                        </Group>
+                    </Stack>
+                </form>
+            </Modal>
         </Container>
     );
 };

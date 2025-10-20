@@ -5,7 +5,7 @@ interface AuthContainerInterface {
     title?: string;
 }
 
-const AuthContainer = ({ children, title }: AuthContainerInterface) => {
+const AuthContainer = ({children, title}: AuthContainerInterface) => {
     return (
         <div className="auth-container">
             <Center>
@@ -13,7 +13,7 @@ const AuthContainer = ({ children, title }: AuthContainerInterface) => {
                     <Text size="lg" fw={500}>
                         {title || "Bérautó"}
                     </Text>
-                    <Divider my="lg" />
+                    <Divider my="lg"/>
                     {children}
                 </Paper>
             </Center>

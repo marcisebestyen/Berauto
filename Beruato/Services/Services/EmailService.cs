@@ -1,16 +1,16 @@
 using System.Net;
 using System.Net.Mail;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Net.Security;
-using Services.Configurations; // Feltételezve, hogy a MailSettings osztály itt van definiálva
+using Services.Configurations;
 
 namespace Services.Services
 {
     public interface IEmailService
     {
-        Task SendEmailWithAttachmentAsync(string toEmail, string subject, string body, byte[] attachmentBytes, string attachmentFileName);
+        Task SendEmailWithAttachmentAsync(string toEmail, string subject, string body, byte[] attachmentBytes,
+            string attachmentFileName);
+
         Task SendEmailAsync(string toEmail, string subject, string body);
     }
 
@@ -25,7 +25,8 @@ namespace Services.Services
             _logger = logger;
         }
 
-        public async Task SendEmailWithAttachmentAsync(string toEmail, string subject, string body, byte[] attachmentBytes, string attachmentFileName)
+        public async Task SendEmailWithAttachmentAsync(string toEmail, string subject, string body,
+            byte[] attachmentBytes, string attachmentFileName)
         {
             try
             {
@@ -48,13 +49,15 @@ namespace Services.Services
 
                         if (attachmentBytes != null && attachmentBytes.Length > 0)
                         {
-                            var attachment = new Attachment(new System.IO.MemoryStream(attachmentBytes), attachmentFileName, "application/pdf");
+                            var attachment = new Attachment(new System.IO.MemoryStream(attachmentBytes),
+                                attachmentFileName, "application/pdf");
                             mailMessage.Attachments.Add(attachment);
                         }
 
                         await client.SendMailAsync(mailMessage);
                     }
                 }
+
                 _logger.LogInformation("Email sent to: {ToEmail} via Mailtrap. Subject: {Subject}", toEmail, subject);
             }
             catch (SmtpException ex)
@@ -89,11 +92,12 @@ namespace Services.Services
                         mailMessage.Subject = subject;
                         mailMessage.Body = body;
                         mailMessage.IsBodyHtml = true;
-                        
+
 
                         await client.SendMailAsync(mailMessage);
                     }
                 }
+
                 _logger.LogInformation("Email sent to: {ToEmail} via Mailtrap. Subject: {Subject}", toEmail, subject);
             }
             catch (SmtpException ex)

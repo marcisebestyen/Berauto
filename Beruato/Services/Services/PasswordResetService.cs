@@ -83,9 +83,9 @@ public class PasswordResetService : IPasswordResetService
                     <p>Ha nem te kezdeményezted a jelszó visszaállítást, kérjük, hagyd figyelmen kívül ezt az emailt.</p>
                 </body>
                 </html>";
-            
+
             await _emailService.SendEmailAsync(user.Email, emailSubject, emailBody);
-            
+
             _logger.LogInformation("Password reset token generated and sent for user: {Email}", email);
             return ServiceResult.Success("A jelszó visszaállítási token elküldve az email címedre.");
         }
@@ -108,19 +108,19 @@ public class PasswordResetService : IPasswordResetService
         {
             var passwordReset = (await _unitOfWork.PasswordResetRepository.GetAsync(pr => pr.Token == token))
                 .FirstOrDefault();
-            
+
             if (passwordReset == null)
             {
                 _logger.LogWarning("Invalid password reset token attempted: {Token}", token);
                 return ServiceResult.Failed("Érvénytelen token.");
             }
-            
+
             if (passwordReset.IsRevoked)
             {
                 _logger.LogWarning("Revoked token attempted for user ID: {UserId}", passwordReset.UserId);
                 return ServiceResult.Failed("Ez a token már nem érvényes.");
             }
-            
+
             if (DateTime.UtcNow > passwordReset.ExpiredAt)
             {
                 _logger.LogWarning("Expired token attempted for user ID: {UserId}", passwordReset.UserId);
@@ -129,24 +129,24 @@ public class PasswordResetService : IPasswordResetService
                 await _unitOfWork.SaveAsync();
                 return ServiceResult.Failed("Ez a token lejárt.");
             }
-            
+
             var user = (await _unitOfWork.UserRepository.GetAsync(u => u.Id == passwordReset.UserId))
                 .FirstOrDefault();
-            
+
             if (user == null)
             {
-                _logger.LogError("User not found for valid password reset token. User ID: {UserId}", 
+                _logger.LogError("User not found for valid password reset token. User ID: {UserId}",
                     passwordReset.UserId);
                 return ServiceResult.Failed("A felhasználó nem található.");
             }
-            
+
             user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
             await _unitOfWork.UserRepository.UpdateAsync(user);
-            
+
             passwordReset.UsedAt = DateTime.UtcNow;
             passwordReset.IsRevoked = true;
             await _unitOfWork.PasswordResetRepository.UpdateAsync(passwordReset);
-            
+
             await _unitOfWork.SaveAsync();
 
             _logger.LogInformation("Password successfully reset for user ID: {UserId}", user.Id);
@@ -163,14 +163,14 @@ public class PasswordResetService : IPasswordResetService
             return ServiceResult.Failed("Váratlan hiba történt a jelszó módosítása közben.");
         }
     }
-    
+
     public async Task RevokeExpiredTokensAsync()
     {
         try
         {
-            var expiredTokens = await _unitOfWork.PasswordResetRepository.GetAsync(
-                pr => !pr.IsRevoked && DateTime.UtcNow > pr.ExpiredAt
-            );
+            var expiredTokens =
+                await _unitOfWork.PasswordResetRepository.GetAsync(pr => !pr.IsRevoked && DateTime.UtcNow > pr.ExpiredAt
+                );
 
             foreach (var token in expiredTokens)
             {
@@ -189,7 +189,7 @@ public class PasswordResetService : IPasswordResetService
             _logger.LogError(ex, "Error revoking expired tokens");
         }
     }
-    
+
     private string GenerateSecureToken()
     {
         using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())

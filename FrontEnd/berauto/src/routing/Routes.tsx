@@ -17,7 +17,6 @@ import CarListPage from "../pages/CarList.tsx";
 import CarDetailsPage from "../pages/CarDetails.tsx";
 
 
-
 export const ROLES = {
     ADMIN: 'Admin',
     STAFF: 'Staff',
@@ -52,37 +51,37 @@ export const routes = [
     },
     {
         path: "profile",
-        component: <ProfilePage />,
+        component: <ProfilePage/>,
         isPrivate: true,
         roles: [ROLES.STAFF, ROLES.ADMIN, ROLES.RENTER],
     },
     {
         path: "staff/pending-rents",
-        component: <PendingRentPage />,
+        component: <PendingRentPage/>,
         isPrivate: true,
         roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
         path: "staff/handovers",
-        component: <CarHandoverPage />,
+        component: <CarHandoverPage/>,
         isPrivate: true,
         roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
         path: "staff/running-rents",
-        component: <RunningRents />,
+        component: <RunningRents/>,
         isPrivate: true,
         roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
         path: "staff/completed-rents",
-        component: <CompletedRents />,
+        component: <CompletedRents/>,
         isPrivate: true,
         roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
         path: "staff/receipts",
-        component: <ReceiptListPage />,
+        component: <ReceiptListPage/>,
         isPrivate: true,
         roles: [ROLES.STAFF, ROLES.ADMIN],
     },
@@ -118,7 +117,7 @@ export const routes = [
     },
     {
         path: "receipts/my",
-        component: <MyReceiptsPage />,
+        component: <MyReceiptsPage/>,
         isPrivate: true,
         roles: [ROLES.RENTER, ROLES.STAFF, ROLES.ADMIN],
     },

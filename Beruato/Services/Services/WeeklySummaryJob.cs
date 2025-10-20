@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.VisualBasic;
-using Services.Repositories;
+﻿using Services.Repositories;
 
 namespace Services.Services
 {
@@ -40,16 +34,17 @@ namespace Services.Services
                 if (upcomingRents.Any())
                 {
                     var emailContent = $"Szia {user.FirstName}! \n\n" +
-                                        $"Összefoglaló a héten lejáró bérléseidről:\n\n" +
-                                        $"{string.Join("\n", upcomingRents.Select(r => $"  - Autó: {r.Car.Brand} {r.Car.Model}, Lejárati dátum: {r.PlannedEnd.ToShortDateString()}"))}\n\n" +
-                                        "Kérjük, győződj meg róla, hogy időben visszahozod az autót.\n\n" +
-                                        "Üdv,\n" +
-                                        "A Berauto csapata";
+                                       $"Összefoglaló a héten lejáró bérléseidről:\n\n" +
+                                       $"{string.Join("\n", upcomingRents.Select(r => $"  - Autó: {r.Car.Brand} {r.Car.Model}, Lejárati dátum: {r.PlannedEnd.ToShortDateString()}"))}\n\n" +
+                                       "Kérjük, győződj meg róla, hogy időben visszahozod az autót.\n\n" +
+                                       "Üdv,\n" +
+                                       "A Berauto csapata";
 
                     Console.WriteLine($"WeeklySummaryJob: E-mail küldése {user.Email} címre.");
                     await _emailService.SendEmailAsync(user.Email, "Heti bérlési összefoglaló", emailContent);
                 }
             }
+
             Console.WriteLine("WeeklySummaryJob: A feladat befejeződött.");
         }
     }

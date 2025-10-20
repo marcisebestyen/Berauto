@@ -9,7 +9,7 @@ public class ReceiptCreateDto
 
     [Required(ErrorMessage = "A teljes költség megadása kötelező.")]
     [Range(0, double.MaxValue, ErrorMessage = "A teljes költség nem lehet negatív.")]
-    public decimal TotalCost { get; set; } 
+    public decimal TotalCost { get; set; }
 
     [Required(ErrorMessage = "A kiállítás dátumának megadása kötelező.")]
     public DateTime IssueDate { get; set; }

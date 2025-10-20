@@ -1,6 +1,5 @@
 ﻿using Database.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace Database.Data
 {
@@ -18,25 +17,6 @@ namespace Database.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            // // string connectionString = "Server=ROMEOPC;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // romeo
-            // // string connectionString = "Server=localhost\\SQLEXPRESS;Database=BerautoDb;TrustServerCertificate=True;Trusted_Connection=True"; // mate
-            // string connectionString = "Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"; // sebi
-            //
-            //
-            // optionsBuilder.UseSqlServer(connectionString);
-
-            // if (!optionsBuilder.IsConfigured)
-            // {
-            //     IConfigurationRoot configuration = new ConfigurationBuilder()
-            //         .SetBasePath(Path.Combine(Directory.GetCurrentDirectory()))
-            //         .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            //         .AddJsonFile("appsettings.Development.json", optional: true)
-            //         .Build();
-            //     
-            //     var connectionString = configuration.GetConnectionString("Sebi");
-            //     
-            //     optionsBuilder.UseSqlServer(connectionString);
-            // }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -46,13 +26,13 @@ namespace Database.Data
             modelBuilder.Entity<PasswordReset>(password =>
             {
                 password.HasKey(pr => pr.Id); // PK 
-            
+
                 password.HasIndex(pr => pr.Token)
                     .IsUnique(); // index, business ID, every token must be unique
                 password.Property(pr => pr.Token)
                     .HasMaxLength(256)
                     .IsRequired();
-            
+
                 // foreign key setting
                 password.HasOne(pr => pr.User)
                     .WithMany()
@@ -148,7 +128,7 @@ namespace Database.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(r => r.Car)
-                    .WithMany() 
+                    .WithMany()
                     .HasForeignKey(r => r.CarId)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);
@@ -157,21 +137,21 @@ namespace Database.Data
                 entity.HasOne(r => r.ApproverOperator)
                     .WithMany()
                     .HasForeignKey(r => r.ApprovedBy)
-                    .IsRequired(false) 
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
 
-         
+
                 entity.HasOne(r => r.IssuerOperator)
                     .WithMany()
                     .HasForeignKey(r => r.IssuedBy)
-                    .IsRequired(false) 
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
 
-   
+
                 entity.HasOne(r => r.RecipientOperator)
                     .WithMany()
                     .HasForeignKey(r => r.TakenBackBy)
-                    .IsRequired(false) 
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.Property(r => r.StartingKilometer)
@@ -185,12 +165,11 @@ namespace Database.Data
 
                 entity.HasIndex(r => r.ReceiptId)
                     .IsUnique(true)
-                    .HasFilter("[ReceiptId] IS NOT NULL"); 
+                    .HasFilter("[ReceiptId] IS NOT NULL");
 
 
                 entity.Property(r => r.TotalCost)
                     .HasColumnType("decimal(18,2)");
-
             });
 
             modelBuilder.Entity<Receipt>(entity =>
@@ -201,11 +180,11 @@ namespace Database.Data
                     .IsRequired()
                     .HasColumnType("decimal(18, 2)");
 
-                entity.HasOne(rec => rec.Rent)             
-                    .WithOne(r => r.Receipt)               
-                    .HasForeignKey<Receipt>(rec => rec.RentId) 
-                    .IsRequired()                         
-                    .OnDelete(DeleteBehavior.Cascade);     
+                entity.HasOne(rec => rec.Rent)
+                    .WithOne(r => r.Receipt)
+                    .HasForeignKey<Receipt>(rec => rec.RentId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(rec => rec.IssuerOperator)
                     .WithMany()
@@ -216,82 +195,3 @@ namespace Database.Data
         }
     }
 }
-
-/*
- * alap funkciók:
- * => autó leadása
- * => autó átadása az ügyfélnek
- * => igény rögzítése, kölcsönző regisztrált vagy nem?
- *      ha nem, funkció -> alap adatok rögzítése
- * => számla kiállítása
- *
- * => igénylés:
- *      ki? mit? mikor? meddig? számlaigényt kitölteni ott helyben
- * => autó átadás:
- *      mikor? hány km-rel?
- * => autó leadás:
- *      mikor? hány km-rel?
- * => számla:
- *      Rent-be számlaId átadva = true
- *
- * admin jogok:
- * => autó km óra átállítása db-ben
- * => új autó felvétele, updateje, törlés
- * => autó adatok megtekintése
- *
- * ügyintéző jogok:
- * => igény engedélyezése
- * => autó atadás/visszavétel igazolása
- * => autó átadás rögzítése
- * => kölcsönzés és kölcsönzési igények history megtekintése
- * => számla kiállítása
- *
- * user jogok:
- * => regisztráció, login
- * => adataik megnézése
- * => autó adatok megtekintése
- * => igény leadása (csak szabad autó)
- * => előzmények megtekintése (regisztrált usereknek)
- * => számla igénylése (rentId leadása, abból visszafejtett adatok)
- *
- *
- * // admin = adminisztrátor,
- * // ügyintéző = aki a rendelést felveszi,
- * // user = kishal
- *
- * új igény leadásának menete:
- * -login/regisztráció/guest => rákényszerítés a választásra, csak rentereknek
- * -ha guest => adatok megadása
- * -login => operátor/user (username/email)
- * -regisztráció => regisztráció fül
- * -időpontok megadása
- * -autóválasztás (csak nem foglalt, és műszakilag megfelelő)
- * -számlaigény (igen/nem)
- * -mentés
- *
- * igény engedélyezés menete:
- * -lista a nem engedélyezettekről
- * -engedélyezés function (id alapján igen/nem)
- *
- * kiadás menete:
- * -rendelés megkeresése
- * rögzítjük az induló km-t, és a kiadó operátort
- *
- * visszavétel menete:
- * -rendelés megkeresése
- * -rögzíjük az aktuális km-t, és a visszavevő operátort
- *
- * számla elkészítése:
- * -rendelés keresése
- * -záró-induló km * autó km-kénti ára
- *
- * autó adatok karbantartása:
- * -km módosítás
- * -műszaki állapot
- * -új autó felvitele
- *
- * kölcsönzések, igénylések history:
- * -szűrőopciók (nyitott, lezárt, futó, all), majd listázás
- *
- * !!!nagyjából súly szerint szétszedni, hogy ki-mit csinál, majd egy dto igényeket leadni, és backend kiszolgálásokat megcsinálni!!!
- */

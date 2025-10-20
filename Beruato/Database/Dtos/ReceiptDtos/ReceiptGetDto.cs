@@ -1,5 +1,3 @@
-using Database.Dtos.UserDtos;
-
 namespace Database.Dtos.ReceiptDtos;
 
 public class ReceiptGetDto

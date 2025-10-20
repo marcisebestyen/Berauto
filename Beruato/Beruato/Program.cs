@@ -7,7 +7,6 @@ using Microsoft.OpenApi.Models;
 using Services.Configurations;
 using Services.Repositories;
 using Services.Services;
-using System;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -33,11 +32,11 @@ namespace Beruato
             builder.Services.AddHangfireServer();
 
             builder.Services.AddControllers()
-                        .AddNewtonsoftJson()
-                        .AddJsonOptions(options =>
-                        {
-                            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-                        });
+                .AddNewtonsoftJson()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
 
             builder.Services.AddCors(options =>
             {
@@ -54,8 +53,10 @@ namespace Beruato
             builder.Services.AddOpenApi();
             builder.Services.AddDbContext<BerautoDbContext>(options =>
                 options.UseSqlServer(builder.Configuration
-                        .GetConnectionString(
-                            "Mark"), b => b.MigrationsAssembly("Beruato")));
+                    .GetConnectionString(
+                        "Sebi"), b => b.MigrationsAssembly("Beruato")));
+
+
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<ICarService, CarService>();
@@ -76,7 +77,7 @@ namespace Beruato
             });
 
             builder.Services.Configure<Services.Configurations.MailSettings>(
-            builder.Configuration.GetSection("MailtrapSettings"));
+                builder.Configuration.GetSection("MailtrapSettings"));
 
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var secretKey = jwtSettings["Key"];
@@ -104,7 +105,7 @@ namespace Beruato
                         NameClaimType = ClaimTypes.NameIdentifier
                     };
                 });
-            
+
             builder.Services.AddAuthorization();
 
             builder.Services.AddAutoMapper(typeof(Services.Services.MappingService).Assembly);
@@ -146,7 +147,7 @@ namespace Beruato
                     }
                 });
             });
-            
+
             builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
 
             builder.Services.AddTransient<IEmailService, EmailService>();

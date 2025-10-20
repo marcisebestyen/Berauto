@@ -5,10 +5,10 @@ using Database.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Services.Services; 
+using Services.Services;
 
 
-namespace Services.Controllers 
+namespace Services.Controllers
 {
     /// <summary>
     /// Kölcsönzésekkel (Rent) kapcsolatos műveletek végrehajtására szolgáló végpontok.
@@ -16,7 +16,7 @@ namespace Services.Controllers
     [ApiController]
     [Route("api/Rent")]
     [AllowAnonymous]
-    public class RentController : Controller 
+    public class RentController : Controller
     {
         private readonly IRentService _rentService;
         private readonly IUserService _userService;
@@ -25,7 +25,7 @@ namespace Services.Controllers
         /// RentController konstruktor.
         /// </summary>
         /// <param name="rentService">A kölcsönzések üzleti logikáját kezelő szerviz.</param>
-        public RentController(IRentService rentService,  IUserService userService)
+        public RentController(IRentService rentService, IUserService userService)
         {
             _rentService = rentService ?? throw new ArgumentNullException(nameof(rentService));
             _userService = userService ?? throw new ArgumentNullException(nameof(userService));
@@ -41,8 +41,8 @@ namespace Services.Controllers
         /// <response code="500">Szerver oldali hiba történt.</response>
         [HttpGet]
         public async Task<IActionResult> GetRents(
-        [FromQuery] RentStatusFilter filter = RentStatusFilter.All,
-        [FromQuery] int? userId = null)
+            [FromQuery] RentStatusFilter filter = RentStatusFilter.All,
+            [FromQuery] int? userId = null)
         {
             var rents = await _rentService.GetAllRentsAsync(filter, userId);
             return Ok(rents);
@@ -64,6 +64,7 @@ namespace Services.Controllers
             {
                 return NotFound($"Rent with id {id} not found.");
             }
+
             return Ok(rent);
         }
 
@@ -84,6 +85,7 @@ namespace Services.Controllers
             {
                 return Ok(new List<RentGetDto>());
             }
+
             return Ok(rents);
         }
 
@@ -102,6 +104,7 @@ namespace Services.Controllers
             {
                 return BadRequest("A kölcsönzési adatok (request body) nem lehetnek üresek.");
             }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -117,7 +120,8 @@ namespace Services.Controllers
             }
             catch (Exception)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Hiba történt a kölcsönzés feldolgozása közben.");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Hiba történt a kölcsönzés feldolgozása közben.");
             }
         }
 
@@ -131,6 +135,7 @@ namespace Services.Controllers
             {
                 return BadRequest("A foglalási adatok nem lehetnek üresek.");
             }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -138,7 +143,8 @@ namespace Services.Controllers
 
             try
             {
-                createGuestRentDto.PlannedStart = DateTime.SpecifyKind(createGuestRentDto.PlannedStart, DateTimeKind.Utc);
+                createGuestRentDto.PlannedStart =
+                    DateTime.SpecifyKind(createGuestRentDto.PlannedStart, DateTimeKind.Utc);
                 createGuestRentDto.PlannedEnd = DateTime.SpecifyKind(createGuestRentDto.PlannedEnd, DateTimeKind.Utc);
 
                 var createdRent = await _rentService.AddGuestRentAsync(createGuestRentDto);
@@ -150,7 +156,8 @@ namespace Services.Controllers
             }
             catch (Exception)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Hiba történt a foglalás feldolgozása közben.");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Hiba történt a foglalás feldolgozása közben.");
             }
         }
 
@@ -171,7 +178,7 @@ namespace Services.Controllers
             {
                 return Unauthorized("A felhasználó nincs bejelentkezve.");
             }
-            
+
             var user = await _userService.GetUserByIdAsync(userId);
             if (user == null)
             {
@@ -195,7 +202,8 @@ namespace Services.Controllers
 
                 if (result == null)
                 {
-                    return BadRequest("Az autó jelenleg szabad, nincs szükség várólistára. Kérjük, próbálja meg lefoglalni közvetlenül.");
+                    return BadRequest(
+                        "Az autó jelenleg szabad, nincs szükség várólistára. Kérjük, próbálja meg lefoglalni közvetlenül.");
                 }
                 else if (result.Status == Status.Active && result.NotifiedAt == null)
                 {
@@ -214,7 +222,8 @@ namespace Services.Controllers
                 {
                     return Ok(new
                     {
-                        Message = "A felhasználó már várólistán van ehhez az autóhoz, vagy a bejegyzés más állapotban van.",
+                        Message =
+                            "A felhasználó már várólistán van ehhez az autóhoz, vagy a bejegyzés más állapotban van.",
                         WaitingListId = result.Id,
                         CarId = result.CarId,
                         UserId = result.UserId,
@@ -234,7 +243,8 @@ namespace Services.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Hiba történt a várólistára való feliratkozás során: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    $"Hiba történt a várólistára való feliratkozás során: {ex.Message}");
             }
         }
     }

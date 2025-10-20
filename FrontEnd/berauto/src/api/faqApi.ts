@@ -1,5 +1,3 @@
-// src/api/faqApi.ts
-
 const API_BASE_URL = 'https://localhost:7205/api/faq';
 
 export const getFaqAnswer = async (question: string): Promise<string> => {
@@ -15,7 +13,6 @@ export const getFaqAnswer = async (question: string): Promise<string> => {
 
         const data = await response.json();
 
-        // Check both lowercase and uppercase (C# serialization can vary)
         const answer = data.answer || data.Answer;
 
         if (!answer) {

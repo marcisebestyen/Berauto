@@ -62,15 +62,13 @@ public class CarService : ICarService
     public async Task<ServiceResult> UpdateCarAsync(int id, JsonPatchDocument<Car> patchDocument,
         ModelStateDictionary modelState)
     {
-
         var existingCar =
             await _unitOfWork.CarRepository.GetByIdAsync(new object[]
             {
                 id
-            }); 
+            });
         if (existingCar == null)
         {
-            // _logger.LogInformation("UpdateCarAsync: Car with ID {CarId} not found.", id);
             throw new KeyNotFoundException($"A {id} azonosítójú autó nem található.");
         }
 
@@ -100,11 +98,10 @@ public class CarService : ICarService
                 }
                 else
                 {
-                    modelState.AddModelError(string.Empty, validationResult.ErrorMessage); 
+                    modelState.AddModelError(string.Empty, validationResult.ErrorMessage);
                 }
             }
 
-            // _logger.LogWarning("UpdateCarAsync: Entity validation failed after patch for car ID {CarId}. ModelState: {@ModelState}", id, modelState);
             throw new ArgumentException(
                 "Az entitás validációja sikertelen a patch alkalmazása után. Lásd a részleteket.", nameof(existingCar));
         }
@@ -137,7 +134,9 @@ public class CarService : ICarService
         await _unitOfWork.CarRepository.UpdateAsync(carToDelete);
         await _unitOfWork.SaveAsync();
     }
-    public async Task<IEnumerable<CarGetWithStatusDto>> GetAllCarsWithAvailabilityAsync(DateTime startDate, DateTime endDate)
+
+    public async Task<IEnumerable<CarGetWithStatusDto>> GetAllCarsWithAvailabilityAsync(DateTime startDate,
+        DateTime endDate)
     {
         var rentedCarIds = (await _unitOfWork.RentRepository.GetAsync(rent =>
                 rent.PlannedStart < endDate && rent.PlannedEnd > startDate

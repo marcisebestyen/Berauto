@@ -5,7 +5,7 @@ export enum WaitingStatus {
     Canceled = 3,
 }
 
-export interface IWaitingListResponse{
+export interface IWaitingListResponse {
     message: string,
     waitingListId: number,
     userId: number,

@@ -1,6 +1,6 @@
-import axios, { InternalAxiosRequestConfig } from 'axios';
+import axios, {InternalAxiosRequestConfig} from 'axios';
 
-import { tokenKeyName } from '../constants/constants';
+import {tokenKeyName} from '../constants/constants';
 
 const rootApiUrl = import.meta.env.VITE_REST_API_URL;
 const cleanRootApiUrl = rootApiUrl ? rootApiUrl.replace(/\/$/, '') : '';
