@@ -2,9 +2,14 @@ import axiosInstance from "./axios.config.ts";
 import {CarFormData, ICar} from "../interfaces/ICar.ts";
 import {IUserProfile} from "../interfaces/IUser.ts";
 import {ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto} from "../interfaces/IRent.ts";
-import { IReceipt, IReceiptCreateDto } from "../interfaces/IReceipt";
-import { IWaitingListResponse } from "../interfaces/IWaitingList.ts";
-import { IHandOverRequestDto, ITakeBackRequestDto, IRejectRequestDto, IRejectSuccessResponse } from "../interfaces/RequestDto.ts";
+import {IReceipt, IReceiptCreateDto} from "../interfaces/IReceipt";
+import {IWaitingListResponse} from "../interfaces/IWaitingList.ts";
+import {
+    IHandOverRequestDto,
+    ITakeBackRequestDto,
+    IRejectRequestDto,
+    IRejectSuccessResponse
+} from "../interfaces/RequestDto.ts";
 
 interface JsonPatchOperation {
     op: "replace" | "add" | "remove" | "copy" | "move" | "test";
@@ -75,7 +80,7 @@ const Users = {
     getUserRents: (userId: string | number | undefined) => {
         if (userId === undefined) {
             console.warn("getUserRents: userId is undefined. Returning empty array.");
-            return Promise.resolve({ data: [] as ISimpleRent[] });
+            return Promise.resolve({data: [] as ISimpleRent[]});
         }
         return axiosInstance.get<ISimpleRent[]>(`/Rent?userId=${userId}`);
     },
@@ -83,7 +88,7 @@ const Users = {
     getActiveRents: (userId: string | number | undefined) => {
         if (userId === undefined) {
             console.warn("getActiveRents: userId is undefined. Returning empty array.");
-            return Promise.resolve({ data: [] as ISimpleRent[] });
+            return Promise.resolve({data: [] as ISimpleRent[]});
         }
         return axiosInstance.get<ISimpleRent[]>(`/Rent?userId=${userId}&filter=Running`);
     }
@@ -167,6 +172,6 @@ const Receipts = {
 };
 
 
-const api = { Cars, Users, Rents, Staff, Receipts};
+const api = {Cars, Users, Rents, Staff, Receipts};
 
 export default api;

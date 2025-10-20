@@ -7,7 +7,7 @@ public interface IUnitOfWork : IDisposable
 {
     IRepository<Car> CarRepository { get; }
     IRepository<Receipt> ReceiptRepository { get; }
-    IRepository<Rent>  RentRepository { get; }
+    IRepository<Rent> RentRepository { get; }
     IRepository<User> UserRepository { get; }
     IRepository<WaitingList> WaitingListRepository { get; }
     IRepository<PasswordReset> PasswordResetRepository { get; }
@@ -18,7 +18,7 @@ public interface IUnitOfWork : IDisposable
 public class UnitOfWork : IUnitOfWork
 {
     private readonly BerautoDbContext _context;
-    
+
     public IRepository<Car> CarRepository { get; set; }
     public IRepository<Receipt> ReceiptRepository { get; set; }
     public IRepository<Rent> RentRepository { get; set; }

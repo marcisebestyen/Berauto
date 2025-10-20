@@ -1,9 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Services.Services; // For IStaffService
-using Database.Dtos.RentDtos; // For RentGetDto
-using System;
-using System.Linq;
-using System.Threading.Tasks;
+using Services.Services;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Services.Database.Dtos;
@@ -36,8 +32,10 @@ namespace Services.Controllers
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
             {
-                throw new UnauthorizedAccessException("Személyzeti azonosító nem található vagy érvénytelen a tokenben.");
+                throw new UnauthorizedAccessException(
+                    "Személyzeti azonosító nem található vagy érvénytelen a tokenben.");
             }
+
             return userId;
         }
 
@@ -70,7 +68,6 @@ namespace Services.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception ex
                 return StatusCode(500, new { message = "Váratlan hiba történt a jóváhagyás során." });
             }
         }
@@ -194,17 +191,21 @@ namespace Services.Controllers
                 if (!result.Succeeded)
                 {
                     var firstError = result.Errors?.FirstOrDefault() ?? "Ismeretlen hiba történt az elutasítás során.";
-                    if (firstError.Contains("not found", StringComparison.OrdinalIgnoreCase) || firstError.Contains("nem található", StringComparison.OrdinalIgnoreCase))
+                    if (firstError.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
+                        firstError.Contains("nem található", StringComparison.OrdinalIgnoreCase))
                     {
                         return NotFound(new { message = firstError });
                     }
+
                     if (firstError.Contains("már elkezdődött", StringComparison.OrdinalIgnoreCase) ||
                         firstError.Contains("már jóvá lett hagyva", StringComparison.OrdinalIgnoreCase))
                     {
                         return BadRequest(new { message = firstError });
                     }
+
                     return BadRequest(new { message = firstError });
                 }
+
                 return Ok(new { message = "A bérlési igény sikeresen elutasítva." });
             }
             catch (UnauthorizedAccessException ex)

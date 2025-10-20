@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services.Services;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace Beruato.Controllers
@@ -25,7 +24,8 @@ namespace Beruato.Controllers
         [HttpPost("ingest")]
         public async Task<IActionResult> IngestFaq([FromBody] FaqIngestRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Question) || string.IsNullOrWhiteSpace(request.Answer))
+            if (request == null || string.IsNullOrWhiteSpace(request.Question) ||
+                string.IsNullOrWhiteSpace(request.Answer))
             {
                 return BadRequest(new { Error = "A 'Question' és 'Answer' mezők kötelezőek." });
             }
@@ -65,7 +65,7 @@ namespace Beruato.Controllers
             {
                 var answer = await _faqService.GetAnswerFromRAGAsync(question);
                 _logger.LogInformation("Answer generated successfully for question: {Question}", question);
-                
+
                 // Return with lowercase 'answer' to match common JSON conventions
                 return Ok(new { answer = answer });
             }

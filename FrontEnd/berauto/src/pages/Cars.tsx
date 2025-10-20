@@ -1,20 +1,34 @@
 import {
     Button,
-    Card,
     Group,
     Table,
     Box,
     Badge,
+    Paper,
+    Stack,
+    Grid,
+    Title,
+    Center,
+    LoadingOverlay,
+    Text,
+    ScrollArea,
 } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
-import { useState } from 'react';
+import {DatePickerInput} from '@mantine/dates';
+import {useState} from 'react';
+import {
+    IconCalendarSearch,
+    IconCarOff,
+    IconCalendarEvent,
+    IconBookmark,
+    IconListCheck,
+} from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import 'dayjs/locale/hu';
 
 import api from '../api/api.ts';
-import { ICar, CarAvailabilityStatus } from '../interfaces/ICar.ts';
-import { notifications } from '@mantine/notifications';
+import {ICar, CarAvailabilityStatus} from '../interfaces/ICar.ts';
+import {notifications} from '@mantine/notifications';
 import BookingModal from '../modals/BookingModal';
 
 dayjs.extend(customParseFormat);
@@ -28,36 +42,39 @@ const Cars = () => {
     const [isWaitingListLoading, setIsWaitingListLoading] = useState<number | null>(null);
     const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
     const [bookingOpen, setBookingOpen] = useState(false);
+    const [hasSearched, setHasSearched] = useState(false);
 
     const fetchAllCarsWithAvailability = async () => {
+        setHasSearched(true);
+
         if (!startDate || !endDate) {
             notifications.show({
                 title: 'Hiányzó dátumok',
-                message: 'Kérlek, add meg a kezdő és befejező dátumot a kereséshez.',
-                color: 'yellow',
+                message: 'Kérlek, add meg a kezdő és befejező dátumot.',
+                color: 'yellow'
             });
             setItems([]);
             return;
         }
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Ensure dates are valid Date objects
+        const validStartDate = startDate instanceof Date ? startDate : new Date(startDate);
+        const validEndDate = endDate instanceof Date ? endDate : new Date(endDate);
 
-        if (startDate < today) {
+        if (validStartDate < dayjs().startOf('day').toDate()) {
             notifications.show({
                 title: 'Hibás kezdő dátum',
                 message: 'A bérlés kezdő dátuma nem lehet korábbi a mai napnál.',
-                color: 'red',
+                color: 'red'
             });
             setItems([]);
             return;
         }
-
-        if (startDate > endDate) {
+        if (validStartDate > validEndDate) {
             notifications.show({
                 title: 'Hibás időintervallum',
                 message: 'A kezdő dátum nem lehet későbbi, mint a befejező dátum.',
-                color: 'red',
+                color: 'red'
             });
             setItems([]);
             return;
@@ -65,12 +82,27 @@ const Cars = () => {
 
         setIsLoading(true);
         try {
-            const res = await api.Cars.getAvailableCars(startDate, endDate);
+            const utcStartDate = new Date(Date.UTC(
+                validStartDate.getFullYear(),
+                validStartDate.getMonth(),
+                validStartDate.getDate()
+            ));
+
+            const utcEndDate = new Date(Date.UTC(
+                validEndDate.getFullYear(),
+                validEndDate.getMonth(),
+                validEndDate.getDate()
+            ));
+
+            const res = await api.Cars.getAvailableCars(utcStartDate, utcEndDate);
+
             setItems(res.data);
         } catch (error: any) {
+            console.error('Error fetching cars:', error);
+            console.error('Error response:', error.response);
             notifications.show({
                 title: 'Hiba',
-                message: 'Nem sikerült betölteni az autókat.',
+                message: error.response?.data?.message || error.message || 'Nem sikerült betölteni az autókat.',
                 color: 'red',
             });
             setItems([]);
@@ -83,46 +115,22 @@ const Cars = () => {
         setIsWaitingListLoading(carId);
         try {
             const response = await api.Rents.addToWaitingList(carId);
-
             notifications.show({
                 title: 'Sikeres feliratkozás',
                 message: `Sikeresen feliratkoztál a várólistára. Pozíciód: ${response.data.queuePosition}`,
-                color: 'green',
+                color: 'green'
             });
         } catch (error: any) {
             console.error('Waiting list error:', error);
-
-            if (error.response?.status === 400) {
-                notifications.show({
-                    title: 'Hiba',
-                    message: error.response.data?.Message || error.response.data?.message || 'Az autó jelenleg szabad, nincs szükség várólistára.',
-                    color: 'orange',
-                });
+            let msg = 'Váratlan hiba történt a várólistára való feliratkozás során.';
+            if (error.response?.data?.Message || error.response?.data?.message) {
+                msg = error.response.data.Message || error.response.data.message;
             } else if (error.response?.status === 401) {
-                notifications.show({
-                    title: 'Hitelesítési hiba',
-                    message: 'Kérlek, jelentkezz be a várólistára való feliratkozáshoz.',
-                    color: 'red',
-                });
+                msg = 'Kérlek, jelentkezz be a várólistára való feliratkozáshoz.';
             } else if (error.response?.status === 403) {
-                notifications.show({
-                    title: 'Hozzáférés megtagadva',
-                    message: 'Vendég felhasználók nem iratkozhatnak fel várólistára.',
-                    color: 'red',
-                });
-            } else if (error.response?.status === 404) {
-                notifications.show({
-                    title: 'Nem található',
-                    message: 'Az autó nem található.',
-                    color: 'red',
-                });
-            } else {
-                notifications.show({
-                    title: 'Hiba',
-                    message: 'Váratlan hiba történt a várólistára való feliratkozás során.',
-                    color: 'red',
-                });
+                msg = 'Vendég felhasználók nem iratkozhatnak fel várólistára.';
             }
+            notifications.show({title: 'Hiba', message: msg, color: 'red'});
         } finally {
             setIsWaitingListLoading(null);
         }
@@ -132,65 +140,65 @@ const Cars = () => {
         if (!startDate || !endDate) {
             notifications.show({
                 title: 'Hiányzó dátumok',
-                message: 'Kérlek, először válassz kezdő és befejező dátumot a kereséshez, mielőtt foglalnál.',
-                color: 'orange',
+                message: 'Kérlek, először válassz dátumot a foglaláshoz.',
+                color: 'orange'
             });
             return;
         }
-        console.log("Cars.tsx: openBookingModal, átadott startDate:", startDate, "endDate:", endDate);
         setSelectedCarId(carId);
         setBookingOpen(true);
     };
 
-    const dateFormat = 'YYYY.MM.DD';
-
-    const handleStartDateChange = (dateString: string | null): void => {
-        if (dateString) {
-            const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
-            setStartDate(parsedDate);
-            if (endDate && parsedDate > endDate) {
-                setEndDate(null);
-            }
-        } else {
-            setStartDate(null);
+    const handleStartDateChange = (value: any) => {
+        const date = value instanceof Date ? value : (value ? new Date(value) : null);
+        setStartDate(date);
+        if (endDate && date && date > endDate) {
+            setEndDate(null);
         }
     };
 
-    const handleEndDateChange = (dateString: string | null): void => {
-        if (dateString) {
-            const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
-            setEndDate(parsedDate);
-        } else {
-            setEndDate(null);
-        }
+    const handleEndDateChange = (value: any) => {
+        const date = value instanceof Date ? value : (value ? new Date(value) : null);
+        setEndDate(date);
     };
 
     const renderStatusBadge = (status: CarAvailabilityStatus) => {
         switch (status) {
             case CarAvailabilityStatus.Available:
-                return <Badge color="green">Elérhető</Badge>;
+                return <Badge color="green" variant="light">Elérhető</Badge>;
             case CarAvailabilityStatus.Rented:
-                return <Badge color="red">Foglalt</Badge>;
+                return <Badge color="red" variant="light">Foglalt</Badge>;
             case CarAvailabilityStatus.NotProperCondition:
-                return <Badge color="yellow">Hibás műszaki állapot</Badge>;
+                return <Badge color="yellow" variant="light">Nem bérelhető</Badge>;
             case CarAvailabilityStatus.Deleted:
-                return <Badge color="gray">Törölve</Badge>;
+                return <Badge color="gray" variant="light">Törölve</Badge>;
             default:
-                return <Badge color="gray">Ismeretlen</Badge>;
+                return <Badge color="gray" variant="light">Ismeretlen</Badge>;
         }
     };
 
     const rows = items.map((element) => (
         <Table.Tr key={element.id}>
-            <Table.Td>{element.brand}</Table.Td>
-            <Table.Td>{element.model}</Table.Td>
-            <Table.Td>{element.pricePerDay} Ft/nap</Table.Td>
-            <Table.Td>{element.isAutomatic ? 'Automata' : 'Manuális'}</Table.Td>
+            <Table.Td>
+                <Text fw={500}>{element.brand}</Text>
+                <Text size="xs" c="dimmed">{element.model}</Text>
+            </Table.Td>
+            <Table.Td>
+                <Badge color="gray" variant="filled" size="lg">
+                    {element.pricePerDay} Ft/nap
+                </Badge>
+            </Table.Td>
+            <Table.Td>
+                <Badge color={element.isAutomatic ? 'blue' : 'gray'} variant="light">
+                    {element.isAutomatic ? 'Automata' : 'Manuális'}
+                </Badge>
+            </Table.Td>
             <Table.Td>{renderStatusBadge(element.status)}</Table.Td>
             <Table.Td>
                 <Group gap="xs">
                     <Button
                         size="xs"
+                        leftSection={<IconBookmark size={14}/>}
                         onClick={() => openBookingModal(element.id)}
                         disabled={element.status !== CarAvailabilityStatus.Available}
                     >
@@ -198,72 +206,103 @@ const Cars = () => {
                     </Button>
                     <Button
                         size="xs"
+                        variant="light"
+                        color="gray"
+                        leftSection={<IconListCheck size={14}/>}
                         onClick={() => handleAddToWaitingList(element.id)}
                         disabled={element.status === CarAvailabilityStatus.Available || element.status === CarAvailabilityStatus.NotProperCondition}
                         loading={isWaitingListLoading === element.id}
                     >
-                        Feliratkozás
+                        Várólista
                     </Button>
                 </Group>
             </Table.Td>
         </Table.Tr>
     ));
 
+    const initialState = (
+        <Center p="xl" style={{flexDirection: 'column'}}>
+            <IconCalendarSearch size={48} stroke={1.5} style={{opacity: 0.5}}/>
+            <Title order={4} mt="md" fw={500}>Keresés indítása</Title>
+            <Text c="dimmed" size="sm" mt={4}>Kérjük, válasszon kezdő és befejező dátumot az elérhető autók
+                listázásához.</Text>
+        </Center>
+    );
+
+    const emptyState = (
+        <Center p="xl" style={{flexDirection: 'column'}}>
+            <IconCarOff size={48} stroke={1.5} style={{opacity: 0.5}}/>
+            <Title order={4} mt="md" fw={500}>Nincsenek találatok</Title>
+            <Text c="dimmed" size="sm" mt={4}>A megadott időintervallumban sajnos egyetlen autó sem elérhető.</Text>
+        </Center>
+    );
+
     return (
-        <div>
-            <Card shadow="sm" padding="lg" radius="md" withBorder mb="lg">
-                <Group grow>
-                    <DatePickerInput
-                        label="Bérlés kezdete"
-                        placeholder="Válassz kezdő dátumot"
-                        value={startDate ? dayjs(startDate).format(dateFormat) : null}
-                        onChange={handleStartDateChange}
-                        locale="hu"
-                        valueFormat={dateFormat}
-                        clearable
-                        minDate={new Date()}
-                    />
-                    <DatePickerInput
-                        label="Bérlés vége"
-                        placeholder="Válassz befejező dátumot"
-                        value={endDate ? dayjs(endDate).format(dateFormat) : null}
-                        onChange={handleEndDateChange}
-                        locale="hu"
-                        valueFormat={dateFormat}
-                        clearable
-                        minDate={startDate ? dayjs(startDate).add(0, 'day').toDate() : new Date()}
-                    />
-                </Group>
-                <Button onClick={fetchAllCarsWithAvailability} mt="md" loading={isLoading} disabled={!startDate || !endDate}>
-                    Autók elérhetőségének ellenőrzése
+        <Stack>
+            <Paper shadow="sm" p="lg" withBorder>
+                <Title order={3} mb="md">Autók keresése</Title>
+                <Grid>
+                    <Grid.Col span={{base: 12, md: 6}}>
+                        <DatePickerInput
+                            label="Bérlés kezdete"
+                            placeholder="Válassz kezdő dátumot"
+                            value={startDate}
+                            onChange={handleStartDateChange}
+                            locale="hu"
+                            clearable
+                            minDate={new Date()}
+                            leftSection={<IconCalendarEvent size={16}/>}
+                        />
+                    </Grid.Col>
+                    <Grid.Col span={{base: 12, md: 6}}>
+                        <DatePickerInput
+                            label="Bérlés vége"
+                            placeholder="Válassz befejező dátumot"
+                            value={endDate}
+                            onChange={handleEndDateChange}
+                            locale="hu"
+                            clearable
+                            minDate={startDate ? dayjs(startDate).add(0, 'day').toDate() : new Date()}
+                            leftSection={<IconCalendarEvent size={16}/>}
+                        />
+                    </Grid.Col>
+                </Grid>
+                <Button
+                    onClick={fetchAllCarsWithAvailability}
+                    mt="lg"
+                    loading={isLoading}
+                    disabled={!startDate || !endDate}
+                    fullWidth
+                    size="md"
+                >
+                    Elérhető autók keresése
                 </Button>
-            </Card>
+            </Paper>
 
-            {items.length > 0 && (
-                <Card shadow="sm" padding="lg" radius="md" withBorder>
-                    <Table>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Márka</Table.Th>
-                                <Table.Th>Modell</Table.Th>
-                                <Table.Th>Ár</Table.Th>
-                                <Table.Th>Váltó</Table.Th>
-                                <Table.Th>Státusz</Table.Th>
-                                <Table.Th>Műveletek</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>{rows}</Table.Tbody>
-                    </Table>
-                </Card>
-            )}
+            <Paper shadow="sm" p="lg" withBorder>
+                <Box style={{position: 'relative', minHeight: '250px'}}>
+                    <LoadingOverlay visible={isLoading} overlayProps={{radius: 'sm', blur: 2}}/>
 
-            {!isLoading && startDate && endDate && items.length === 0 && (
-                <Card shadow="sm" padding="lg" radius="md" withBorder>
-                    <Box ta="center" py="lg">
-                        Nincsenek elérhető autók a megadott időintervallumban.
-                    </Box>
-                </Card>
-            )}
+                    {!isLoading && !hasSearched && initialState}
+                    {!isLoading && hasSearched && items.length === 0 && emptyState}
+                    {!isLoading && items.length > 0 && (
+                        <ScrollArea>
+                            <Table striped highlightOnHover withTableBorder miw={700}>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Jármű</Table.Th>
+                                        <Table.Th>Ár</Table.Th>
+                                        <Table.Th>Váltó</Table.Th>
+                                        <Table.Th>Státusz</Table.Th>
+                                        <Table.Th>Műveletek</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>{rows}</Table.Tbody>
+                            </Table>
+                        </ScrollArea>
+                    )}
+                </Box>
+            </Paper>
 
             {selectedCarId !== null && (
                 <BookingModal
@@ -272,12 +311,13 @@ const Cars = () => {
                     onClose={() => {
                         setBookingOpen(false);
                         setSelectedCarId(null);
+                        if (hasSearched) fetchAllCarsWithAvailability();
                     }}
                     initialStartDate={startDate}
                     initialEndDate={endDate}
                 />
             )}
-        </div>
+        </Stack>
     );
 };
 

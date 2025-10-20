@@ -1,11 +1,7 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using Database.Models;
 using Services.Repositories;
 using Services.Services;
-using Microsoft.EntityFrameworkCore;
 
 public class AdminStaffSummaryJob
 {
@@ -22,7 +18,8 @@ public class AdminStaffSummaryJob
     {
         Console.WriteLine("AdminStaffSummaryJob: Indul az admin összefoglaló küldése.");
 
-        var adminsAndStaff = await _unitOfWork.UserRepository.GetAsync(u => u.Role == Role.Admin || u.Role == Role.Staff);
+        var adminsAndStaff =
+            await _unitOfWork.UserRepository.GetAsync(u => u.Role == Role.Admin || u.Role == Role.Staff);
         if (!adminsAndStaff.Any())
         {
             Console.WriteLine("AdminStaffSummaryJob: Nincsenek admin vagy staff felhasználók, a feladat befejeződött.");
@@ -83,8 +80,10 @@ public class AdminStaffSummaryJob
                     }
                 }
 
-                emailContent.AppendLine($"<li><strong>{car.Brand} {car.Model}</strong> ({car.LicencePlate}) - {reason}</li>");
+                emailContent.AppendLine(
+                    $"<li><strong>{car.Brand} {car.Model}</strong> ({car.LicencePlate}) - {reason}</li>");
             }
+
             emailContent.AppendLine("</ul>");
         }
         else
@@ -98,8 +97,10 @@ public class AdminStaffSummaryJob
             emailContent.AppendLine("<ul>");
             foreach (var rent in upcomingRents)
             {
-                emailContent.AppendLine($"<li><strong>{rent.Car.Brand} {rent.Car.Model}</strong> bérlése lejár: <strong>{rent.PlannedEnd.ToShortDateString()}</strong> (Bérlő: {rent.Renter.FirstName} {rent.Renter.LastName})</li>");
+                emailContent.AppendLine(
+                    $"<li><strong>{rent.Car.Brand} {rent.Car.Model}</strong> bérlése lejár: <strong>{rent.PlannedEnd.ToShortDateString()}</strong> (Bérlő: {rent.Renter.FirstName} {rent.Renter.LastName})</li>");
             }
+
             emailContent.AppendLine("</ul>");
         }
         else

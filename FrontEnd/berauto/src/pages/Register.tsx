@@ -1,202 +1,159 @@
-import React, {useState, FormEvent} from 'react';
+import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import AuthContainer from "../components/AuthContainer.tsx";
+import {
+    Stack,
+    TextInput,
+    PasswordInput,
+    Button,
+    Text,
+    Alert,
+    Container,
+    Title,
+    Paper,
+    Anchor,
+    Grid,
+    Group,
+} from "@mantine/core";
+import {useForm} from '@mantine/form';
+import {
+    IconUser,
+    IconAt,
+    IconLock,
+    IconPhone,
+    IconLicense,
+    IconHome,
+    IconAlertCircle,
+    IconCheck,
+} from '@tabler/icons-react';
 import {IUserProfile} from "../interfaces/IUser.ts";
 
 const Register = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState<IUserProfile>({
-        firstName: '',
-        lastName: '',
-        userName: '',
-        email: '',
-        phoneNumber: '',
-        licenceId: '',
-        password: '',
-        address: '',
-    });
-    const [confirmPassword, setConfirmPassword] = useState<string>('');
-    const [error, setError] = useState<string | string[]>('');
+    const [apiError, setApiError] = useState<string | string[]>('');
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
 
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const {name, value} = event.target;
-        console.log(`Mező neve: ${name}, Értéke: ${value}`);
-        setFormData(prevData => ({
-            ...prevData,
-            [name]: value,
-        }));
-    };
+    const form = useForm<IUserProfile & { confirmPassword: string }>({
+        initialValues: {
+            firstName: '', lastName: '', userName: '', email: '',
+            phoneNumber: '', licenceId: '', password: '', address: '', confirmPassword: '',
+        },
+        validate: {
+            firstName: (val) => (val.trim().length < 2 ? 'A keresztnév legalább 2 karakter legyen' : null),
+            lastName: (val) => (val.trim().length < 2 ? 'A vezetéknév legalább 2 karakter legyen' : null),
+            userName: (val) => (val.trim().length < 3 ? 'A felhasználónév legalább 3 karakter legyen' : null),
+            email: (val) => (/^\S+@\S+$/.test(val) ? null : 'Érvénytelen e-mail cím'),
+            address: (val) => (val.trim().length < 5 ? 'Kérjük, adjon meg egy érvényes lakcímet' : null),
+            password: (val) => (val.length < 6 ? 'A jelszónak legalább 6 karakternek kell lennie' : null),
+            confirmPassword: (val, values) => (val !== values.password ? 'A két jelszó nem egyezik' : null),
+        },
+    });
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setError('');
+    const handleSubmit = async (values: typeof form.values) => {
+        setLoading(true);
+        setApiError('');
         setSuccessMessage('');
 
-        if (formData.password !== confirmPassword) {
-            setError('A megadott jelszavak nem egyeznek.');
-            return;
-        }
-
-        if (formData.password.length < 6) {
-            setError('A jelszónak legalább 6 karakter hosszúnak kell lennie.');
-            return;
-        }
-
-        if (!formData.firstName || !formData.lastName || !formData.userName || !formData.email || !formData.address) {
-            setError('A csillaggal jelölt mezők kitöltése kötelező.');
-            return;
-        }
-
-        setLoading(true);
-
-        console.log("Küldendő formData:", formData);
-        const bodyToSend = JSON.stringify(formData);
-        console.log("JSON payload:", bodyToSend);
+        const {confirmPassword, ...profileData} = values;
 
         try {
-            const apiUrl = 'https://localhost:7205/api/users/register';
-            const response = await fetch(apiUrl, {
+            const response = await fetch('https://localhost:7205/api/users/register', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(profileData),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                if (data.Errors && Array.isArray(data.Errors)) {
-                    setError(data.Errors);
-                } else if (data.Message) {
-                    setError(data.Message);
-                } else if (data.Errors) {
-                    const modelErrors = Object.values(data.Errors).flat() as string[];
-                    setError(modelErrors.length > 0 ? modelErrors : 'Érvénytelen bemeneti adatok.');
+                const modelErrors = data.errors ? Object.values(data.errors).flat() as string[] : [];
+                if (modelErrors.length > 0) {
+                    setApiError(modelErrors);
                 } else {
-                    setError(`Hiba történt: ${response.statusText} (Státusz: ${response.status})`);
+                    setApiError(data.message || data.title || `Hiba: ${response.statusText}`);
                 }
             } else {
-                setSuccessMessage('Sikeres regisztráció! Hamarosan átirányítunk a bejelentkezési oldalra.');
-                setFormData({
-                    firstName: '',
-                    lastName: '',
-                    userName: '',
-                    phoneNumber: '',
-                    licenceId: '',
-                    email: '',
-                    password: '',
-                    address: ''
-                });
-                setConfirmPassword('');
-
-                setTimeout(() => {
-                    navigate('/login');
-                }, 3000);
+                setSuccessMessage('Sikeres regisztráció! Átirányítunk a bejelentkezési oldalra...');
+                form.reset();
+                setTimeout(() => navigate('/login'), 3000);
             }
         } catch (error) {
-            console.log("Regisztrációs API hiba: ", error);
-            setError('Ismeretlen hiba történt a kapcsolat során. Kérjük, próbáld újra később.');
+            setApiError('Ismeretlen hiba történt a kapcsolat során. Próbálja újra később.');
         } finally {
             setLoading(false);
         }
     };
 
-    const renderErrorMessages = () => {
-        if (!error) return null;
-        if (Array.isArray(error)) {
-            return (
-                <ul>
-                    {error.map((err, index) => (
-                        <li key={index} style={{color: 'red'}}>{err}</li>
-                    ))}
-                </ul>
-            );
-        }
-        return <p style={{color: 'red'}}>{error}</p>;
+    const renderApiErrors = () => {
+        if (!apiError) return null;
+        const messages = Array.isArray(apiError) ? apiError : [apiError];
+        return (
+            <Alert icon={<IconAlertCircle size="1rem"/>} title="Regisztrációs Hiba" color="red" withCloseButton
+                   onClose={() => setApiError('')} mb="md">
+                <Stack gap="xs">
+                    {messages.map((msg, i) => <Text key={i} size="sm">{msg}</Text>)}
+                </Stack>
+            </Alert>
+        );
     };
 
     return (
-        <AuthContainer title="Regisztráció">
-            <form onSubmit={handleSubmit}>
-                {/* Keresztnév */}
-                <div style={{marginBottom: '15px'}}>
-                    <label htmlFor="firstName">Keresztnév <span style={{color: "red"}}>*</span>:</label>
-                    <input type="text" id="firstName" name="firstName" value={formData.firstName}
-                           onChange={handleChange} required disabled={loading}
-                           style={{width: '100%', padding: '8px'}}/>
-                </div>
+        <Container size={560} my={40}>
+            <Title ta="center">Fiók Létrehozása</Title>
+            <Text c="dimmed" size="sm" ta="center" mt={5}>
+                Már van fiókod?{' '}
+                <Anchor size="sm" component="button" onClick={() => navigate('/login')}>
+                    Jelentkezz be itt
+                </Anchor>
+            </Text>
 
-                {/* Vezetéknév */}
-                <div style={{marginBottom: '15px'}}>
-                    <label htmlFor="lastName">Vezetéknév <span style={{color: "red"}}>*</span>:</label>
-                    <input type="text" id="lastName" name="lastName" value={formData.lastName} onChange={handleChange}
-                           required disabled={loading} style={{width: '100%', padding: '8px'}}/>
-                </div>
+            <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+                <form onSubmit={form.onSubmit(handleSubmit)}>
+                    <Stack>
+                        {renderApiErrors()}
+                        {successMessage && (
+                            <Alert icon={<IconCheck size="1rem"/>} title="Siker!" color="green" mb="md">
+                                {successMessage}
+                            </Alert>
+                        )}
 
-                {/* Felhasználónév */}
-                <div style={{marginBottom: '15px'}}>
-                    <label htmlFor="userName">Felhasználónév <span style={{color: "red"}}>*</span>:</label>
-                    <input type="text" id="userName" name="userName" value={formData.userName}
-                           onChange={handleChange} required disabled={loading}
-                           style={{width: '100%', padding: '8px'}}/>
-                </div>
+                        <Grid>
+                            <Grid.Col span={{base: 12, sm: 6}}>
+                                <TextInput withAsterisk label="Vezetéknév" placeholder="Minta"
+                                           leftSection={<IconUser size={16}/>} {...form.getInputProps('lastName')} />
+                            </Grid.Col>
+                            <Grid.Col span={{base: 12, sm: 6}}>
+                                <TextInput withAsterisk label="Keresztnév" placeholder="János"
+                                           leftSection={<IconUser size={16}/>} {...form.getInputProps('firstName')} />
+                            </Grid.Col>
+                        </Grid>
 
-                {/* Telefonszám (opcionális) */}
-                <div style={{marginBottom: '15px'}}>
-                    <label htmlFor="phoneNumber">Telefonszám:</label>
-                    <input type="tel" id="phoneNumber" name="phoneNumber" value={formData.phoneNumber}
-                           onChange={handleChange} disabled={loading} style={{width: '100%', padding: '8px'}}/>
-                </div>
+                        <TextInput withAsterisk label="Felhasználónév" placeholder="minta.janos"
+                                   leftSection={<IconUser size={16}/>} {...form.getInputProps('userName')} />
+                        <TextInput withAsterisk label="E-mail cím" placeholder="pelda@email.com"
+                                   leftSection={<IconAt size={16}/>} {...form.getInputProps('email')} />
+                        <TextInput withAsterisk label="Lakcím" placeholder="1234 Város, Minta utca 1."
+                                   leftSection={<IconHome size={16}/>} {...form.getInputProps('address')} />
 
-                {/* Jogosítvány száma (opcionális) */}
-                <div style={{marginBottom: '15px'}}>
-                    <label htmlFor="licenceId">Jogosítvány azonosító:</label>
-                    <input type="text" id="licenceId" name="licenceId" value={formData.licenceId}
-                           onChange={handleChange} disabled={loading} style={{width: '100%', padding: '8px'}}/>
-                </div>
+                        <Group grow>
+                            <TextInput label="Telefonszám" placeholder="+36 30 123 4567"
+                                       leftSection={<IconPhone size={16}/>} {...form.getInputProps('phoneNumber')} />
+                            <TextInput label="Jogosítvány azonosító" placeholder="AB123456"
+                                       leftSection={<IconLicense size={16}/>} {...form.getInputProps('licenceId')} />
+                        </Group>
 
-                {/* E-mail cím */}
-                <div style={{marginBottom: '15px'}}>
-                    <label htmlFor="email">E-mail cím <span style={{color: "red"}}>*</span>:</label>
-                    <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required
-                           disabled={loading} style={{width: '100%', padding: '8px'}}/>
-                </div>
+                        <PasswordInput withAsterisk label="Jelszó" placeholder="Legalább 6 karakter"
+                                       leftSection={<IconLock size={16}/>} {...form.getInputProps('password')} />
+                        <PasswordInput withAsterisk label="Jelszó megerősítése" placeholder="Jelszó újra"
+                                       leftSection={<IconLock size={16}/>} {...form.getInputProps('confirmPassword')} />
 
-                {/* Lakcím */}
-                <div style={{marginBottom: '15px'}}>
-                    <label htmlFor="address">Lakcím <span style={{color: "red"}}>*</span>:</label>
-                    <input type="text" id="address" name="address" value={formData.address} onChange={handleChange} required
-                           disabled={loading} style={{width: '100%', padding: '8px'}}/>
-                </div>
-
-                {/* Jelszó */}
-                <div style={{marginBottom: '15px'}}>
-                    <label htmlFor="password">Jelszó <span style={{color: "red"}}>*</span> (min. 6 karakter):</label>
-                    <input type="password" id="password" name="password" value={formData.password}
-                           onChange={handleChange} required disabled={loading}
-                           style={{width: '100%', padding: '8px'}}/>
-                </div>
-
-                {/* Jelszó megerősítése */}
-                <div style={{marginBottom: '15px'}}>
-                    <label htmlFor="confirmPassword">Jelszó megerősítése <span style={{color: "red"}}>*</span>:</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" value={confirmPassword}
-                           onChange={(e) => setConfirmPassword(e.target.value)} required disabled={loading}
-                           style={{width: '100%', padding: '8px'}}/>
-                </div>
-
-                {/* Hiba és sikerüzenetek */}
-                {renderErrorMessages()}
-                {successMessage && <p style={{color: 'green'}}>{successMessage}</p>}
-
-                <button type="submit" disabled={loading} style={{width: '100%', padding: '10px', marginTop: '10px'}}>
-                    {loading ? 'Regisztráció folyamatban...' : 'Regisztráció'}
-                </button>
-            </form>
-        </AuthContainer>
+                        <Button type="submit" fullWidth mt="xl" loading={loading} disabled={!!successMessage}>
+                            Regisztráció
+                        </Button>
+                    </Stack>
+                </form>
+            </Paper>
+        </Container>
     );
 };
 

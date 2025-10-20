@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import {useState} from 'react';
 import {
     Stack,
     TextInput,
@@ -6,50 +6,39 @@ import {
     Group,
     Button,
     Anchor,
-    Divider,
-    Center,
-    Box,
+    Paper,
+    Title,
     Text,
-    Card
+    Container,
+    Alert,
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
-import { useNavigate } from "react-router-dom";
+import {useForm} from "@mantine/form";
+import {useNavigate} from "react-router-dom";
+import {IconAt, IconLock, IconAlertCircle} from '@tabler/icons-react';
 import useAuth from "../hooks/useAuth.tsx";
 
 const Login = () => {
-    const { login } = useAuth();
+    const {login} = useAuth();
     const navigate = useNavigate();
     const [loginError, setLoginError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const form = useForm({
-        initialValues: {
-            identifier: '',
-            password: '',
-        },
+        initialValues: {identifier: '', password: ''},
         validate: {
-            identifier: (val: string) => !val ? 'Email vagy felhasználónév megadása kötelező' : null,
-            password: (val: string) => !val
-                ? 'A jelszó megadása kötelező'
-                : val.length < 6
-                    ? 'A jelszónak legalább 6 karakter hosszúnak kell lennie'
-                    : null,
+            identifier: (val) => !val ? 'Email vagy felhasználónév megadása kötelező' : null,
+            password: (val) => val.length < 6 ? 'A jelszónak legalább 6 karakter hosszúnak kell lennie' : null,
         },
     });
 
-    const handleSubmit = async (data: { identifier: string; password: string }) => {
-        if (!form.isValid()) return;
-
+    const handleSubmit = async (values: typeof form.values) => {
         setIsLoading(true);
         setLoginError(null);
-
         try {
-            await login(data.identifier, data.password);
-            navigate("/");
+            await login(values.identifier, values.password);
+            navigate("/"); // Redirect on success
         } catch (error: any) {
-            setLoginError(
-                error.message || 'Bejelentkezési hiba történt. Kérjük próbálja újra.'
-            );
+            setLoginError(error.message || 'Helytelen bejelentkezési adatok.');
             console.error("Bejelentkezési hiba:", error);
         } finally {
             setIsLoading(false);
@@ -57,89 +46,63 @@ const Login = () => {
     };
 
     return (
-        <Box
-            style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: '100vh',
-                backgroundColor: '#2d3748'
-            }}
-        >
-            <Center>
-                <Card
-                    shadow="xl"
-                    padding="xl"
-                    radius="lg"
-                    style={{ width: '100%', maxWidth: '450px', backgroundColor: '#fff' }}
-                >
-                    <div>
-                        <h2 style={{
-                            fontSize: '2rem',
-                            fontWeight: 'bold',
-                            marginBottom: '2rem',
-                            color: '#2d3748',
-                            textAlign: 'center'
-                        }}>
-                            Bérautó
-                        </h2>
-                        <form onSubmit={form.onSubmit(handleSubmit)}>
-                            <Stack gap="md">
-                                <TextInput
-                                    required
-                                    label="Email vagy felhasználónév"
-                                    placeholder="pelda@email.com vagy felhasznalonev"
-                                    radius="md"
-                                    size="md"
-                                    disabled={isLoading}
-                                    error={form.errors.identifier}
-                                    {...form.getInputProps('identifier')}
-                                />
+        <Container size={420} my={40}>
+            <Title ta="center">
+                Üdvözlünk újra!
+            </Title>
+            <Text c="dimmed" size="sm" ta="center" mt={5}>
+                Még nincs fiókod?{' '}
+                <Anchor size="sm" component="button" onClick={() => navigate('/register')}>
+                    Regisztrálj itt
+                </Anchor>
+            </Text>
 
-                                <PasswordInput
-                                    required
-                                    label="Jelszó"
-                                    placeholder="Adja meg jelszavát"
-                                    radius="md"
-                                    size="md"
-                                    disabled={isLoading}
-                                    error={form.errors.password}
-                                    {...form.getInputProps('password')}
-                                />
-                            </Stack>
+            <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+                <form onSubmit={form.onSubmit(handleSubmit)}>
+                    <Stack>
+                        {loginError && (
+                            <Alert
+                                icon={<IconAlertCircle size="1rem"/>}
+                                title="Bejelentkezési Hiba"
+                                color="red"
+                                withCloseButton
+                                onClose={() => setLoginError(null)}
+                            >
+                                {loginError}
+                            </Alert>
+                        )}
 
-                            {loginError && (
-                                <Text size="sm" mt="md" fw={500} c="red">
-                                    {loginError}
-                                </Text>
-                            )}
+                        <TextInput
+                            required
+                            label="Email vagy felhasználónév"
+                            placeholder="pelda@email.com"
+                            leftSection={<IconAt size={16}/>}
+                            disabled={isLoading}
+                            {...form.getInputProps('identifier')}
+                        />
 
-                            <Group justify="space-between" mt="xl">
-                                <Anchor
-                                    component="button"
-                                    type="button"
-                                    c="dimmed"
-                                    onClick={() => navigate('/forgot')}
-                                    disabled={isLoading}
-                                >
-                                    Elfelejtett jelszó?
-                                </Anchor>
-                                <Button
-                                    type="submit"
-                                    radius="md"
-                                    size="md"
-                                    loading={isLoading}
-                                    disabled={!form.isValid()}
-                                >
-                                    {isLoading ? 'Bejelentkezés...' : 'Bejelentkezés'}
-                                </Button>
-                            </Group>
-                            <Divider my="lg" />
-                        </form>
-                    </div>
-                </Card>
-            </Center>
-        </Box>
+                        <PasswordInput
+                            required
+                            label="Jelszó"
+                            placeholder="Jelszavad"
+                            leftSection={<IconLock size={16}/>}
+                            disabled={isLoading}
+                            {...form.getInputProps('password')}
+                        />
+
+                        <Group justify="flex-end" mt="sm">
+                            <Anchor component="button" size="sm" c="dimmed" onClick={() => navigate('/forgot')}>
+                                Elfelejtetted a jelszavad?
+                            </Anchor>
+                        </Group>
+
+                        <Button type="submit" fullWidth mt="xl" loading={isLoading}>
+                            Bejelentkezés
+                        </Button>
+                    </Stack>
+                </form>
+            </Paper>
+        </Container>
     );
 };
 

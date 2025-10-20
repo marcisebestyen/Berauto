@@ -2,12 +2,37 @@ import React, {useState, useEffect} from 'react';
 import api from '../api/api';
 import {ICar, FuelType, RequiredLicenceType} from '../interfaces/ICar';
 import {
-    Container, Title, Text, Stack, Card, Button, Modal,
-    Alert, Loader, List, ThemeIcon, Paper, Grid, Group, Badge
+    Container,
+    Title,
+    Text,
+    Stack,
+    Card,
+    Button,
+    Modal,
+    Alert,
+    Paper,
+    Grid,
+    Group,
+    Badge,
+    ActionIcon,   // For refresh button
+    Box,          // For loading overlay container
+    Center,       // For empty/error states
+    LoadingOverlay, // For a cleaner loading state
+    SimpleGrid,   // For a compact stat display
+    rem,
 } from '@mantine/core';
 import {
-    IconAlertCircle, IconTrash, IconGasStation, IconLicense,
-    IconCurrencyDollar, IconGauge, IconSettings, IconShieldCheck, IconCheck, IconCar
+    IconAlertCircle,
+    IconTrash,
+    IconGasStation,
+    IconLicense,
+    IconCurrencyDollar,
+    IconGauge,
+    IconSettings,
+    IconShieldCheck,
+    IconCheck,
+    IconRefresh,
+    IconCarOff,
 } from '@tabler/icons-react';
 import {notifications} from '@mantine/notifications';
 import {useDisclosure} from '@mantine/hooks';
@@ -32,7 +57,6 @@ const getFuelTypeLabel = (fuelType: FuelType | string): string => {
                 typeStr = 'Ismeretlen';
         }
     }
-
     switch (typeStr) {
         case "Diesel":
             return 'Dízel';
@@ -45,8 +69,7 @@ const getFuelTypeLabel = (fuelType: FuelType | string): string => {
         default:
             return 'Ismeretlen';
     }
-}
-
+};
 const getLicenceTypeLabel = (licence: RequiredLicenceType | string): string => {
     let typeStr = String(licence);
     if (typeof licence === 'number') {
@@ -71,172 +94,185 @@ const getLicenceTypeLabel = (licence: RequiredLicenceType | string): string => {
         }
     }
     return typeStr;
-}
+};
 
+const Stat = ({icon, label, value}: { icon: React.ReactNode, label: string, value: string }) => (
+    <Group gap="xs">
+        {icon}
+        <Stack gap={0}>
+            <Text size="xs" c="dimmed">{label}</Text>
+            <Text size="sm">{value}</Text>
+        </Stack>
+    </Group>
+);
 
 const DeleteCarPage: React.FC = () => {
     const [cars, setCars] = useState<ICar[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isDeleting, setIsDeleting] = useState<boolean>(false);
     const [carToDelete, setCarToDelete] = useState<ICar | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [deleteModalOpened, {open: openDeleteModal, close: closeDeleteModal}] = useDisclosure(false);
-
-    useEffect(() => {
-        fetchCars();
-    }, []);
 
     const fetchCars = async () => {
         setIsLoading(true);
+        setError(null);
         try {
             const response = await api.Cars.getAllCars();
             setCars(response.data);
         } catch (err) {
-            console.error("Failed to fetch cars:", err);
-            notifications.show({
-                title: 'Hiba',
-                message: 'Nem sikerült betölteni az autókat a törléshez.',
-                color: 'red',
-                icon: <IconAlertCircle/>,
-            });
+            const errorMsg = 'Nem sikerült betölteni az autókat a törléshez.';
+            notifications.show({title: 'Hiba', message: errorMsg, color: 'red'});
+            setError(errorMsg);
         } finally {
             setIsLoading(false);
         }
     };
 
+    useEffect(() => {
+        fetchCars();
+    }, []);
+
     const handleDeleteClick = (car: ICar) => {
         if (car.isRented) {
             notifications.show({
                 title: 'Törlési hiba',
-                message: `A(z) ${car.brand} ${car.model} autó nem törölhető, mert jelenleg ki van adva.`,
-                color: 'orange',
-                icon: <IconAlertCircle />
+                message: `Az autó nem törölhető, mert jelenleg ki van adva.`,
+                color: 'orange'
             });
             return;
         }
         setCarToDelete(car);
         openDeleteModal();
     };
-
     const confirmDelete = async () => {
         if (!carToDelete) return;
-
         setIsDeleting(true);
         try {
             await api.Cars.deleteCar(carToDelete.id);
             notifications.show({
                 title: 'Sikeres törlés',
-                message: `A(z) ${carToDelete.brand} ${carToDelete.model} (ID: ${carToDelete.id}) autó sikeresen törölve.`,
+                message: `A(z) ${carToDelete.brand} ${carToDelete.model} autó sikeresen törölve.`,
                 color: 'green',
-                icon: <IconCheck/>,
+                icon: <IconCheck/>
             });
             fetchCars();
         } catch (err: any) {
-            console.error("Failed to delete car:", err);
-            let errorMessage = `Hiba történt a(z) ${carToDelete.brand} ${carToDelete.model} autó törlésekor.`;
-            if (err.response && err.response.data) {
-                errorMessage = typeof err.response.data === 'string' ? err.response.data : (err.response.data.message || err.response.data.title || errorMessage);
-            } else if (err.message) {
-                errorMessage = err.message;
+            let errorMessage = `Hiba történt az autó törlésekor.`;
+            if (err.response?.data?.message || err.response?.data?.title) {
+                errorMessage = err.response.data.message || err.response.data.title;
             }
-            notifications.show({
-                title: 'Törlési hiba',
-                message: errorMessage,
-                color: 'red',
-                icon: <IconAlertCircle/>,
-            });
+            notifications.show({title: 'Törlési hiba', message: errorMessage, color: 'red'});
         } finally {
             setIsDeleting(false);
             closeDeleteModal();
-            setCarToDelete(null);
         }
     };
 
-    if (isLoading && !cars.length) {
-        return <Container style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: 'calc(100vh - 200px)'
-        }}><Loader size="xl"/></Container>;
-    }
+    const emptyState = (
+        <Center p="xl" style={{flexDirection: 'column'}}>
+            <IconCarOff size={48} stroke={1.5} style={{opacity: 0.5}}/>
+            <Title order={4} mt="md" fw={500}>Nincsenek autók a rendszerben</Title>
+            <Text c="dimmed" size="sm" mt={4}>Nincs megjeleníthető autó az adatbázisban.</Text>
+        </Center>
+    );
+    const errorState = (
+        <Center p="xl">
+            <Alert icon={<IconAlertCircle size="1rem"/>} title="Hiba!" color="red" radius="md" w="100%" maw={600}>
+                {error}
+                <Button color="red" variant="light" onClick={fetchCars} mt="md">
+                    Próbálja újra
+                </Button>
+            </Alert>
+        </Center>
+    );
+
+    const showGrid = !isLoading && !error && cars.length > 0;
+    const showEmptyState = !isLoading && !error && cars.length === 0;
+    const showErrorState = !isLoading && error;
 
     return (
         <Container fluid p="md">
-            <Title order={2} mb="xl" ta="center">Autók törlése</Title>
-            {cars.length === 0 && !isLoading && (
-                <Paper p="xl" shadow="xs" ta="center"><Text>Nincsenek törölhető autók az adatbázisban.</Text></Paper>
-            )}
-            <Grid gutter="md">
-                {cars.map(car => (
-                    <Grid.Col key={car.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-                        <Card shadow="sm" padding="lg" radius="md" withBorder style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                            <Stack justify="space-between" style={{ flexGrow: 1 }}>
-                                <div>
-                                    <Group justify="space-between" align="center" mb="sm">
-                                        <Title order={4}>{car.brand} {car.model}</Title>
-                                        {car.isRented && (
-                                            <Badge color="blue" variant="filled" leftSection={<IconCar size={14} />}>
-                                                Bérelt
-                                            </Badge>
-                                        )}
-                                    </Group>
-                                    <Text c="dimmed" size="sm" mb="sm">{car.licencePlate}</Text>
-                                    <List spacing={6} size="sm" center>
-                                        <List.Item icon={<ThemeIcon color="teal" size={20} radius="xl"><IconGasStation size={12} /></ThemeIcon>}>
-                                            Üzemanyag: {getFuelTypeLabel(car.fuelType)}
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color="grape" size={20} radius="xl"><IconLicense size={12} /></ThemeIcon>}>
-                                            Jogosítvány: {getLicenceTypeLabel(car.requiredLicence)}
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color="orange" size={20} radius="xl"><IconCurrencyDollar size={12} /></ThemeIcon>}>
-                                            Ár/nap: {car.pricePerDay} Ft
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color="blue" size={20} radius="xl"><IconGauge size={12} /></ThemeIcon>}>
-                                            Km óra: {car.actualKilometers} km
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color={car.isAutomatic ? "cyan" : "gray"} size={20} radius="xl"><IconSettings size={12} /></ThemeIcon>}>
-                                            Váltó: {car.isAutomatic ? 'Automata' : 'Manuális'}
-                                        </List.Item>
-                                        <List.Item icon={<ThemeIcon color={car.hasValidVignette ? "green" : "red"} size={20} radius="xl"><IconShieldCheck size={12} /></ThemeIcon>}>
-                                            Matrica: {car.hasValidVignette ? 'Érvényes' : 'Nincs/Lejárt'}
-                                        </List.Item>
-                                    </List>
-                                </div>
-                                <Button
-                                    leftSection={<IconTrash size={16} />}
-                                    variant="filled"
-                                    color="red"
-                                    fullWidth
-                                    mt="md"
-                                    onClick={() => handleDeleteClick(car)}
-                                    loading={isDeleting && carToDelete?.id === car.id}
-                                    disabled={car.isRented} // <-- Itt tiltjuk le a gombot
-                                >
-                                    {car.isRented ? 'Autó bérelve' : 'Autó törlése'}
-                                </Button>
-                            </Stack>
-                        </Card>
-                    </Grid.Col>
-                ))}
-            </Grid>
+            <Paper shadow="sm" p="lg" withBorder>
+                <Group justify="space-between" mb="lg">
+                    <Title order={3}>Autók törlése</Title>
+                    <ActionIcon variant="light" onClick={fetchCars} loading={isLoading} aria-label="Autók frissítése">
+                        <IconRefresh style={{width: rem(18)}}/>
+                    </ActionIcon>
+                </Group>
+
+                <Box style={{position: 'relative', minHeight: '300px'}}>
+                    <LoadingOverlay visible={isLoading} overlayProps={{radius: 'sm', blur: 2}}/>
+
+                    {showErrorState && errorState}
+                    {showEmptyState && emptyState}
+
+                    {showGrid && (
+                        <Grid gutter="md">
+                            {cars.map(car => (
+                                <Grid.Col key={car.id} span={{base: 12, sm: 6, lg: 4}}>
+                                    <Card shadow="sm" padding="lg" radius="md" withBorder
+                                          style={{height: '100%', display: 'flex', flexDirection: 'column'}}>
+                                        <Stack justify="space-between" style={{flexGrow: 1}}>
+                                            <div>
+                                                <Group justify="space-between" align="flex-start" mb="xs">
+                                                    <Stack gap={0}>
+                                                        <Title order={4}>{car.brand} {car.model}</Title>
+                                                        <Text c="dimmed" size="sm">{car.licencePlate}</Text>
+                                                    </Stack>
+                                                    {car.isRented &&
+                                                        <Badge color="blue" variant="light" size="sm">Bérelt</Badge>}
+                                                </Group>
+
+                                                <SimpleGrid cols={2} spacing="sm" mt="md" verticalSpacing="sm">
+                                                    <Stat icon={<IconGasStation size={20}/>} label="Üzemanyag"
+                                                          value={getFuelTypeLabel(car.fuelType)}/>
+                                                    <Stat icon={<IconLicense size={20}/>} label="Jogosítvány"
+                                                          value={getLicenceTypeLabel(car.requiredLicence)}/>
+                                                    <Stat icon={<IconSettings size={20}/>} label="Váltó"
+                                                          value={car.isAutomatic ? 'Automata' : 'Manuális'}/>
+                                                    <Stat icon={<IconGauge size={20}/>} label="Km óra"
+                                                          value={`${car.actualKilometers} km`}/>
+                                                    <Stat icon={<IconShieldCheck size={20}/>} label="Matrica"
+                                                          value={car.hasValidVignette ? 'Érvényes' : 'Nincs'}/>
+                                                    <Stat icon={<IconCurrencyDollar size={20}/>} label="Ár/nap"
+                                                          value={`${car.pricePerDay} Ft`}/>
+                                                </SimpleGrid>
+                                            </div>
+                                            <Button
+                                                leftSection={<IconTrash size={16}/>}
+                                                color="red"
+                                                fullWidth
+                                                mt="lg"
+                                                onClick={() => handleDeleteClick(car)}
+                                                disabled={car.isRented}
+                                            >
+                                                {car.isRented ? 'Jelenleg bérelve' : 'Végleges törlés'}
+                                            </Button>
+                                        </Stack>
+                                    </Card>
+                                </Grid.Col>
+                            ))}
+                        </Grid>
+                    )}
+                </Box>
+            </Paper>
 
             {carToDelete && (
-                <Modal
-                    opened={deleteModalOpened}
-                    onClose={closeDeleteModal}
-                    title="Törlés megerősítése"
-                    centered
-                    overlayProps={{ backgroundOpacity: 0.55, blur: 3 }}
-                >
+                <Modal opened={deleteModalOpened} onClose={closeDeleteModal} title="Törlés megerősítése" centered>
                     <Stack>
-                        <Text>Biztosan törölni szeretnéd a következő autót?</Text>
-                        <Text fw={700}>{carToDelete.brand} {carToDelete.model} ({carToDelete.licencePlate})</Text>
-                        <Alert icon={<IconAlertCircle size="1rem" />} title="Figyelem!" color="red" variant="light">
+                        <Text>Biztosan véglegesen törölni szeretnéd a következő autót?</Text>
+                        <Paper withBorder p="sm" radius="md" bg="var(--mantine-color-gray-0)">
+                            <Title order={5}>{carToDelete.brand} {carToDelete.model}</Title>
+                            <Text c="dimmed" size="sm">{carToDelete.licencePlate}</Text>
+                        </Paper>
+                        <Alert icon={<IconAlertCircle size="1rem"/>} title="Figyelem!" color="red" variant="light">
                             Ez a művelet nem visszavonható!
                         </Alert>
                         <Group justify="flex-end" mt="md">
                             <Button variant="default" onClick={closeDeleteModal} disabled={isDeleting}>Mégsem</Button>
-                            <Button color="red" onClick={confirmDelete} loading={isDeleting} leftSection={<IconTrash size={14}/>}>
+                            <Button color="red" onClick={confirmDelete} loading={isDeleting}
+                                    leftSection={<IconTrash size={14}/>}>
                                 Törlés
                             </Button>
                         </Group>

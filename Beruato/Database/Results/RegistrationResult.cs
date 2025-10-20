@@ -9,5 +9,7 @@ public class RegistrationResult
     public List<string> Errors { get; private set; } = new List<string>();
 
     public static RegistrationResult Success(UserGetDto userGetDto) => new() { Succeeded = true, User = userGetDto };
-    public static RegistrationResult Failure(params string[] errors) => new() { Succeeded = false, Errors = errors.ToList() };
+
+    public static RegistrationResult Failure(params string[] errors) =>
+        new() { Succeeded = false, Errors = errors.ToList() };
 }

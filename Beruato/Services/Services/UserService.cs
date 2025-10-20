@@ -92,7 +92,6 @@ public class UserService : IUserService
 
         if (userUpdateDto.Email != null && user.Email != userUpdateDto.Email)
         {
-            // Ellenőrizzük, hogy az új email cím nem foglalt-e már más felhasználó által
             var existingUserWithEmail =
                 (await _unitOfWork.UserRepository.GetAsync(u => u.Email == userUpdateDto.Email && u.Id != user.Id))
                 .FirstOrDefault();
@@ -105,15 +104,15 @@ public class UserService : IUserService
             changed = true;
         }
 
-        if(userUpdateDto.Address != null && user.Address != userUpdateDto.Address)
+        if (userUpdateDto.Address != null && user.Address != userUpdateDto.Address)
         {
             user.Address = userUpdateDto.Address;
             changed = true;
         }
-        
+
         if (!changed)
         {
-            return ServiceResult.Success(); // Nem történt változás
+            return ServiceResult.Success();
         }
 
         try
@@ -128,11 +127,10 @@ public class UserService : IUserService
         }
         catch (DbUpdateException ex)
         {
-            // Logolás javasolt: _logger.LogError(ex, "Hiba történt a felhasználó adatainak frissítésekor.");
             return ServiceResult.Failed(
                 $"Adatbázis hiba történt a frissítés során: {ex.InnerException?.Message ?? ex.Message}");
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Váratlan hiba történt a felhasználó adatainak frissítésekor.");
             return ServiceResult.Failed($"Váratlan hiba történt: {ex.Message}");
@@ -218,7 +216,7 @@ public class UserService : IUserService
             return RegistrationResult.Failure("Ez az e-mail cím már regisztrálva van.");
         }
 
-        string userNameToRegister = registrationDto.Email; 
+        string userNameToRegister = registrationDto.Email;
         var existingUserByUserName = (await _unitOfWork.UserRepository.GetAsync(u => u.UserName == userNameToRegister))
             .FirstOrDefault();
         if (existingUserByUserName != null)
@@ -231,7 +229,6 @@ public class UserService : IUserService
 
         var newUser = new User
         {
-
             FirstName = registrationDto.FirstName,
             LastName = registrationDto.LastName,
             Email = registrationDto.Email,
@@ -249,12 +246,12 @@ public class UserService : IUserService
             await _unitOfWork.UserRepository.InsertAsync(newUser);
             await _unitOfWork.SaveAsync();
         }
-        catch (DbUpdateException ex) 
+        catch (DbUpdateException ex)
         {
             return RegistrationResult.Failure(
                 $"Adatbázis hiba történt a regisztráció során: {ex.InnerException?.Message ?? ex.Message}");
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             return RegistrationResult.Failure($"Váratlan hiba történt a regisztráció során: {ex.Message}");
         }
@@ -275,7 +272,8 @@ public class UserService : IUserService
 
         if (existingUser != null)
         {
-            _logger.LogInformation("Guest user found with email: {Email}, ID: {UserId}", guestDto.Email, existingUser.Id);
+            _logger.LogInformation("Guest user found with email: {Email}, ID: {UserId}", guestDto.Email,
+                existingUser.Id);
             return existingUser;
         }
 
@@ -284,12 +282,12 @@ public class UserService : IUserService
             FirstName = guestDto.FirstName,
             LastName = guestDto.LastName,
             Email = guestDto.Email,
-            UserName = guestDto.Email, 
+            UserName = guestDto.Email,
             PhoneNumber = guestDto.PhoneNumber,
             LicenceId = guestDto.LicenceId,
-            RegisteredUser = false, 
-            Password = null,        
-            Role = Role.Renter      
+            RegisteredUser = false,
+            Password = null,
+            Role = Role.Renter
         };
 
         await _unitOfWork.UserRepository.InsertAsync(newUser);

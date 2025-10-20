@@ -1,8 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Security.Claims;
 using Database.Dtos;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Services.Services;
@@ -23,7 +20,7 @@ public class PasswordResetController : ControllerBase
         _passwordResetService = passwordResetService;
         _logger = logger;
     }
-    
+
     [HttpPost("initiate")]
     [AllowAnonymous]
     public async Task<IActionResult> InitiatePasswordReset([FromBody] InitiatePasswordResetRequest request)
@@ -37,7 +34,6 @@ public class PasswordResetController : ControllerBase
         {
             var result = await _passwordResetService.InitiatePasswordResetAsync(request.Email);
 
-            // Always return success to prevent email enumeration
             return Ok(new { message = result.Messages });
         }
         catch (Exception ex)
@@ -47,7 +43,7 @@ public class PasswordResetController : ControllerBase
         }
     }
 
-    
+
     [HttpPost("reset")]
     [AllowAnonymous]
     public async Task<IActionResult> ResetPassword([FromBody] PasswordResetRequest request)
@@ -58,7 +54,7 @@ public class PasswordResetController : ControllerBase
         }
 
         var result = await _passwordResetService.ValidateAndResetPasswordAsync(
-            request.Token, 
+            request.Token,
             request.NewPassword
         );
 

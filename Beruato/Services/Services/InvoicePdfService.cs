@@ -1,10 +1,5 @@
 ﻿using QuestPDF.Fluent;
 using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
-using System;
-using System.IO;
-using System.Collections.Generic;
-using Database.Models;
 
 namespace Services.Services;
 
@@ -22,11 +17,6 @@ public class InvoicePdfService : IInvoicePdfService
 {
     public InvoicePdfService()
     {
-        // A QuestPDF licenc beállítása.
-        // Kereskedelmi projektekhez kereskedelmi licenc szükséges.
-        // Nem kereskedelmi használatra az alábbi sorral beállítható a Community licenc.
-        // Helyezd ezt a beállítást az alkalmazás indulásakor egy helyre (pl. Program.cs vagy Startup.cs).
-        // QuestPDF.Settings.License = LicenseType.Community;
     }
 
     public byte[] GenerateInvoicePdf(Receipt receiptData)
@@ -39,12 +29,10 @@ public class InvoicePdfService : IInvoicePdfService
                 page.Margin(50);
                 page.DefaultTextStyle(x => x.FontSize(10));
 
-                // Fejléc
                 page.Header()
                     .Text($"SZÁMLA #{receiptData.InvoiceNumber}")
                     .SemiBold().FontSize(20).AlignCenter();
 
-                // Tartalom
                 page.Content()
                     .PaddingVertical(10)
                     .Column(column =>
@@ -66,7 +54,6 @@ public class InvoicePdfService : IInvoicePdfService
                                     col.Item().Text($"E-mail: {receiptData.Seller.Email}");
                             });
 
-                            // Vevő adatai
                             row.RelativeItem().Column(col =>
                             {
                                 col.Item().Text("Vevő adatai:").SemiBold();
@@ -79,22 +66,19 @@ public class InvoicePdfService : IInvoicePdfService
                             });
                         });
 
-                        // Számla részletei (dátum)
-                        column.Item().PaddingTop(10).Text($"Kiállítás dátuma: {receiptData.IssueDate.ToShortDateString()}");
+                        column.Item().PaddingTop(10)
+                            .Text($"Kiállítás dátuma: {receiptData.IssueDate.ToShortDateString()}");
 
-                        // Tételek táblázata
                         column.Item().Table(table =>
                         {
-                            // Oszlopok definíciója
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.RelativeColumn(3); // Leírás (szélesebb)
-                                columns.RelativeColumn();   // Mennyiség
-                                columns.RelativeColumn();   // Egységár
-                                columns.RelativeColumn();   // Összesen (tétel)
+                                columns.RelativeColumn(3);
+                                columns.RelativeColumn();
+                                columns.RelativeColumn();
+                                columns.RelativeColumn();
                             });
 
-                            // Táblázat fejléc
                             table.Header(header =>
                             {
                                 header.Cell().Text("Leírás").SemiBold();
@@ -103,37 +87,32 @@ public class InvoicePdfService : IInvoicePdfService
                                 header.Cell().Text("Összesen").SemiBold();
                             });
 
-                            // Tételek hozzáadása
                             foreach (var item in receiptData.LineItems)
                             {
                                 table.Cell().Text(item.Description);
                                 table.Cell().Text(item.Quantity.ToString());
-                                table.Cell().Text($"{item.UnitPrice:N0} Ft"); // Formázás pénznemre
+                                table.Cell().Text($"{item.UnitPrice:N0} Ft");
                                 table.Cell().Text($"{item.LineTotal:N0} Ft");
                             }
 
-                            // Bruttó összeg
                             table.Cell().ColumnSpan(3).AlignRight().Text("Fizetendő összesen:").SemiBold();
                             table.Cell().Text($"{receiptData.TotalCost:N0} Ft").SemiBold();
                         });
 
-                        // Egyéb megjegyzések (opcionális)
                         column.Item().PaddingTop(10).Text("Köszönjük, hogy minket választott!");
                     });
 
-                // Lábléc
                 page.Footer()
                     .AlignCenter()
                     .Text(x =>
                     {
                         x.Span("Oldal ");
-                        x.CurrentPageNumber(); // Aktuális oldalszám
+                        x.CurrentPageNumber();
                         x.Span(" / ");
-                        x.TotalPages(); // Összes oldalszám
+                        x.TotalPages();
                     });
             });
         });
         return document.GeneratePdf();
     }
 }
-

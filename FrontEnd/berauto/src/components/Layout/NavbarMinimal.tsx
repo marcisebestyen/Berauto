@@ -2,7 +2,6 @@ import {useEffect, useState} from "react";
 import {rem, Button, useMantineTheme, DefaultMantineColor, Stack} from "@mantine/core";
 import {
     IconUserCircle,
-    IconLogout,
     IconHome,
     IconCar,
     IconListCheck,
@@ -113,11 +112,6 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
 
     const menuItems = getMenuItems();
 
-    const handleLogout = () => {
-        logout(() => {
-            window.location.href = '/';
-        });
-    };
 
     useEffect(() => {
         const currentPath = location.pathname;
@@ -154,26 +148,6 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
                 <Stack gap="xs" className={classes.navbarMain}>
                     {links}
                 </Stack>
-                {isAuthenticated && (
-                    <div className={classes.footer} style={{width: !isMobile ? 'calc(100% - 16px)' : '90%'}}>
-                        <NavbarLink
-                            active={activeLink === "/profile"}
-                            icon={IconUserCircle}
-                            label="Profil"
-                            onClick={() => {
-                                navigate("/profile");
-                                if (isMobile) toggle();
-                            }}
-                            color="grape"
-                        />
-                        <NavbarLink
-                            icon={IconLogout}
-                            label="Kijelentkezés"
-                            onClick={handleLogout}
-                            color="red"
-                        />
-                    </div>
-                )}
             </div>
         </nav>
     );

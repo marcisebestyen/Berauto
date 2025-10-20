@@ -13,17 +13,19 @@ public class UserCreateDto
     public string LastName { get; set; }
 
     [StringLength(30, ErrorMessage = "A telefonszám maximum 30 karakter hosszú lehet.")]
-    public string PhoneNumber { get; set; } 
+    public string PhoneNumber { get; set; }
+
     public string UserName { get; set; }
 
     [StringLength(30, ErrorMessage = "A jogosítvány azonosító maximum 30 karakter hosszú lehet.")]
-    public string LicenceId { get; set; } 
+    public string LicenceId { get; set; }
 
     [EmailAddress(ErrorMessage = "Érvénytelen e-mail cím formátum.")]
     [StringLength(255, ErrorMessage = "Az e-mail cím maximum 255 karakter hosszú lehet.")]
-    public string Email { get; set; } 
+    public string Email { get; set; }
 
     [StringLength(255, MinimumLength = 6, ErrorMessage = "A jelszónak legalább 6 karakter hosszúnak kell lennie.")]
-    public string Password { get; set; } 
-    public string Address { get; set; } 
+    public string Password { get; set; }
+
+    public string Address { get; set; }
 }
