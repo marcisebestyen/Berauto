@@ -92,18 +92,29 @@ namespace Services.Services
                 var userVectorFloats = await GenerateVectorAsync(userQuestion);
 
                 // 2. Keresés az MSSQL-ben a legrelevánsabb FAQ-ra
-                // CRITICAL FIX: Csak azokat az elemeket kérjük le, amelyekhez tartozik vektor.
                 var allFaqs = await _context.Faqs.Where(f => f.Vector != null).ToListAsync();
+
+                _logger.LogInformation("Total FAQs in database: {Count}", allFaqs.Count);
 
                 var relevantFaq = allFaqs
                     .Select(f => new
                     {
                         Faq = f,
-                        // Itt már tudjuk, hogy f.Vector nem null, ezért használjuk a "!" operátort
                         Score = CalculateCosineSimilarity(userVectorFloats, f.Vector!)
                     })
                     .OrderByDescending(x => x.Score)
                     .FirstOrDefault();
+
+                if (relevantFaq != null)
+                {
+                    _logger.LogInformation("=== RAG DEBUG START ===");
+                    _logger.LogInformation("User Question: {Question}", userQuestion);
+                    _logger.LogInformation("Matched FAQ Question: {FaqQuestion}", relevantFaq.Faq.Question);
+                    _logger.LogInformation("Retrieved Answer: {Answer}", relevantFaq.Faq.Answer);
+                    _logger.LogInformation("Similarity Score: {Score}", relevantFaq.Score);
+                    _logger.LogInformation("Threshold: {Threshold}", SimilarityThreshold);
+                    _logger.LogInformation("=== RAG DEBUG END ===");
+                }
 
                 // 3. Relevancia-ellenőrzés küszöbértékkel
                 if (relevantFaq == null || relevantFaq.Score < SimilarityThreshold)
@@ -113,8 +124,24 @@ namespace Services.Services
                 }
 
                 // 4. Válasz generálása a Geminivel (RAG prompt)
-                var relevantContext = $"Kérdés: {relevantFaq.Faq.Question}\nVálasz: {relevantFaq.Faq.Answer}";
-                var ragPrompt = $"A következő kontextus alapján, válaszolj a kérdésre pontosan és barátságosan. Ha a kontextus nem tartalmazza a választ, mondd, hogy nem tudsz válaszolni.\n\nKONTEXTUS:\n{relevantContext}\n\nFELHASZNÁLÓ KÉRDÉSE: {userQuestion}";
+                var relevantAnswer = relevantFaq.Faq.Answer;
+
+                var ragPrompt = $@"SZIGORÚAN CSAK AZ ALÁBBI INFORMÁCIÓ ALAPJÁN válaszolj!
+
+FELHASZNÁLÓ KÉRDÉSE:
+{userQuestion}
+
+RENDELKEZÉSRE ÁLLÓ INFORMÁCIÓ:
+{relevantAnswer}
+
+FELADATOD:
+1. Olvasd el a ""RENDELKEZÉSRE ÁLLÓ INFORMÁCIÓ"" részt
+2. Válaszolj a kérdésre KIZÁRÓLAG ez alapján
+3. Fogalmazz barátságosan, természetesen
+4. NE találj ki semmit, NE használj külső tudást
+5. Ha a fenti információ NEM válaszolja meg a kérdést, írd: ""Elnézést, erre a kérdésre jelenleg nem találtam releváns információt.""
+
+VÁLASZ:";
 
                 _logger.LogInformation("Generating final answer with score: {Score}", relevantFaq.Score);
 
@@ -133,7 +160,7 @@ namespace Services.Services
         private async Task<float[]> GenerateVectorAsync(string text)
         {
             const int maxRetries = 8;
-            const string embeddingModel = "text-embedding-004";
+            const string embeddingModel = "gemini-embedding-001";
 
             for (int attempt = 0; attempt < maxRetries; attempt++)
             {
@@ -256,6 +283,136 @@ namespace Services.Services
             if (magnitude1 == 0 || magnitude2 == 0) return 0;
 
             return dotProduct / (Math.Sqrt(magnitude1) * Math.Sqrt(magnitude2));
+        }
+
+        /// <summary>
+        /// Debug: Összes FAQ listázása az adatbázisból
+        /// </summary>
+        public async Task<object> GetAllFaqsDebugAsync()
+        {
+            var allFaqs = await _context.Faqs.ToListAsync();
+
+            return new
+            {
+                TotalCount = allFaqs.Count,
+                Faqs = allFaqs.Select(f => new
+                {
+                    f.Id,
+                    f.Question,
+                    AnswerPreview = f.Answer?.Length > 100
+                        ? f.Answer.Substring(0, 100) + "..."
+                        : f.Answer,
+                    HasVector = f.Vector != null,
+                    VectorLength = f.Vector?.Length ?? 0
+                }).ToList()
+            };
+        }
+        // FaqService.cs-be add hozzá:
+
+        /// <summary>
+        /// Debug: Teszteli a vektoros hasonlóságot az összes FAQ-val
+        /// </summary>
+        public async Task<object> DebugVectorSimilarityAsync(string userQuestion)
+        {
+            var userVectorFloats = await GenerateVectorAsync(userQuestion);
+            var allFaqs = await _context.Faqs.Where(f => f.Vector != null).ToListAsync();
+
+            var results = allFaqs
+                .Select(f => new
+                {
+                    f.Id,
+                    f.Question,
+                    Score = CalculateCosineSimilarity(userVectorFloats, f.Vector!)
+                })
+                .OrderByDescending(x => x.Score)
+                .Take(10) // Top 10
+                .ToList();
+
+            return new
+            {
+                UserQuestion = userQuestion,
+                TotalFaqs = allFaqs.Count,
+                TopMatches = results
+            };
+        }
+
+        /// <summary>
+        /// ADMIN: Újragenerálja az összes FAQ vektorát
+        /// </summary>
+        public async Task<object> RegenerateAllVectorsAsync()
+        {
+            var allFaqs = await _context.Faqs.ToListAsync();
+            int successCount = 0;
+            int failCount = 0;
+            var errors = new List<string>();
+
+            _logger.LogInformation("Starting vector regeneration for {Count} FAQs", allFaqs.Count);
+
+            foreach (var faq in allFaqs)
+            {
+                try
+                {
+                    // Generálj új vektort
+                    var vectorFloats = await GenerateVectorAsync(faq.Question);
+
+                    // Konvertálás byte tömbbé
+                    byte[] vectorBytes = new byte[vectorFloats.Length * sizeof(float)];
+                    Buffer.BlockCopy(vectorFloats, 0, vectorBytes, 0, vectorBytes.Length);
+
+                    // Frissítés
+                    faq.Vector = vectorBytes;
+                    successCount++;
+
+                    _logger.LogInformation("Regenerated vector for FAQ ID {Id}: {Question}", faq.Id, faq.Question);
+
+                    // Rate limit miatt kis szünet minden 5. FAQ után
+                    if (successCount % 3 == 0)
+                    {
+                        await Task.Delay(2000); // 2 másodperc
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failCount++;
+                    var errorMsg = $"FAQ ID {faq.Id} - {ex.Message}";
+                    errors.Add(errorMsg);
+                    _logger.LogError(ex, "Failed to regenerate vector for FAQ ID {Id}", faq.Id);
+                }
+            }
+
+            // Mentés az adatbázisba
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Vector regeneration completed. Success: {Success}, Failed: {Failed}", successCount, failCount);
+
+            return new
+            {
+                TotalFaqs = allFaqs.Count,
+                SuccessCount = successCount,
+                FailCount = failCount,
+                Errors = errors
+            };
+        }
+        /// <summary>
+        /// ADMIN: Törli az ÖSSZES FAQ bejegyzést az adatbázisból.
+        /// </summary>
+        public async Task<int> ClearAllFaqsAsync()
+        {
+            _logger.LogWarning("ADMIN ACTION: Starting deletion of all FAQ entries.");
+
+            // Minden FAQ elem lekérése
+            var allFaqs = await _context.Faqs.ToListAsync();
+            int count = allFaqs.Count;
+
+            // Eltávolítás
+            _context.Faqs.RemoveRange(allFaqs);
+
+            // Változások mentése
+            await _context.SaveChangesAsync();
+
+            _logger.LogWarning("ADMIN ACTION: Successfully deleted {Count} FAQ entries.", count);
+
+            return count;
         }
     }
 }

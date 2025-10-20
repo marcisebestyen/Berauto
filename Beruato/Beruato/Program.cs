@@ -27,7 +27,7 @@ namespace Beruato
 
             builder.Services.AddHangfire(config =>
             {
-                config.UseSqlServerStorage(builder.Configuration.GetConnectionString("Sebi"));
+                config.UseSqlServerStorage(builder.Configuration.GetConnectionString("Mark"));
             });
 
             builder.Services.AddHangfireServer();
@@ -55,7 +55,7 @@ namespace Beruato
             builder.Services.AddDbContext<BerautoDbContext>(options =>
                 options.UseSqlServer(builder.Configuration
                         .GetConnectionString(
-                            "Sebi"), b => b.MigrationsAssembly("Beruato")));
+                            "Mark"), b => b.MigrationsAssembly("Beruato")));
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<ICarService, CarService>();

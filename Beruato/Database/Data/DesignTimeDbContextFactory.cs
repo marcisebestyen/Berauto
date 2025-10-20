@@ -14,7 +14,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<BerautoDbC
             .AddJsonFile("appsettings.Development.json", optional: true)
             .Build();
         
-        var connectionString = configuration.GetConnectionString("Sebi");
+        var connectionString = configuration.GetConnectionString("Mark");
 
         if (string.IsNullOrEmpty(connectionString))
         {
