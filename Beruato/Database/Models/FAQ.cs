@@ -10,5 +10,5 @@ public class Faq
 
     [Required] public string Answer { get; set; }
 
-    public byte[] Vector { get; set; }
+    public byte[]? Vector { get; set; }
 }

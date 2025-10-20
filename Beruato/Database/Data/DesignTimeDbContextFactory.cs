@@ -16,6 +16,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<BerautoDbC
 
         var connectionString = configuration.GetConnectionString("Sebi");
 
+
         if (string.IsNullOrEmpty(connectionString))
         {
             throw new InvalidOperationException("Connection string not found");
