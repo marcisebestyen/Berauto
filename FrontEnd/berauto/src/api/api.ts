@@ -143,7 +143,7 @@ const Staff = {
             reason: reason
         };
         return axiosInstance.post<IRejectSuccessResponse>(
-            `/api/staff/reject?rentId=${rentId}`,
+            `/staff/reject?rentId=${rentId}`,
             requestBody
         );
     },
