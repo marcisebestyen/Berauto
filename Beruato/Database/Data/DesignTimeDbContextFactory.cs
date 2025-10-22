@@ -14,7 +14,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<BerautoDbC
             .AddJsonFile("appsettings.Development.json", optional: true)
             .Build();
         
-        var connectionString = configuration.GetConnectionString("Mark");
+        var connectionString = configuration.GetConnectionString("Supabase");
 
         if (string.IsNullOrEmpty(connectionString))
         {
@@ -22,7 +22,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<BerautoDbC
         }
 
         var builder = new DbContextOptionsBuilder<BerautoDbContext>();
-        builder.UseSqlServer(connectionString);
+        builder.UseNpgsql(connectionString);
         return new BerautoDbContext(builder.Options);
     }
 }

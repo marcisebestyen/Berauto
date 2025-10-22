@@ -1,5 +1,6 @@
 using Database.Data;
 using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -20,6 +21,7 @@ namespace Beruato
         public static void Main(string[] args)
         {
             QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
             var builder = WebApplication.CreateBuilder(args);
             var geminiApiKey = builder.Configuration["Gemini:ApiKey"];
 
@@ -27,7 +29,7 @@ namespace Beruato
 
             builder.Services.AddHangfire(config =>
             {
-                config.UseSqlServerStorage(builder.Configuration.GetConnectionString("Mark"));
+                config.UsePostgreSqlStorage(builder.Configuration.GetConnectionString("Supabase"));
             });
 
             builder.Services.AddHangfireServer();
@@ -53,9 +55,8 @@ namespace Beruato
 
             builder.Services.AddOpenApi();
             builder.Services.AddDbContext<BerautoDbContext>(options =>
-                options.UseSqlServer(builder.Configuration
-                        .GetConnectionString(
-                            "Mark"), b => b.MigrationsAssembly("Beruato")));
+                options.UseNpgsql(builder.Configuration
+                    .GetConnectionString("Supabase"), b => b.MigrationsAssembly("Beruato")));
 
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<ICarService, CarService>();

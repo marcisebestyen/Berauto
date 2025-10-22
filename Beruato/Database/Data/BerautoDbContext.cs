@@ -46,13 +46,13 @@ namespace Database.Data
             modelBuilder.Entity<PasswordReset>(password =>
             {
                 password.HasKey(pr => pr.Id); // PK 
-            
+
                 password.HasIndex(pr => pr.Token)
                     .IsUnique(); // index, business ID, every token must be unique
                 password.Property(pr => pr.Token)
                     .HasMaxLength(256)
                     .IsRequired();
-            
+
                 // foreign key setting
                 password.HasOne(pr => pr.User)
                     .WithMany()
@@ -97,7 +97,7 @@ namespace Database.Data
 
                 entity.HasIndex(e => e.Email)
                     .IsUnique()
-                    .HasFilter("[Email] IS NOT NULL");
+                    .HasFilter("\"Email\" IS NOT NULL");
             });
 
             modelBuilder.Entity<Car>(entity =>
@@ -121,11 +121,11 @@ namespace Database.Data
 
                 entity.Property(e => e.PricePerDay)
                     .IsRequired()
-                    .HasColumnType("decimal(18, 2)");
+                    .HasColumnType("numeric(18, 2)");
 
                 entity.Property(e => e.ActualKilometers)
                     .IsRequired()
-                    .HasColumnType("decimal(18, 2)");
+                    .HasColumnType("numeric(18, 2)");
 
                 entity.Property(e => e.Brand)
                     .IsRequired()
@@ -148,7 +148,7 @@ namespace Database.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(r => r.Car)
-                    .WithMany() 
+                    .WithMany()
                     .HasForeignKey(r => r.CarId)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Restrict);
@@ -157,39 +157,39 @@ namespace Database.Data
                 entity.HasOne(r => r.ApproverOperator)
                     .WithMany()
                     .HasForeignKey(r => r.ApprovedBy)
-                    .IsRequired(false) 
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
 
-         
+
                 entity.HasOne(r => r.IssuerOperator)
                     .WithMany()
                     .HasForeignKey(r => r.IssuedBy)
-                    .IsRequired(false) 
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
 
-   
+
                 entity.HasOne(r => r.RecipientOperator)
                     .WithMany()
                     .HasForeignKey(r => r.TakenBackBy)
-                    .IsRequired(false) 
+                    .IsRequired(false)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.Property(r => r.StartingKilometer)
-                    .HasColumnType("decimal(18, 2)");
+                    .HasColumnType("numeric(18, 2)");
 
                 entity.Property(r => r.EndingKilometer)
-                    .HasColumnType("decimal(18, 2)");
+                    .HasColumnType("numeric(18, 2)");
 
                 entity.Property(r => r.InvoiceRequest)
                     .IsRequired();
 
                 entity.HasIndex(r => r.ReceiptId)
                     .IsUnique(true)
-                    .HasFilter("[ReceiptId] IS NOT NULL"); 
+                    .HasFilter("\"ReceiptId\" IS NOT NULL");
 
 
                 entity.Property(r => r.TotalCost)
-                    .HasColumnType("decimal(18,2)");
+                    .HasColumnType("numeric(18,2)");
 
             });
 
@@ -199,13 +199,13 @@ namespace Database.Data
 
                 entity.Property(rec => rec.TotalCost)
                     .IsRequired()
-                    .HasColumnType("decimal(18, 2)");
+                    .HasColumnType("numeric(18, 2)");
 
-                entity.HasOne(rec => rec.Rent)             
-                    .WithOne(r => r.Receipt)               
-                    .HasForeignKey<Receipt>(rec => rec.RentId) 
-                    .IsRequired()                         
-                    .OnDelete(DeleteBehavior.Cascade);     
+                entity.HasOne(rec => rec.Rent)
+                    .WithOne(r => r.Receipt)
+                    .HasForeignKey<Receipt>(rec => rec.RentId)
+                    .IsRequired()
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasOne(rec => rec.IssuerOperator)
                     .WithMany()
