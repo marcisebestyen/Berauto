@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services.Services;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System;
 
@@ -67,7 +66,8 @@ namespace Beruato.Controllers
         [HttpPost("ingest")]
         public async Task<IActionResult> IngestFaq([FromBody] FaqIngestRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Question) || string.IsNullOrWhiteSpace(request.Answer))
+            if (request == null || string.IsNullOrWhiteSpace(request.Question) ||
+                string.IsNullOrWhiteSpace(request.Answer))
             {
                 return BadRequest(new { Error = "A 'Question' és 'Answer' mezők kötelezőek." });
             }

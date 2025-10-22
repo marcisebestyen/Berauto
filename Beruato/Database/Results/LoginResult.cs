@@ -5,8 +5,8 @@ namespace Database.Results;
 public class LoginResult
 {
     public bool Succeeded { get; private set; }
-    public UserGetDto? User { get; private set; } // Sikeres bejelentkezés esetén a felhasználó adatai
-    public string? Token { get; private set; } // JWT token tárolására
+    public UserGetDto? User { get; private set; }
+    public string? Token { get; private set; }
     public List<string> Errors { get; private set; } = new List<string>();
 
     public static LoginResult Success(UserGetDto user, string token) =>

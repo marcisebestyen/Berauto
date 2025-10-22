@@ -28,10 +28,8 @@ public class CarCreateDto
     [Required(ErrorMessage = "Az aktuális kilométeróra állás megadása kötelező.")]
     [Range(0, double.MaxValue, ErrorMessage = "A kilométeróra állás nem lehet negatív.")]
     public decimal ActualKilometers { get; set; }
-    
-    [Required]
-    public string Brand { get; set; }
-     
-    [Required]
-    public string Model { get; set; }
+
+    [Required] public string Brand { get; set; }
+
+    [Required] public string Model { get; set; }
 }

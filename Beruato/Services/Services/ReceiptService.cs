@@ -1,11 +1,10 @@
 using AutoMapper;
 using Database.Dtos.ReceiptDtos;
-using Database.Models;
 using Database.Results;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Services.Repositories;
-using System.Net.Mail; // This using is for SmtpException, not for SmtpClient anymore
+using System.Net.Mail;
 
 namespace Services.Services;
 
@@ -61,6 +60,7 @@ public class ReceiptService : IReceiptService
         {
             return Enumerable.Empty<ReceiptGetDto>();
         }
+
         return _mapper.Map<IEnumerable<ReceiptGetDto>>(receipts);
     }
 
@@ -102,15 +102,20 @@ public class ReceiptService : IReceiptService
         var issuerOperator = await _unitOfWork.UserRepository.GetByIdAsync(new object[] { createDto.IssuedById });
         if (issuerOperator == null)
         {
-            _logger.LogWarning("Attempted to create receipt with non-existing IssuerId: {IssuerId}", createDto.IssuedById);
-            return CreateResult<ReceiptGetDto>.Failure($"A(z) {createDto.IssuedById} azonosítójú kiállító operátor nem található.");
+            _logger.LogWarning("Attempted to create receipt with non-existing IssuerId: {IssuerId}",
+                createDto.IssuedById);
+            return CreateResult<ReceiptGetDto>.Failure(
+                $"A(z) {createDto.IssuedById} azonosítójú kiállító operátor nem található.");
         }
 
-        var existingReceiptForRent = (await _unitOfWork.ReceiptRepository.GetAsync(r => r.RentId == createDto.RentId)).FirstOrDefault();
+        var existingReceiptForRent = (await _unitOfWork.ReceiptRepository.GetAsync(r => r.RentId == createDto.RentId))
+            .FirstOrDefault();
         if (existingReceiptForRent != null)
         {
-            _logger.LogWarning("Receipt already exists for RentId: {RentId}. Existing ReceiptId: {ExistingReceiptId}", createDto.RentId, existingReceiptForRent.Id);
-            return CreateResult<ReceiptGetDto>.Failure($"Ehhez a bérléshez (RentId: {createDto.RentId}) már létezik számla (ReceiptId: {existingReceiptForRent.Id}).");
+            _logger.LogWarning("Receipt already exists for RentId: {RentId}. Existing ReceiptId: {ExistingReceiptId}",
+                createDto.RentId, existingReceiptForRent.Id);
+            return CreateResult<ReceiptGetDto>.Failure(
+                $"Ehhez a bérléshez (RentId: {createDto.RentId}) már létezik számla (ReceiptId: {existingReceiptForRent.Id}).");
         }
 
         var newReceipt = _mapper.Map<Receipt>(createDto);
@@ -141,8 +146,9 @@ public class ReceiptService : IReceiptService
         {
             new InvoiceLineItem
             {
-                Description = $"Autóbérlés: {rentEntity.Car?.Brand} {rentEntity.Car?.Model} ({rentEntity.Car?.LicencePlate}) " +
-                              $"- {rentEntity.PlannedStart.ToShortDateString()} - {rentEntity.PlannedEnd.ToShortDateString()}",
+                Description =
+                    $"Autóbérlés: {rentEntity.Car?.Brand} {rentEntity.Car?.Model} ({rentEntity.Car?.LicencePlate}) " +
+                    $"- {rentEntity.PlannedStart.ToShortDateString()} - {rentEntity.PlannedEnd.ToShortDateString()}",
                 Quantity = 1,
                 UnitPrice = newReceipt.TotalCost,
                 LineTotal = newReceipt.TotalCost
@@ -163,15 +169,14 @@ public class ReceiptService : IReceiptService
 
             byte[] pdfBytes = _invoicePdfService.GenerateInvoicePdf(newReceipt);
 
-            // ÚJ NAPLÓZÁS: Ellenőrizzük a PDF bájtjainak méretét
             _logger.LogInformation("Generált PDF bájtjainak mérete: {PdfByteLength} byte.", pdfBytes?.Length ?? 0);
-
 
             string invoiceFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "Invoices");
             if (!Directory.Exists(invoiceFolderPath))
             {
                 Directory.CreateDirectory(invoiceFolderPath);
             }
+
             string filePath = Path.Combine(invoiceFolderPath, $"Szamla-{newReceipt.InvoiceNumber}.pdf");
             await File.WriteAllBytesAsync(filePath, pdfBytes);
             _logger.LogInformation("Számla PDF generálva és mentve: {FilePath}", filePath);
@@ -180,36 +185,49 @@ public class ReceiptService : IReceiptService
             {
                 var toEmail = rentEntity.Renter.Email;
                 var subject = $"Az Ön számlája az autóbérlésről - Számlaszám: {newReceipt.InvoiceNumber}";
-                var body = $"Tisztelt {rentEntity.Renter.Name},\n\nCsatoltan küldjük az autóbérlésről szóló számláját. Köszönjük, hogy minket választott!\n\nÜdvözlettel,\nAz Autókölcsönző Csapat";
+                var body =
+                    $"Tisztelt {rentEntity.Renter.Name},\n\nCsatoltan küldjük az autóbérlésről szóló számláját. Köszönjük, hogy minket választott!\n\nÜdvözlettel,\nAz Autókölcsönző Csapat";
                 var attachmentFileName = $"Szamla_{newReceipt.InvoiceNumber}.pdf";
 
                 await _emailService.SendEmailWithAttachmentAsync(toEmail, subject, body, pdfBytes, attachmentFileName);
             }
             else
             {
-                _logger.LogWarning("Nem sikerült e-mailt küldeni a számláról, mert a bérlő e-mail címe hiányzik vagy érvénytelen (RentId: {RentId}).", createDto.RentId);
+                _logger.LogWarning(
+                    "Nem sikerült e-mailt küldeni a számláról, mert a bérlő e-mail címe hiányzik vagy érvénytelen (RentId: {RentId}).",
+                    createDto.RentId);
             }
-
         }
         catch (DbUpdateException ex)
         {
-            _logger.LogError(ex, "Adatbázis hiba történt a számla létrehozása és a bérlés frissítése során (RentId: {RentId}).", createDto.RentId);
-            return CreateResult<ReceiptGetDto>.Failure($"Adatbázis hiba történt a számla létrehozása során: {ex.InnerException?.Message ?? ex.Message}");
+            _logger.LogError(ex,
+                "Adatbázis hiba történt a számla létrehozása és a bérlés frissítése során (RentId: {RentId}).",
+                createDto.RentId);
+            return CreateResult<ReceiptGetDto>.Failure(
+                $"Adatbázis hiba történt a számla létrehozása során: {ex.InnerException?.Message ?? ex.Message}");
         }
         catch (SmtpException smtpEx)
         {
-            _logger.LogError(smtpEx, "E-mail küldési hiba történt a számla generálása után (RentId: {RentId}): {Message}", createDto.RentId, smtpEx.Message);
-            return CreateResult<ReceiptGetDto>.Failure($"A számla sikeresen létrejött, de hiba történt az e-mail küldése során: {smtpEx.Message}");
+            _logger.LogError(smtpEx,
+                "E-mail küldési hiba történt a számla generálása után (RentId: {RentId}): {Message}", createDto.RentId,
+                smtpEx.Message);
+            return CreateResult<ReceiptGetDto>.Failure(
+                $"A számla sikeresen létrejött, de hiba történt az e-mail küldése során: {smtpEx.Message}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Váratlan hiba történt a számla létrehozása és a bérlés frissítése során (RentId: {RentId}).", createDto.RentId);
-            return CreateResult<ReceiptGetDto>.Failure($"Váratlan hiba történt a számla létrehozása során: {ex.Message}");
+            _logger.LogError(ex,
+                "Váratlan hiba történt a számla létrehozása és a bérlés frissítése során (RentId: {RentId}).",
+                createDto.RentId);
+            return CreateResult<ReceiptGetDto>.Failure(
+                $"Váratlan hiba történt a számla létrehozása során: {ex.Message}");
         }
 
         var createdReceiptDto = _mapper.Map<ReceiptGetDto>(newReceipt);
 
-        _logger.LogInformation("Számla (ID: {ReceiptId}) sikeresen létrehozva a bérléshez (RentId: {RentId}). A bérlés IssuedAt, TotalCost és ReceiptId adatai frissítve.", newReceipt.Id, newReceipt.RentId);
+        _logger.LogInformation(
+            "Számla (ID: {ReceiptId}) sikeresen létrehozva a bérléshez (RentId: {RentId}). A bérlés IssuedAt, TotalCost és ReceiptId adatai frissítve.",
+            newReceipt.Id, newReceipt.RentId);
         return CreateResult<ReceiptGetDto>.Success(createdReceiptDto);
     }
 }

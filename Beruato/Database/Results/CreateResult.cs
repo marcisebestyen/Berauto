@@ -8,5 +8,6 @@ public class CreateResult<T> where T : class
 
     public static CreateResult<T> Success(T resource) => new CreateResult<T> { Succeeded = true, Resource = resource };
 
-    public static CreateResult<T> Failure(params string[] errors) => new CreateResult<T> { Succeeded = false, Errors = errors.ToList() };
+    public static CreateResult<T> Failure(params string[] errors) =>
+        new CreateResult<T> { Succeeded = false, Errors = errors.ToList() };
 }

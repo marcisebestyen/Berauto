@@ -3,8 +3,8 @@ namespace Database.Models;
 public enum Status
 {
     Active,
-    Notified, 
-    Booked, 
+    Notified,
+    Booked,
     Canceled
 }
 
@@ -17,7 +17,7 @@ public class WaitingList
     public DateTime? QueuedAt { get; set; }
     public DateTime? NotifiedAt { get; set; }
     public Status Status { get; set; }
-    
+
     public User User { get; set; }
     public Car Car { get; set; }
 }

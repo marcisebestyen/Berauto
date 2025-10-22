@@ -9,7 +9,7 @@ public class CarUpdateDto
 
     [StringLength(15, ErrorMessage = "A rendszám maximum 15 karakter hosszú lehet.")]
     public string? LicencePlate { get; set; }
-    
+
     public bool? HasValidVignette { get; set; }
 
     [Range(0.01, double.MaxValue, ErrorMessage = "A kilométerenkénti árnak pozitívnak kell lennie.")]
@@ -17,6 +17,6 @@ public class CarUpdateDto
 
     [Range(0, double.MaxValue, ErrorMessage = "A kilométeróra állás nem lehet negatív.")]
     public decimal? ActualKilometers { get; set; }
-    
+
     public bool? InProperCondition { get; set; }
 }

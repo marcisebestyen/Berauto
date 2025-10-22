@@ -29,13 +29,12 @@
         public decimal PricePerDay { get; set; }
         public bool IsAutomatic { get; set; }
         public decimal ActualKilometers { get; set; }
-        public bool InProperCondition { get; set; } // műszaki állapota megfelelő 
+        public bool InProperCondition { get; set; }
         public bool IsDeleted { get; set; } = false;
         public bool IsRented { get; set; } = false;
-        
+
         public ICollection<WaitingList> WaitingLists { get; set; } = new List<WaitingList>();
-        public DateTime? LastTechnicalInspection { get; set; } // Utolsó műszaki dátuma
-        public decimal? KilometersAtLastInspection { get; set; } // Km állás az utolsó műszakinál
+        public DateTime? LastTechnicalInspection { get; set; }
+        public decimal? KilometersAtLastInspection { get; set; }
     }
 }
-

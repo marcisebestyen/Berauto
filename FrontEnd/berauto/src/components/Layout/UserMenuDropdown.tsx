@@ -7,18 +7,18 @@ import {
     UnstyledButton,
     useMantineTheme,
     Flex,
-    Button, // Button importálása a bejelentkezés gombhoz
+    Button,
 } from "@mantine/core";
-import { IconChevronDown, IconLogout, IconUserCircle, IconLogin } from "@tabler/icons-react";
-import { useNavigate } from "react-router-dom";
-import { useMediaQuery } from "@mantine/hooks";
+import {IconChevronDown, IconLogout, IconUserCircle, IconLogin} from "@tabler/icons-react";
+import {useNavigate} from "react-router-dom";
+import {useMediaQuery} from "@mantine/hooks";
 import useAuth from "../../hooks/useAuth.tsx";
 
 const UserMenuDropdown = () => {
     const navigate = useNavigate();
     const theme = useMantineTheme();
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
-    const { logout, user, isAuthenticated } = useAuth();
+    const {logout, user, isAuthenticated} = useAuth();
 
     const handleLogout = () => {
         logout(() => {
@@ -53,7 +53,7 @@ const UserMenuDropdown = () => {
         return (
             <Button
                 variant="default"
-                leftSection={<IconLogin size={rem(18)} />}
+                leftSection={<IconLogin size={rem(18)}/>}
                 onClick={handleLogin}
             >
                 Bejelentkezés
@@ -65,17 +65,17 @@ const UserMenuDropdown = () => {
         <Menu
             width={260}
             position="bottom-start"
-            transitionProps={{ transition: 'pop-top-right' }}
+            transitionProps={{transition: 'pop-top-right'}}
             withinPortal
         >
             <Menu.Target>
                 <UnstyledButton>
                     <Group gap={7}>
-                        <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20} />
+                        <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20}/>
                         <Text fw={500} size="sm" lh={1} mr={3}>
                             {profileName}
                         </Text>
-                        <IconChevronDown style={{ width: rem(12), height: rem(12) }} stroke={1.5} />
+                        <IconChevronDown style={{width: rem(12), height: rem(12)}} stroke={1.5}/>
                     </Group>
                 </UnstyledButton>
             </Menu.Target>
@@ -86,7 +86,7 @@ const UserMenuDropdown = () => {
                         disabled
                         leftSection={
                             <Flex align="center">
-                                <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20} />
+                                <Avatar src="/avatars/avatar_user.png" alt="User profil" radius="xl" size={20}/>
                                 <Text fw={500} size="sm" lh={1} ml="xs">
                                     {user.email}
                                 </Text>
@@ -100,7 +100,7 @@ const UserMenuDropdown = () => {
                         onClick={item.onClick}
                         leftSection={
                             <item.icon
-                                style={{ width: rem(16), height: rem(16) }}
+                                style={{width: rem(16), height: rem(16)}}
                                 color={theme.colors.grape[6]}
                                 stroke={1.5}
                             />

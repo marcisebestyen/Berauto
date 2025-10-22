@@ -21,13 +21,13 @@ public class Repository<T> : IRepository<T> where T : class
 
     public Repository(BerautoDbContext context)
     {
-        _context = context ??  throw new ArgumentNullException(nameof(context));
+        _context = context ?? throw new ArgumentNullException(nameof(context));
         _dbSet = _context.Set<T>();
     }
-    
+
     public async Task<IEnumerable<T>> GetAsync(Expression<Func<T, bool>> predicate, string[]? includeProperties = null)
     {
-        IQueryable<T> query = _dbSet;   
+        IQueryable<T> query = _dbSet;
         query = query.Where(predicate);
 
         if (includeProperties != null)
@@ -37,18 +37,19 @@ public class Repository<T> : IRepository<T> where T : class
                 query = query.Include(includeProperty);
             }
         }
-        
+
         return await query.ToListAsync();
     }
 
-    public async Task<T?> GetByIdAsync(object[] keyValues, string[]? includeReferences = null, string[]? includeCollections = null)
+    public async Task<T?> GetByIdAsync(object[] keyValues, string[]? includeReferences = null,
+        string[]? includeCollections = null)
     {
         T? entity = await _dbSet.FindAsync(keyValues);
         if (entity == null)
         {
             return null;
         }
-        
+
         List<Task> tasks = new List<Task>();
 
         if (includeReferences != null)
@@ -72,7 +73,7 @@ public class Repository<T> : IRepository<T> where T : class
                     .LoadAsync());
             }
         }
-        
+
         await Task.WhenAll(tasks);
         return entity;
     }
@@ -87,8 +88,8 @@ public class Repository<T> : IRepository<T> where T : class
                 query = query.Include(includeProperty);
             }
         }
-        
-        return await query.ToListAsync();   
+
+        return await query.ToListAsync();
     }
 
     public async Task InsertAsync(T entity)
@@ -105,7 +106,8 @@ public class Repository<T> : IRepository<T> where T : class
         }
         else
         {
-            throw new KeyNotFoundException($"Entity of type {typeof(T).Name} with the provided key values was not found.");
+            throw new KeyNotFoundException(
+                $"Entity of type {typeof(T).Name} with the provided key values was not found.");
         }
     }
 

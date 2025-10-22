@@ -2,13 +2,8 @@
 using Database.Dtos.RentDtos;
 using Database.Models;
 using Services.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Database.Dtos;
-using Database.Dtos.UserDtos;
 
 
 namespace Services.Services
@@ -16,10 +11,10 @@ namespace Services.Services
     public enum RentStatusFilter
     {
         All,
-        Open, // Jóváhagyásra vár (ApprovedBy == null)
-        Closed, // Lezárt (ActualEnd.HasValue)
-        Running, // Futó (ActualStart.HasValue && !ActualEnd.HasValue)
-        ApprovedForHandover // ÚJ: Jóváhagyva, átadásra vár (ApprovedBy != null && ActualStart == null)
+        Open,
+        Closed,
+        Running,
+        ApprovedForHandover
     }
 
     public interface IRentService
@@ -32,7 +27,6 @@ namespace Services.Services
         Task ProcessCarReturnForWaitingListAsync(int carId);
         Task HandleRentCompletion(int rentId);
         Task<IEnumerable<RentGetDto>> GetRentsByCarIdAsync(int carId);
-
     }
 
     public class RentService : IRentService
@@ -194,15 +188,6 @@ namespace Services.Services
                 throw new KeyNotFoundException($"Car with ID {waitingListDto.CarId} not found.");
             }
 
-            // var currentRent = (await _unitOfWork.RentRepository
-            //         .GetAsync(r => r.CarId == waitingListDto.CarId && r.ActualStart.HasValue && r.ActualEnd.HasValue))
-            //     .FirstOrDefault();
-            //
-            // if (currentRent == null)
-            // {
-            //     return null;
-            // }
-
             if (!car.IsRented)
             {
                 return null;
@@ -267,9 +252,9 @@ namespace Services.Services
 
             var nextInQueue =
                 (await _unitOfWork.WaitingListRepository.GetAsync(wl =>
-                    wl.CarId == carId && 
-                    wl.Status == Status.Active && 
-                    wl.NotifiedAt == null, 
+                        wl.CarId == carId &&
+                        wl.Status == Status.Active &&
+                        wl.NotifiedAt == null,
                     includeProperties: new[] { "User", "Car" }))
                 .OrderBy(wl => wl.QueuePosition)
                 .FirstOrDefault();
@@ -293,7 +278,7 @@ namespace Services.Services
 
                 nextInQueue.Status = Status.Notified;
                 nextInQueue.QueuedAt = DateTime.UtcNow;
-                
+
                 await _unitOfWork.WaitingListRepository.UpdateAsync(nextInQueue);
                 await _unitOfWork.SaveAsync();
             }
@@ -307,16 +292,16 @@ namespace Services.Services
             {
                 var waitingListEntriesForCar =
                     await _unitOfWork.WaitingListRepository.GetAsync(wl =>
-                        wl.CarId == completedRent.CarId && 
+                        wl.CarId == completedRent.CarId &&
                         wl.Status == Status.Active || wl.Status == Status.Notified
                     );
-                
+
                 foreach (var entry in waitingListEntriesForCar)
                 {
                     if (entry.UserId == completedRent.RenterId && entry.Status == Status.Notified)
                     {
                         entry.Status = Status.Booked;
-                        await _unitOfWork.WaitingListRepository.UpdateAsync(entry);  
+                        await _unitOfWork.WaitingListRepository.UpdateAsync(entry);
                     }
                     else if (entry.Status == Status.Notified && entry.UserId != completedRent.RenterId)
                     {
@@ -330,6 +315,7 @@ namespace Services.Services
                 await ProcessCarReturnForWaitingListAsync(completedRent.CarId);
             }
         }
+
         public async Task<RentGetDto?> GetRentByCarId(int carId)
         {
             var rent = (await _unitOfWork.RentRepository.GetAsync(r => r.CarId == carId)).FirstOrDefault();
@@ -337,15 +323,17 @@ namespace Services.Services
             {
                 return null;
             }
+
             return _mapper.Map<RentGetDto>(rent);
         }
 
         public async Task<IEnumerable<RentGetDto>> GetRentsByCarIdAsync(int carId)
         {
             string[] includeProps = { "Car", "Renter" };
-            var rents = await _unitOfWork.RentRepository.GetAsync(r => r.CarId == carId, includeProperties: includeProps);
+            var rents = await _unitOfWork.RentRepository.GetAsync(r => r.CarId == carId,
+                includeProperties: includeProps);
 
-         
+
             return _mapper.Map<IEnumerable<RentGetDto>>(rents);
         }
     }

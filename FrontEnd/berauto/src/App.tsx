@@ -8,7 +8,7 @@ import { Notifications } from '@mantine/notifications';
 
 import { AuthProvider } from './context/AuthContext';
 import Routing from './routing/Routing.tsx';
-import ChatbotWidget from './components/ChatbotWidget'; // <-- 1. Import your widget
+import ChatbotWidget from './components/ChatbotWidget';
 
 function App() {
     return (
@@ -16,12 +16,7 @@ function App() {
             <Notifications position="top-right" />
             <BrowserRouter>
                 <AuthProvider>
-                    {/* The content that changes (your routes) */}
                     <Routing />
-
-                    {/* 2. Place it here! */}
-                    {/* It will render on every page, and the Affix component
-                        within it will handle the fixed positioning. */}
                     <ChatbotWidget />
                 </AuthProvider>
             </BrowserRouter>

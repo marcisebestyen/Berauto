@@ -56,9 +56,7 @@ public class Receipt
         set => LineItemsJson = JsonSerializer.Serialize(value);
     }
 
-    [ForeignKey(nameof(RentId))]
-    public Rent Rent { get; set; }
+    [ForeignKey(nameof(RentId))] public Rent Rent { get; set; }
 
-    [ForeignKey(nameof(IssuedBy))]
-    public User IssuerOperator { get; set; }
+    [ForeignKey(nameof(IssuedBy))] public User IssuerOperator { get; set; }
 }

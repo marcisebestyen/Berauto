@@ -382,8 +382,8 @@ namespace Services.Services
                 await _unitOfWork.SaveAsync();
 
                 await _rentService.HandleRentCompletion(rentId);
-                
-                await SendSatisfactionSurvey(rent); 
+
+                await SendSatisfactionSurvey(rent);
             }
             catch (Exception ex)
             {

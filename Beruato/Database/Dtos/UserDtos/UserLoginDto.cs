@@ -10,5 +10,4 @@ public class UserLoginDto
 
     [Required(ErrorMessage = "A jelszó megadása kötelező.")]
     public string Password { get; set; }
-
 }

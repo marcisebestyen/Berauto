@@ -59,6 +59,7 @@ namespace Berauto.Controllers
             {
                 return NotFound($"Car with id {carId} not found.");
             }
+
             return Ok(car);
         }
 
@@ -78,6 +79,7 @@ namespace Berauto.Controllers
             {
                 return BadRequest(ModelState);
             }
+
             var newCar = await _carService.AddCarAsync(createCarDto);
             return CreatedAtAction(nameof(GetCarById), new { carId = newCar.Id }, newCar);
         }
@@ -100,9 +102,9 @@ namespace Berauto.Controllers
         /// <response code="409">Konkurrens módosítási ütközés történt.</response>
         /// <response code="500">Szerver oldali hiba történt.</response>
         [HttpPatch("update/{carId:int}")]
-        public async Task<IActionResult> UpdateCar([FromRoute(Name = "carId")] int id, [FromBody] JsonPatchDocument<Car> patchDocument)
+        public async Task<IActionResult> UpdateCar([FromRoute(Name = "carId")] int id,
+            [FromBody] JsonPatchDocument<Car> patchDocument)
         {
-
             if (patchDocument == null)
             {
                 return BadRequest("A patch dokumentum nem lehet null, vagy érvénytelen formátumú.");
@@ -116,31 +118,34 @@ namespace Berauto.Controllers
             try
             {
                 await _carService.UpdateCarAsync(id, patchDocument, ModelState);
-                return NoContent(); 
+                return NoContent();
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (ArgumentException ex) 
+            catch (ArgumentException ex)
             {
-                if (ModelState.ErrorCount > 0) 
+                if (ModelState.ErrorCount > 0)
                 {
                     return BadRequest(ModelState);
                 }
-                return BadRequest(new { message = ex.Message }); 
+
+                return BadRequest(new { message = ex.Message });
             }
-            catch (InvalidOperationException ex) 
+            catch (InvalidOperationException ex)
             {
                 return Conflict(new { message = ex.Message });
             }
             catch (DbUpdateConcurrencyException /* ex */)
             {
-                return Conflict(new { message = "Az adatokat időközben valaki más módosította. Kérjük, próbálja újra." });
+                return Conflict(
+                    new { message = "Az adatokat időközben valaki más módosította. Kérjük, próbálja újra." });
             }
             catch (DbUpdateException /* ex */)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Hiba történt az adatok frissítése közben." });
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Hiba történt az adatok frissítése közben." });
             }
             catch (Exception /* ex */)
             {
@@ -189,16 +194,18 @@ namespace Berauto.Controllers
         [HttpGet("available")]
         [AllowAnonymous]
         public async Task<IActionResult> GetAvailableCars([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
-        { 
+        {
             DateTime today = DateTime.Today; // A szerver mai napja, éjfél
             if (startDate < today)
             {
                 return BadRequest("A kezdő dátum nem lehet korábbi a mai napnál.");
             }
+
             if (startDate >= endDate)
             {
                 return BadRequest("Start date must be before end date.");
             }
+
             var cars = await _carService.GetAllCarsWithAvailabilityAsync(startDate, endDate);
             return Ok(cars);
         }
