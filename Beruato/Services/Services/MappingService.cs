@@ -40,6 +40,10 @@ public class MappingService : Profile
             .ForMember(dest => dest.RecipientId, opt => opt.MapFrom(src => src.TakenBackBy))
             .ForMember(dest => dest.CarBrand, opt => opt.MapFrom(src => src.Car != null ? src.Car.Brand : null))
             .ForMember(dest => dest.CarModel, opt => opt.MapFrom(src => src.Car != null ? src.Car.Model : null))
+            .ForMember(dest => dest.TotalCost,
+                opt => opt.MapFrom(src => src.TotalCost))
+            .ForMember(dest => dest.ReceiptId,
+                opt => opt.MapFrom(src => src.ReceiptId))
             .ForMember(dest => dest.RenterName, opt => opt.MapFrom(src => src.Renter.UserName));
         CreateMap<RentCreateDto, Rent>();
         CreateMap<RentUpdateByStaffDto, Rent>()

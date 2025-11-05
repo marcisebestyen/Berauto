@@ -92,7 +92,7 @@ namespace Services.Services
 
 
         public async Task<IEnumerable<RentGetDto>> GetAllRentsAsync(
-            RentStatusFilter statusFilter = RentStatusFilter.All, int? userId = null)
+    RentStatusFilter statusFilter = RentStatusFilter.All, int? userId = null)
         {
             Expression<Func<Rent, bool>>? predicate = null;
             bool useGenericGetAsync = true;
@@ -133,12 +133,11 @@ namespace Services.Services
                     {
                         useGenericGetAsync = false;
                     }
-
                     break;
             }
 
             IEnumerable<Rent> rentsFromDb;
-            string[] includeProps = { "Car", "Renter" };
+            string[] includeProps = { "Car", "Renter", "Receipt" };
 
             if (useGenericGetAsync && predicate != null)
             {
@@ -158,7 +157,7 @@ namespace Services.Services
 
         public async Task<RentGetDto?> GetRentByIdAsync(int id)
         {
-            string[] includeProps = { "Car" };
+            string[] includeProps = { "Car", "Receipt" };
             var rents = await _unitOfWork.RentRepository.GetAsync(r => r.Id == id, includeProperties: includeProps);
             var rent = rents.FirstOrDefault();
 
@@ -329,10 +328,9 @@ namespace Services.Services
 
         public async Task<IEnumerable<RentGetDto>> GetRentsByCarIdAsync(int carId)
         {
-            string[] includeProps = { "Car", "Renter" };
+            string[] includeProps = { "Car", "Renter", "Receipt" };
             var rents = await _unitOfWork.RentRepository.GetAsync(r => r.CarId == carId,
                 includeProperties: includeProps);
-
 
             return _mapper.Map<IEnumerable<RentGetDto>>(rents);
         }
