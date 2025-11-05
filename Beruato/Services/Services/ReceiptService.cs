@@ -14,6 +14,8 @@ public interface IReceiptService
     Task<CreateResult<ReceiptGetDto>> CreateReceiptAsync(ReceiptCreateDto receiptDto);
     Task<IEnumerable<ReceiptGetDto>> GetAllReceiptsAsync();
     Task<IEnumerable<ReceiptGetDto>> GetReceiptsByUserIdAsync(int userId);
+    Task<byte[]?> GenerateInvoicePdfByRentIdAsync(int rentId, int requestingUserId);
+
 }
 
 public class ReceiptService : IReceiptService
@@ -229,5 +231,69 @@ public class ReceiptService : IReceiptService
             "Számla (ID: {ReceiptId}) sikeresen létrehozva a bérléshez (RentId: {RentId}). A bérlés IssuedAt, TotalCost és ReceiptId adatai frissítve.",
             newReceipt.Id, newReceipt.RentId);
         return CreateResult<ReceiptGetDto>.Success(createdReceiptDto);
+    }
+    public async Task<byte[]?> GenerateInvoicePdfByRentIdAsync(int rentId, int requestingUserId)
+    {
+        _logger.LogInformation("PDF generálási kérelem RentId: {RentId} User: {UserId}", rentId, requestingUserId);
+
+        // 1. Lekérjük a számlát a BÉRLÉS ID alapján, és a PDF-hez szükséges összes adatot
+        var receipt = (await _unitOfWork.ReceiptRepository.GetAsync(
+            r => r.RentId == rentId,
+            new[] { "Rent.Car", "Rent.Renter" } // Feltöltjük a navigációs property-ket
+        )).FirstOrDefault();
+
+        if (receipt == null)
+        {
+            _logger.LogWarning("PDF generálási kísérlet nem létező számlára (RentId: {RentId})", rentId);
+            return null;
+        }
+
+        var rentEntity = receipt.Rent;
+        if (rentEntity == null)
+        {
+            _logger.LogError("A számlához (Id: {ReceiptId}) nem található társított bérlés.", receipt.Id);
+            return null;
+        }
+
+        // 2. BIZTONSÁGI ELLENŐRZÉS: A felhasználó csak a sajátját töltheti le
+        if (rentEntity.RenterId != requestingUserId)
+        {
+            _logger.LogWarning("Jogosulatlan PDF letöltési kísérlet. User: {UserId}, RentId: {RentId}", requestingUserId, rentId);
+            return null; // Nem küldünk hibát, csak "nem található"
+        }
+
+        // 3. Újraépítjük a PDF-hez szükséges adatokat
+        // (Ezt a logikát a CreateReceiptAsync-ból másoljuk)
+        receipt.Seller = new CompanyInfo
+        {
+            Name = "Autókölcsönző Kft.",
+            Address = "1234 Budapest, Példa utca 1.",
+            TaxId = "HU12345678",
+            BankAccount = "12345678-87654321-12345678",
+            Email = "info@autokolcsonzo.hu"
+        };
+        receipt.Buyer = new CompanyInfo
+        {
+            Name = rentEntity.Renter?.Name ?? "Ismeretlen Vevő",
+            Address = rentEntity.Renter?.Address ?? "Ismeretlen Cím",
+            TaxId = rentEntity.Renter?.LicenceId,
+            Email = rentEntity.Renter?.Email
+        };
+        receipt.LineItems = new List<InvoiceLineItem>
+        {
+            new InvoiceLineItem
+            {
+                Description =
+                    $"Autóbérlés: {rentEntity.Car?.Brand} {rentEntity.Car?.Model} ({rentEntity.Car?.LicencePlate}) " +
+                    $"- {rentEntity.PlannedStart.ToShortDateString()} - {rentEntity.PlannedEnd.ToShortDateString()}",
+                Quantity = 1,
+                UnitPrice = receipt.TotalCost,
+                LineTotal = receipt.TotalCost
+            }
+        };
+
+        // 4. PDF generálása és visszaadása
+        byte[] pdfBytes = _invoicePdfService.GenerateInvoicePdf(receipt);
+        return pdfBytes;
     }
 }
