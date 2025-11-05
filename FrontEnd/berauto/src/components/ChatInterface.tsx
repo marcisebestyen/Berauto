@@ -87,22 +87,39 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onClose}) => {
         }
     };
 
+    const inputStyles = {
+        input: {
+            background: 'rgba(15, 23, 42, 0.5)',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+        }
+    };
+
     return (
         <Paper
             withBorder
-            shadow="md"
+            shadow="xl"
             radius="md"
             p="sm"
-            style={{width: rem(350), height: rem(500), display: 'flex', flexDirection: 'column'}}
+            style={{
+                width: rem(350),
+                height: rem(500),
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
+            }}
         >
             <Group justify="space-between" pb="xs" mb="xs"
-                   style={{borderBottom: `1px solid var(--mantine-color-gray-2)`}}>
-                <Group gap="xs">
-                    <IconMessageChatbot size={20}/>
-                    <Title order={5}>Online Segítség</Title>
+                   style={{borderBottom: `1px solid rgba(255, 255, 255, 0.1)`}}>
+                <Group gap="sm">
+                    <ThemeIcon size="lg" radius="md" variant="light" color="cyan">
+                        <IconMessageChatbot size={20}/>
+                    </ThemeIcon>
+                    <Title order={5} c="white">Online Segítség</Title>
                 </Group>
                 {onClose && (
-                    <ActionIcon variant="subtle" color="gray" onClick={onClose} aria-label="Chat bezárása">
+                    <ActionIcon variant="default" color="gray" onClick={onClose} aria-label="Chat bezárása">
                         <IconX size={18}/>
                     </ActionIcon>
                 )}
@@ -126,11 +143,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onClose}) => {
                 disabled={isBotTyping}
                 rightSection={
                     <ActionIcon onClick={handleSendMessage} disabled={inputValue.trim() === '' || isBotTyping}
-                                variant="filled" size="lg" radius="xl">
+                                variant="filled" size="lg" radius="xl"
+                                style={{
+                                    background: 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)',
+                                }}
+                    >
                         <IconSend size={16}/>
                     </ActionIcon>
                 }
                 radius="xl"
+                styles={inputStyles}
             />
         </Paper>
     );
@@ -142,12 +164,20 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = ({message}) => {
     return (
         <Group gap="sm" wrap="nowrap" style={{alignSelf: isBot ? 'flex-start' : 'flex-end'}}>
             {isBot && (
-                <ThemeIcon size="sm" radius="xl" variant="light">
+                <ThemeIcon size="sm" radius="xl" variant="light" color="cyan">
                     <IconMessageChatbot size={14}/>
                 </ThemeIcon>
             )}
-            <Paper p="xs" radius="md" bg={isBot ? 'gray.1' : theme.primaryColor} style={{maxWidth: '85%'}}>
-                <Text size="sm" c={isBot ? 'dark' : 'white'}>{message.text}</Text>
+            <Paper
+                p="xs"
+                radius="md"
+                bg={isBot ? 'rgba(15, 23, 42, 0.6)' : 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)'}
+                style={{
+                    maxWidth: '85%',
+                    border: isBot ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+                }}
+            >
+                <Text size="sm" c={'white'}>{message.text}</Text>
                 <Text size="xs" c={isBot ? 'dimmed' : theme.colors.blue[1]} ta="right" mt={4}>
                     {dayjs(message.timestamp).format('HH:mm')}
                 </Text>
@@ -158,11 +188,16 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = ({message}) => {
 
 const TypingIndicator = () => (
     <Group gap="sm" wrap="nowrap" style={{alignSelf: 'flex-start'}}>
-        <ThemeIcon size="sm" radius="xl" variant="light">
+        <ThemeIcon size="sm" radius="xl" variant="light" color="cyan">
             <IconMessageChatbot size={14}/>
         </ThemeIcon>
-        <Paper p="xs" radius="md" bg={'gray.1'}>
-            <Loader size="xs" type="dots"/>
+        <Paper
+            p="xs"
+            radius="md"
+            bg={'rgba(15, 23, 42, 0.6)'}
+            style={{border: '1px solid rgba(255, 255, 255, 0.1)'}}
+        >
+            <Loader size="xs" type="dots" color="gray.5"/>
         </Paper>
     </Group>
 );

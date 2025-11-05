@@ -11,9 +11,13 @@ import {
     Title,
     Paper,
     Anchor,
+    Group,
+    ThemeIcon,
+    Box,
+    Divider,
 } from "@mantine/core";
 import {useForm} from '@mantine/form';
-import {IconAt, IconHash, IconLock, IconAlertCircle, IconCheck} from '@tabler/icons-react';
+import {IconAt, IconHash, IconLock, IconAlertCircle, IconCheck, IconKey} from '@tabler/icons-react';
 import axiosInstance from '../api/axios.config.ts';
 
 type ViewMode = 'enterEmail' | 'enterToken' | 'enterNewPassword' | 'success';
@@ -49,7 +53,7 @@ const ForgotPassword = () => {
         try {
             await axiosInstance.post('/password_reset/initiate', {email});
             setSuccessMessage('Ha az e-mail cím regisztrálva van, egy tokent küldtünk rá.');
-            setUserEmail(email); // Store the email for display
+            setUserEmail(email);
             setViewMode('enterToken');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Hiba történt a token kérése közben.');
@@ -74,11 +78,24 @@ const ForgotPassword = () => {
             setSuccessMessage('A jelszó sikeresen módosítva!');
             setViewMode('success');
             form.reset();
-        } catch (err: any) {
+        } catch (err: any)
+        {
             setError(err.response?.data?.message || 'Hiba a jelszó módosításakor. A token lejárt vagy érvénytelen.');
         } finally {
             setLoading(false);
         }
+    };
+
+    const inputStyles = {
+        input: {
+            background: 'rgba(15, 23, 42, 0.5)',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+        }
+    };
+
+    const buttonStyles = {
+        background: 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)',
+        fontWeight: 600,
     };
 
     const renderContent = () => {
@@ -92,8 +109,11 @@ const ForgotPassword = () => {
                                 visszaállításához.
                             </Text>
                             <TextInput required label="E-mail cím" placeholder="pelda@email.com"
-                                       leftSection={<IconAt size={16}/>} {...form.getInputProps('email')} />
-                            <Button type="submit" loading={loading} fullWidth mt="md">Token kérése</Button>
+                                       leftSection={<IconAt size={16}/>} {...form.getInputProps('email')}
+                                       styles={inputStyles}/>
+                            <Button type="submit" loading={loading} fullWidth mt="md" style={buttonStyles} size="md">
+                                Token kérése
+                            </Button>
                         </Stack>
                     </form>
                 );
@@ -107,8 +127,10 @@ const ForgotPassword = () => {
                             </Text>
                             <TextInput required label="Visszaigazoló kód" placeholder="123456"
                                        leftSection={<IconHash size={16}/>} {...form.getInputProps('token')}
-                                       maxLength={6}/>
-                            <Button type="submit" loading={loading} fullWidth mt="md">Tovább</Button>
+                                       maxLength={6} styles={inputStyles}/>
+                            <Button type="submit" loading={loading} fullWidth mt="md" style={buttonStyles} size="md">
+                                Tovább
+                            </Button>
                         </Stack>
                     </form>
                 );
@@ -118,21 +140,27 @@ const ForgotPassword = () => {
                         <Stack>
                             <Text size="sm" c="dimmed">Válassz egy új, erős jelszót.</Text>
                             <PasswordInput required label="Új jelszó" placeholder="Új jelszó"
-                                           leftSection={<IconLock size={16}/>} {...form.getInputProps('newPassword')} />
+                                           leftSection={<IconLock size={16}/>} {...form.getInputProps('newPassword')}
+                                           styles={inputStyles}/>
                             <PasswordInput required label="Új jelszó megerősítése" placeholder="Új jelszó újra"
                                            leftSection={<IconLock
-                                               size={16}/>} {...form.getInputProps('confirmNewPassword')} />
-                            <Button type="submit" loading={loading} fullWidth mt="md">Jelszó megváltoztatása</Button>
+                                               size={16}/>} {...form.getInputProps('confirmNewPassword')}
+                                           styles={inputStyles}/>
+                            <Button type="submit" loading={loading} fullWidth mt="md" style={buttonStyles} size="md">
+                                Jelszó megváltoztatása
+                            </Button>
                         </Stack>
                     </form>
                 );
             case 'success':
                 return (
                     <Stack align="center">
-                        <Alert icon={<IconCheck size="1rem"/>} title="Siker!" color="green" w="100%" ta="left">
+                        <Alert icon={<IconCheck size="1rem"/>} title="Siker!" color="green" w="100%" ta="left" variant="light">
                             {successMessage}
                         </Alert>
-                        <Button onClick={() => navigate('/login')} fullWidth mt="md">Vissza a bejelentkezéshez</Button>
+                        <Button onClick={() => navigate('/login')} fullWidth mt="md" style={buttonStyles} size="md">
+                            Vissza a bejelentkezéshez
+                        </Button>
                     </Stack>
                 );
         }
@@ -140,7 +168,14 @@ const ForgotPassword = () => {
 
     return (
         <Container size={420} my={40}>
-            <Title ta="center">Elfelejtett jelszó</Title>
+            <Title ta="center" fw={900} style={{
+                background: 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                marginBottom: '0.5rem',
+            }}>
+                Elfelejtett jelszó
+            </Title>
             <Text c="dimmed" size="sm" ta="center" mt={5}>
                 Vagy{' '}
                 <Anchor size="sm" component="button" onClick={() => navigate('/login')}>
@@ -148,16 +183,38 @@ const ForgotPassword = () => {
                 </Anchor>
             </Text>
 
-            <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+            <Paper
+                shadow="xl"
+                p={30}
+                mt={30}
+                radius="md"
+                withBorder
+                style={{
+                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                }}
+            >
+                <Group gap="sm" mb="xl">
+                    <ThemeIcon size="xl" radius="md" variant="light" color="cyan">
+                        <IconKey size={28}/>
+                    </ThemeIcon>
+                    <Box>
+                        <Title order={3} size="h4">Jelszó Visszaállítás</Title>
+                        <Text size="sm" c="dimmed">Kövesd a lépéseket a fiókodhoz</Text>
+                    </Box>
+                </Group>
+
+                <Divider mb="xl" opacity={0.1}/>
+
                 {successMessage && viewMode !== 'success' && (
                     <Alert color="teal" title="Információ" withCloseButton onClose={() => setSuccessMessage('')}
-                           mb="md">
+                           mb="md" variant="light">
                         {successMessage}
                     </Alert>
                 )}
                 {error && (
                     <Alert icon={<IconAlertCircle size="1rem"/>} title="Hiba" color="red" withCloseButton
-                           onClose={() => setError('')} mb="md">
+                           onClose={() => setError('')} mb="md" variant="light">
                         {error}
                     </Alert>
                 )}

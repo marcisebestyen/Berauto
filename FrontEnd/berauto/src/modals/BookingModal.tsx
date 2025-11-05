@@ -23,7 +23,7 @@ import {
     IconPhone,
     IconLicense,
     IconCalendarEvent,
-    IconCheck, IconUserCheck,
+    IconCheck, IconUserCheck, IconBookmark,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/hu';
@@ -60,9 +60,9 @@ const BookingModal = ({carId, opened, onClose, initialStartDate, initialEndDate}
             invoiceRequest: false,
         },
         validate: {
-            firstName: (v, values) => (!user && (!v || v.trim() === '') ? 'Keresztnév kötelező' : null),
-            lastName: (v, values) => (!user && (!v || v.trim() === '') ? 'Vezetéknév kötelező' : null),
-            email: (v, values) => (!user && !/^\S+@\S+$/.test(v) ? 'Hibás email cím' : null),
+            firstName: (v) => (!user && (!v || v.trim() === '') ? 'Keresztnév kötelező' : null),
+            lastName: (v) => (!user && (!v || v.trim() === '') ? 'Vezetéknév kötelező' : null),
+            email: (v) => (!user && !/^\S+@\S+$/.test(v) ? 'Hibás email cím' : null),
             plannedStart: (v) => (v ? null : 'Kezdési időpont kötelező'),
             plannedEnd: (v, values) => {
                 if (!v) return 'Befejezési időpont kötelező';
@@ -134,15 +134,72 @@ const BookingModal = ({carId, opened, onClose, initialStartDate, initialEndDate}
 
     const isGuest = !user;
 
+    // Stílus objektumok a referencia alapján
+    const inputStyles = {
+        input: {
+            background: 'rgba(15, 23, 42, 0.5)',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+        }
+    };
+
     return (
-        <Modal opened={opened} onClose={onClose} title="Foglalás részletei" centered size="lg">
+        <Modal
+            opened={opened}
+            onClose={onClose}
+            title={
+                // Címsor stílus a referencia alapján
+                <Group gap="sm">
+                    <IconBookmark size={20} />
+                    <Text fw={700} size="lg">Foglalás részletei</Text>
+                </Group>
+            }
+            centered
+            size="lg"
+            // Modál stílusának átalakítása
+            styles={{
+                content: {
+                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    backdropFilter: 'blur(10px)',
+                },
+                header: {
+                    background: 'transparent',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                },
+                title: {
+                    color: '#FFF',
+                },
+                body: {
+                    paddingBottom: 'var(--mantine-spacing-xl)',
+                }
+            }}
+        >
             <form onSubmit={form.onSubmit(handleSubmit)}>
-                <LoadingOverlay visible={loading}/>
+                <LoadingOverlay visible={loading} overlayProps={{radius: 'sm', blur: 2}}/>
                 <Stack>
                     {!isGuest ? (
-                        <Accordion variant="separated" radius="md" defaultValue="user-data">
+                        <Accordion
+                            variant="separated"
+                            radius="md"
+                            defaultValue="user-data"
+                            // Accordion stílus a sötét témához
+                            styles={{
+                                item: {
+                                    background: 'rgba(15, 23, 42, 0.6)',
+                                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                                },
+                                control: {
+                                    '&:hover': {
+                                        background: 'rgba(30, 41, 59, 0.5)',
+                                    }
+                                },
+                                panel: {
+                                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                                }
+                            }}
+                        >
                             <Accordion.Item value="user-data">
-                                <Accordion.Control icon={<IconUserCheck size={20} color="var(--mantine-color-teal-6)" />}>
+                                <Accordion.Control icon={<IconUserCheck size={20} color="var(--mantine-color-teal-6)"/>}>
                                     <Stack gap={0}>
                                         <Text size="sm" fw={500}>Bejelentkezve mint: {user.firstName} {user.lastName}</Text>
                                         <Text size="xs" c="dimmed">Az adataidat automatikusan kitöltöttük. Kattints a részletekért.</Text>
@@ -151,15 +208,15 @@ const BookingModal = ({carId, opened, onClose, initialStartDate, initialEndDate}
                                 <Accordion.Panel>
                                     <Stack gap="xs" p="xs">
                                         <Group gap="xs">
-                                            <IconAt size={16} stroke={1.5} />
+                                            <IconAt size={16} stroke={1.5}/>
                                             <Text size="sm">{user.email}</Text>
                                         </Group>
                                         <Group gap="xs">
-                                            <IconPhone size={16} stroke={1.5} />
+                                            <IconPhone size={16} stroke={1.5}/>
                                             <Text size="sm">{user.phoneNumber || 'Nincs megadva'}</Text>
                                         </Group>
                                         <Group gap="xs">
-                                            <IconLicense size={16} stroke={1.5} />
+                                            <IconLicense size={16} stroke={1.5}/>
                                             <Text size="sm">{user.licenceId || 'Nincs megadva'}</Text>
                                         </Group>
                                     </Stack>
@@ -173,25 +230,30 @@ const BookingModal = ({carId, opened, onClose, initialStartDate, initialEndDate}
                             <Grid>
                                 <Grid.Col span={{base: 12, sm: 6}}><TextInput withAsterisk label="Vezetéknév"
                                                                               leftSection={<IconUser
-                                                                                  size={16}/>} {...form.getInputProps('lastName')} /></Grid.Col>
+                                                                                  size={16}/>} {...form.getInputProps('lastName')}
+                                                                              styles={inputStyles}/></Grid.Col>
                                 <Grid.Col span={{base: 12, sm: 6}}><TextInput withAsterisk label="Keresztnév"
                                                                               leftSection={<IconUser
-                                                                                  size={16}/>} {...form.getInputProps('firstName')} /></Grid.Col>
+                                                                                  size={16}/>} {...form.getInputProps('firstName')}
+                                                                              styles={inputStyles}/></Grid.Col>
                             </Grid>
                             <TextInput withAsterisk label="Email" type="email"
-                                       leftSection={<IconAt size={16}/>} {...form.getInputProps('email')} />
+                                       leftSection={<IconAt size={16}/>} {...form.getInputProps('email')}
+                                       styles={inputStyles}/>
                             <Grid>
                                 <Grid.Col span={{base: 12, sm: 6}}><TextInput label="Telefonszám"
                                                                               leftSection={<IconPhone
-                                                                                  size={16}/>} {...form.getInputProps('phoneNumber')} /></Grid.Col>
+                                                                                  size={16}/>} {...form.getInputProps('phoneNumber')}
+                                                                              styles={inputStyles}/></Grid.Col>
                                 <Grid.Col span={{base: 12, sm: 6}}><TextInput label="Jogosítvány"
                                                                               leftSection={<IconLicense
-                                                                                  size={16}/>} {...form.getInputProps('licenceId')} /></Grid.Col>
+                                                                                  size={16}/>} {...form.getInputProps('licenceId')}
+                                                                              styles={inputStyles}/></Grid.Col>
                             </Grid>
                         </Stack>
                     )}
 
-                    <Divider my="xs" label="Bérlés időtartama" labelPosition="center"/>
+                    <Divider my="xs" label="Bérlés időtartama" labelPosition="center" opacity={0.1}/>
 
                     <Grid>
                         <Grid.Col span={{base: 12, sm: 6}}>
@@ -203,6 +265,7 @@ const BookingModal = ({carId, opened, onClose, initialStartDate, initialEndDate}
                                 minDate={dayjs().startOf('day').toDate()}
                                 valueFormat='YYYY.MM.DD'
                                 locale='hu'
+                                styles={inputStyles}
                             />
                         </Grid.Col>
                         <Grid.Col span={{base: 12, sm: 6}}>
@@ -214,6 +277,7 @@ const BookingModal = ({carId, opened, onClose, initialStartDate, initialEndDate}
                                 minDate={form.values.plannedStart || dayjs().startOf('day').toDate()}
                                 valueFormat='YYYY.MM.DD'
                                 locale='hu'
+                                styles={inputStyles}
                             />
                         </Grid.Col>
                     </Grid>
@@ -224,7 +288,17 @@ const BookingModal = ({carId, opened, onClose, initialStartDate, initialEndDate}
 
                     <Group justify="flex-end" mt="xl">
                         <Button variant="default" onClick={onClose}>Mégsem</Button>
-                        <Button type="submit" loading={loading}>Foglalás megerősítése</Button>
+                        <Button
+                            type="submit"
+                            loading={loading}
+                            // Gradiens gomb stílus
+                            style={{
+                                background: 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)',
+                                fontWeight: 600,
+                            }}
+                        >
+                            Foglalás megerősítése
+                        </Button>
                     </Group>
                 </Stack>
             </form>

@@ -19,11 +19,12 @@ const ChatbotWidget: React.FC = () => {
             <ActionIcon
                 size="xl"
                 radius="xl"
-                color={opened ? 'red' : 'blue'}
+                color={opened ? 'red' : undefined}
                 variant="filled"
                 onClick={toggle}
                 style={{
                     boxShadow: 'var(--mantine-shadow-md)',
+                    background: !opened ? 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)' : undefined,
                 }}
             >
                 {opened ? <IconX size={24}/> : <IconMessageCircle size={24}/>}

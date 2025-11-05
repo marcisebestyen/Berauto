@@ -169,6 +169,12 @@ const Receipts = {
 
     getForCurrentUser: () =>
         axiosInstance.get<IReceipt[]>("/receipts/user"),
+
+    downloadReceipt: (receiptId: number) => {
+        return axiosInstance.get(`/receipts/${receiptId}/download`, {
+            responseType: 'blob',
+        });
+    }
 };
 
 

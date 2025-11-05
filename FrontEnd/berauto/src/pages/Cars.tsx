@@ -12,6 +12,9 @@ import {
     LoadingOverlay,
     Text,
     ScrollArea,
+    Container,
+    ThemeIcon,
+    Divider,
 } from '@mantine/core';
 import {DatePickerInput} from '@mantine/dates';
 import {useState} from 'react';
@@ -21,6 +24,9 @@ import {
     IconCalendarEvent,
     IconBookmark,
     IconListCheck,
+    IconCar,
+    IconSearch,
+    IconSparkles,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -57,7 +63,6 @@ const Cars = () => {
             return;
         }
 
-        // Ensure dates are valid Date objects
         const validStartDate = startDate instanceof Date ? startDate : new Date(startDate);
         const validEndDate = endDate instanceof Date ? endDate : new Date(endDate);
 
@@ -95,11 +100,9 @@ const Cars = () => {
             ));
 
             const res = await api.Cars.getAvailableCars(utcStartDate, utcEndDate);
-
             setItems(res.data);
         } catch (error: any) {
             console.error('Error fetching cars:', error);
-            console.error('Error response:', error.response);
             notifications.show({
                 title: 'Hiba',
                 message: error.response?.data?.message || error.message || 'Nem sikerült betölteni az autókat.',
@@ -165,31 +168,55 @@ const Cars = () => {
     const renderStatusBadge = (status: CarAvailabilityStatus) => {
         switch (status) {
             case CarAvailabilityStatus.Available:
-                return <Badge color="green" variant="light">Elérhető</Badge>;
+                return <Badge color="green" variant="filled" size="md" tt="uppercase">Elérhető</Badge>;
             case CarAvailabilityStatus.Rented:
-                return <Badge color="red" variant="light">Foglalt</Badge>;
+                return <Badge color="red" variant="filled" size="md" tt="uppercase">Foglalt</Badge>;
             case CarAvailabilityStatus.NotProperCondition:
-                return <Badge color="yellow" variant="light">Nem bérelhető</Badge>;
+                return <Badge color="yellow" variant="filled" size="md" tt="uppercase">Nem bérelhető</Badge>;
             case CarAvailabilityStatus.Deleted:
-                return <Badge color="gray" variant="light">Törölve</Badge>;
+                return <Badge color="gray" variant="filled" size="md" tt="uppercase">Törölve</Badge>;
             default:
-                return <Badge color="gray" variant="light">Ismeretlen</Badge>;
+                return <Badge color="gray" variant="filled" size="md" tt="uppercase">Ismeretlen</Badge>;
         }
     };
 
     const rows = items.map((element) => (
-        <Table.Tr key={element.id}>
+        <Table.Tr key={element.id} style={{
+            transition: 'all 0.2s ease',
+            background: 'rgba(15, 23, 42, 0.4)',
+        }}
+                  onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(30, 41, 59, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(15, 23, 42, 0.4)';
+                  }}>
             <Table.Td>
-                <Text fw={500}>{element.brand}</Text>
-                <Text size="xs" c="dimmed">{element.model}</Text>
+                <Group gap="sm">
+                    <ThemeIcon size="lg" radius="md" variant="light" color="blue">
+                        <IconCar size={20} />
+                    </ThemeIcon>
+                    <Box>
+                        <Text fw={600} size="sm">{element.brand}</Text>
+                        <Text size="xs" c="dimmed">{element.model}</Text>
+                    </Box>
+                </Group>
             </Table.Td>
             <Table.Td>
-                <Badge color="gray" variant="filled" size="lg">
-                    {element.pricePerDay} Ft/nap
+                <Badge
+                    color="cyan"
+                    variant="filled"
+                    size="lg"
+                    tt="none"
+                    style={{
+                        fontWeight: 600,
+                    }}
+                >
+                    {element.pricePerDay.toLocaleString('hu-HU')} Ft/nap
                 </Badge>
             </Table.Td>
             <Table.Td>
-                <Badge color={element.isAutomatic ? 'blue' : 'gray'} variant="light">
+                <Badge color={element.isAutomatic ? 'blue' : 'gray'} variant="filled" size="md" tt="uppercase">
                     {element.isAutomatic ? 'Automata' : 'Manuális'}
                 </Badge>
             </Table.Td>
@@ -197,18 +224,20 @@ const Cars = () => {
             <Table.Td>
                 <Group gap="xs">
                     <Button
-                        size="xs"
-                        leftSection={<IconBookmark size={14}/>}
+                        size="sm"
+                        leftSection={<IconBookmark size={16}/>}
                         onClick={() => openBookingModal(element.id)}
                         disabled={element.status !== CarAvailabilityStatus.Available}
+                        variant="light"
+                        color="blue"
                     >
                         Foglalás
                     </Button>
                     <Button
-                        size="xs"
-                        variant="light"
+                        size="sm"
+                        variant="subtle"
                         color="gray"
-                        leftSection={<IconListCheck size={14}/>}
+                        leftSection={<IconListCheck size={16}/>}
                         onClick={() => handleAddToWaitingList(element.id)}
                         disabled={element.status === CarAvailabilityStatus.Available || element.status === CarAvailabilityStatus.NotProperCondition}
                         loading={isWaitingListLoading === element.id}
@@ -221,88 +250,171 @@ const Cars = () => {
     ));
 
     const initialState = (
-        <Center p="xl" style={{flexDirection: 'column'}}>
-            <IconCalendarSearch size={48} stroke={1.5} style={{opacity: 0.5}}/>
-            <Title order={4} mt="md" fw={500}>Keresés indítása</Title>
-            <Text c="dimmed" size="sm" mt={4}>Kérjük, válasszon kezdő és befejező dátumot az elérhető autók
-                listázásához.</Text>
+        <Center py={60} style={{flexDirection: 'column'}}>
+            <ThemeIcon size={80} radius="xl" variant="light" color="cyan" mb="md"
+                       style={{
+                           background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%)',
+                       }}
+            >
+                <IconCalendarSearch size={40} stroke={1.5} />
+            </ThemeIcon>
+            <Title order={3} fw={700} mb="xs">Keresés indítása</Title>
+            <Text c="dimmed" size="sm" ta="center" maw={400}>
+                Válassz kezdő és befejező dátumot, hogy megtaláld a számodra tökéletes járművet a kívánt időszakra.
+            </Text>
         </Center>
     );
 
     const emptyState = (
-        <Center p="xl" style={{flexDirection: 'column'}}>
-            <IconCarOff size={48} stroke={1.5} style={{opacity: 0.5}}/>
-            <Title order={4} mt="md" fw={500}>Nincsenek találatok</Title>
-            <Text c="dimmed" size="sm" mt={4}>A megadott időintervallumban sajnos egyetlen autó sem elérhető.</Text>
+        <Center py={60} style={{flexDirection: 'column'}}>
+            <ThemeIcon size={80} radius="xl" variant="light" color="gray" mb="md">
+                <IconCarOff size={40} stroke={1.5} />
+            </ThemeIcon>
+            <Title order={3} fw={700} mb="xs">Nincsenek elérhető autók</Title>
+            <Text c="dimmed" size="sm" ta="center" maw={400}>
+                A megadott időintervallumban sajnos egyetlen autó sem elérhető. Próbálj meg másik dátumot választani!
+            </Text>
         </Center>
     );
 
     return (
-        <Stack>
-            <Paper shadow="sm" p="lg" withBorder>
-                <Title order={3} mb="md">Autók keresése</Title>
-                <Grid>
-                    <Grid.Col span={{base: 12, md: 6}}>
-                        <DatePickerInput
-                            label="Bérlés kezdete"
-                            placeholder="Válassz kezdő dátumot"
-                            value={startDate}
-                            onChange={handleStartDateChange}
-                            locale="hu"
-                            clearable
-                            minDate={new Date()}
-                            leftSection={<IconCalendarEvent size={16}/>}
-                        />
-                    </Grid.Col>
-                    <Grid.Col span={{base: 12, md: 6}}>
-                        <DatePickerInput
-                            label="Bérlés vége"
-                            placeholder="Válassz befejező dátumot"
-                            value={endDate}
-                            onChange={handleEndDateChange}
-                            locale="hu"
-                            clearable
-                            minDate={startDate ? dayjs(startDate).add(0, 'day').toDate() : new Date()}
-                            leftSection={<IconCalendarEvent size={16}/>}
-                        />
-                    </Grid.Col>
-                </Grid>
-                <Button
-                    onClick={fetchAllCarsWithAvailability}
-                    mt="lg"
-                    loading={isLoading}
-                    disabled={!startDate || !endDate}
-                    fullWidth
-                    size="md"
-                >
-                    Elérhető autók keresése
-                </Button>
-            </Paper>
-
-            <Paper shadow="sm" p="lg" withBorder>
-                <Box style={{position: 'relative', minHeight: '250px'}}>
-                    <LoadingOverlay visible={isLoading} overlayProps={{radius: 'sm', blur: 2}}/>
-
-                    {!isLoading && !hasSearched && initialState}
-                    {!isLoading && hasSearched && items.length === 0 && emptyState}
-                    {!isLoading && items.length > 0 && (
-                        <ScrollArea>
-                            <Table striped highlightOnHover withTableBorder miw={700}>
-                                <Table.Thead>
-                                    <Table.Tr>
-                                        <Table.Th>Jármű</Table.Th>
-                                        <Table.Th>Ár</Table.Th>
-                                        <Table.Th>Váltó</Table.Th>
-                                        <Table.Th>Státusz</Table.Th>
-                                        <Table.Th>Műveletek</Table.Th>
-                                    </Table.Tr>
-                                </Table.Thead>
-                                <Table.Tbody>{rows}</Table.Tbody>
-                            </Table>
-                        </ScrollArea>
-                    )}
+        <Container size="xl" my="xl">
+            <Stack gap="xl">
+                {/* Fejléc */}
+                <Box>
+                    <Title order={1} size="h2" fw={900} style={{
+                        background: 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        marginBottom: '0.5rem',
+                    }}>
+                        Autók Keresése
+                    </Title>
+                    <Text c="dimmed" size="sm">Találd meg a tökéletes járművet az utazásodhoz</Text>
                 </Box>
-            </Paper>
+
+                {/* Keresési Form */}
+                <Paper shadow="xl" p="xl" withBorder style={{
+                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                }}>
+                    <Group gap="sm" mb="xl">
+                        <ThemeIcon size="xl" radius="md" variant="light" color="cyan">
+                            <IconSearch size={28}/>
+                        </ThemeIcon>
+                        <Box>
+                            <Title order={3} size="h4">Keresési Paraméterek</Title>
+                            <Text size="sm" c="dimmed">Add meg a bérlés időszakát</Text>
+                        </Box>
+                    </Group>
+
+                    <Divider mb="xl" opacity={0.1} />
+
+                    <Grid>
+                        <Grid.Col span={{base: 12, md: 6}}>
+                            <DatePickerInput
+                                label="Bérlés kezdete"
+                                placeholder="Válassz kezdő dátumot"
+                                value={startDate}
+                                onChange={handleStartDateChange}
+                                locale="hu"
+                                clearable
+                                minDate={new Date()}
+                                leftSection={<IconCalendarEvent size={18}/>}
+                                size="md"
+                                styles={{
+                                    input: {
+                                        background: 'rgba(15, 23, 42, 0.5)',
+                                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                                    }
+                                }}
+                            />
+                        </Grid.Col>
+                        <Grid.Col span={{base: 12, md: 6}}>
+                            <DatePickerInput
+                                label="Bérlés vége"
+                                placeholder="Válassz befejező dátumot"
+                                value={endDate}
+                                onChange={handleEndDateChange}
+                                locale="hu"
+                                clearable
+                                minDate={startDate ? dayjs(startDate).add(0, 'day').toDate() : new Date()}
+                                leftSection={<IconCalendarEvent size={18}/>}
+                                size="md"
+                                styles={{
+                                    input: {
+                                        background: 'rgba(15, 23, 42, 0.5)',
+                                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                                    }
+                                }}
+                            />
+                        </Grid.Col>
+                    </Grid>
+                    <Button
+                        onClick={fetchAllCarsWithAvailability}
+                        mt="xl"
+                        loading={isLoading}
+                        disabled={!startDate || !endDate}
+                        fullWidth
+                        size="lg"
+                        leftSection={<IconSparkles size={20}/>}
+                        style={{
+                            background: 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)',
+                            fontWeight: 600,
+                        }}
+                    >
+                        Elérhető autók keresése
+                    </Button>
+                </Paper>
+
+                {/* Eredmények */}
+                <Paper shadow="xl" p="xl" withBorder style={{
+                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                }}>
+                    <Box style={{position: 'relative', minHeight: '300px'}}>
+                        <LoadingOverlay visible={isLoading} overlayProps={{radius: 'sm', blur: 2}}/>
+
+                        {!isLoading && !hasSearched && initialState}
+                        {!isLoading && hasSearched && items.length === 0 && emptyState}
+                        {!isLoading && items.length > 0 && (
+                            <>
+                                <Group gap="sm" mb="xl">
+                                    <ThemeIcon size="xl" radius="md" variant="light" color="blue">
+                                        <IconCar size={28}/>
+                                    </ThemeIcon>
+                                    <Box>
+                                        <Title order={3} size="h4">Elérhető Járművek</Title>
+                                        <Text size="sm" c="dimmed">{items.length} autó találat</Text>
+                                    </Box>
+                                </Group>
+
+                                <Divider mb="xl" opacity={0.1} />
+
+                                <ScrollArea>
+                                    <Table striped={false} highlightOnHover={false} miw={700} style={{
+                                        borderRadius: '8px',
+                                        overflow: 'hidden',
+                                    }}>
+                                        <Table.Thead style={{
+                                            background: 'rgba(15, 23, 42, 0.6)',
+                                        }}>
+                                            <Table.Tr>
+                                                <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Jármű</Table.Th>
+                                                <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Ár</Table.Th>
+                                                <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Váltó</Table.Th>
+                                                <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Státusz</Table.Th>
+                                                <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Műveletek</Table.Th>
+                                            </Table.Tr>
+                                        </Table.Thead>
+                                        <Table.Tbody>{rows}</Table.Tbody>
+                                    </Table>
+                                </ScrollArea>
+                            </>
+                        )}
+                    </Box>
+                </Paper>
+            </Stack>
 
             {selectedCarId !== null && (
                 <BookingModal
@@ -317,7 +429,7 @@ const Cars = () => {
                     initialEndDate={endDate}
                 />
             )}
-        </Stack>
+        </Container>
     );
 };
 

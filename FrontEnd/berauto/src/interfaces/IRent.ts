@@ -19,6 +19,7 @@ export interface ISimpleRent {
     actualStart?: string | null;
     actualEnd?: string | null;
     totalCost?: number | null;
+    receiptId?: number | null;
 }
 
 
