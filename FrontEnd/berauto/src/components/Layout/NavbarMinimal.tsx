@@ -114,7 +114,6 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
             { icon: IconTransferOut, label: "Autóátadások", url: "/staff/handovers", color: "violet" },
             { icon: IconRun, label: "Futó Kölcsönzések", url: "/staff/running-rents", color: "orange" },
             { icon: IconLockCheck, label: "Lezárt Kölcsönzések", url: "/staff/completed-rents", color: "lime" },
-            { icon: IconUserCircle, label: "Számlák", url: "/staff/receipts", color: "blue" },
         ];
 
         const userSpecificItems = [

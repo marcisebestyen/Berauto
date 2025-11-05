@@ -10,7 +10,6 @@ import RunningRents from "../pages/RunningRents.tsx";
 import AddCar from "../pages/AddCar.tsx";
 import {CompletedRents} from "../pages/CompletedRents.tsx";
 import UpdateCar from "../pages/UpdateCar.tsx";
-import ReceiptListPage from "../pages/ReceiptListPage";
 import MyReceiptsPage from "../pages/MyReceiptsPage";
 import DeleteCarPage from "../pages/DeleteCarPage.tsx";
 import CarListPage from "../pages/CarList.tsx";
@@ -76,12 +75,6 @@ export const routes = [
     {
         path: "staff/completed-rents",
         component: <CompletedRents/>,
-        isPrivate: true,
-        roles: [ROLES.STAFF, ROLES.ADMIN],
-    },
-    {
-        path: "staff/receipts",
-        component: <ReceiptListPage/>,
         isPrivate: true,
         roles: [ROLES.STAFF, ROLES.ADMIN],
     },
