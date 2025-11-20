@@ -11,6 +11,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<User> UserRepository { get; }
     IRepository<WaitingList> WaitingListRepository { get; }
     IRepository<PasswordReset> PasswordResetRepository { get; }
+    IRepository<Depot> DepotRepository { get; }
 
     Task SaveAsync();
 }
@@ -25,6 +26,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<User> UserRepository { get; set; }
     public IRepository<WaitingList> WaitingListRepository { get; set; }
     public IRepository<PasswordReset> PasswordResetRepository { get; set; }
+    public IRepository<Depot> DepotRepository { get; set; }
 
     public UnitOfWork(BerautoDbContext context)
     {
@@ -35,6 +37,7 @@ public class UnitOfWork : IUnitOfWork
         UserRepository = new Repository<User>(_context);
         WaitingListRepository = new Repository<WaitingList>(_context);
         PasswordResetRepository = new Repository<PasswordReset>(_context);
+        DepotRepository = new Repository<Depot>(_context);
     }
 
     public async Task SaveAsync()
