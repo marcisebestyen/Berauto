@@ -3,6 +3,7 @@ using System;
 using Database.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Database.Migrations
 {
     [DbContext(typeof(BerautoDbContext))]
-    partial class BerautoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251120103313_DepotMigrations")]
+    partial class DepotMigrations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -194,9 +197,6 @@ namespace Database.Migrations
                     b.Property<int?>("IssuedBy")
                         .HasColumnType("integer");
 
-                    b.Property<int>("PickUpDepotId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("PlannedEnd")
                         .HasColumnType("timestamp with time zone");
 
@@ -207,9 +207,6 @@ namespace Database.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("RenterId")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("ReturnDepotId")
                         .HasColumnType("integer");
 
                     b.Property<decimal?>("StartingKilometer")
@@ -229,15 +226,11 @@ namespace Database.Migrations
 
                     b.HasIndex("IssuedBy");
 
-                    b.HasIndex("PickUpDepotId");
-
                     b.HasIndex("ReceiptId")
                         .IsUnique()
                         .HasFilter("\"ReceiptId\" IS NOT NULL");
 
                     b.HasIndex("RenterId");
-
-                    b.HasIndex("ReturnDepotId");
 
                     b.HasIndex("TakenBackBy");
 
@@ -441,21 +434,11 @@ namespace Database.Migrations
                         .HasForeignKey("IssuedBy")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Database.Models.Depot", "PickUpDepot")
-                        .WithMany()
-                        .HasForeignKey("PickUpDepotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Database.Models.User", "Renter")
                         .WithMany()
                         .HasForeignKey("RenterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Database.Models.Depot", "ReturnDepot")
-                        .WithMany()
-                        .HasForeignKey("ReturnDepotId");
 
                     b.HasOne("Database.Models.User", "RecipientOperator")
                         .WithMany()
@@ -468,13 +451,9 @@ namespace Database.Migrations
 
                     b.Navigation("IssuerOperator");
 
-                    b.Navigation("PickUpDepot");
-
                     b.Navigation("RecipientOperator");
 
                     b.Navigation("Renter");
-
-                    b.Navigation("ReturnDepot");
                 });
 
             modelBuilder.Entity("Database.Models.WaitingList", b =>

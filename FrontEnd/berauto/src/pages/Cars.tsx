@@ -15,9 +15,10 @@ import {
     Container,
     ThemeIcon,
     Divider,
+    Select,
 } from '@mantine/core';
 import {DatePickerInput} from '@mantine/dates';
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import {
     IconCalendarSearch,
     IconCarOff,
@@ -27,6 +28,7 @@ import {
     IconCar,
     IconSearch,
     IconSparkles,
+    IconMapPin,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
@@ -34,6 +36,7 @@ import 'dayjs/locale/hu';
 
 import api from '../api/api.ts';
 import {ICar, CarAvailabilityStatus} from '../interfaces/ICar.ts';
+import {IDepot} from '../interfaces/IDepot.ts';
 import {notifications} from '@mantine/notifications';
 import BookingModal from '../modals/BookingModal';
 
@@ -42,13 +45,33 @@ dayjs.locale('hu');
 
 const Cars = () => {
     const [items, setItems] = useState<ICar[]>([]);
+    const [depots, setDepots] = useState<IDepot[]>([]);
     const [startDate, setStartDate] = useState<Date | null>(null);
     const [endDate, setEndDate] = useState<Date | null>(null);
+    const [selectedDepotId, setSelectedDepotId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isWaitingListLoading, setIsWaitingListLoading] = useState<number | null>(null);
     const [selectedCarId, setSelectedCarId] = useState<number | null>(null);
     const [bookingOpen, setBookingOpen] = useState(false);
     const [hasSearched, setHasSearched] = useState(false);
+
+    // Fetch depots on component mount
+    useEffect(() => {
+        const fetchDepots = async () => {
+            try {
+                const res = await api.Depots.getAll();
+                setDepots(res.data);
+            } catch (error: any) {
+                console.error('Error fetching depots:', error);
+                notifications.show({
+                    title: 'Hiba',
+                    message: 'Nem sikerült betölteni a telephelyeket.',
+                    color: 'red',
+                });
+            }
+        };
+        fetchDepots();
+    }, []);
 
     const fetchAllCarsWithAvailability = async () => {
         setHasSearched(true);
@@ -99,7 +122,9 @@ const Cars = () => {
                 validEndDate.getDate()
             ));
 
-            const res = await api.Cars.getAvailableCars(utcStartDate, utcEndDate);
+            // Call API with optional depotId parameter
+            const depotIdParam = selectedDepotId ? parseInt(selectedDepotId, 10) : undefined;
+            const res = await api.Cars.getAvailableCars(utcStartDate, utcEndDate, depotIdParam);
             setItems(res.data);
         } catch (error: any) {
             console.error('Error fetching cars:', error);
@@ -180,74 +205,94 @@ const Cars = () => {
         }
     };
 
-    const rows = items.map((element) => (
-        <Table.Tr key={element.id} style={{
-            transition: 'all 0.2s ease',
-            background: 'rgba(15, 23, 42, 0.4)',
-        }}
-                  onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(30, 41, 59, 0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(15, 23, 42, 0.4)';
-                  }}>
-            <Table.Td>
-                <Group gap="sm">
-                    <ThemeIcon size="lg" radius="md" variant="light" color="blue">
-                        <IconCar size={20} />
-                    </ThemeIcon>
-                    <Box>
-                        <Text fw={600} size="sm">{element.brand}</Text>
-                        <Text size="xs" c="dimmed">{element.model}</Text>
-                    </Box>
-                </Group>
-            </Table.Td>
-            <Table.Td>
-                <Badge
-                    color="cyan"
-                    variant="filled"
-                    size="lg"
-                    tt="none"
-                    style={{
-                        fontWeight: 600,
-                    }}
-                >
-                    {element.pricePerDay.toLocaleString('hu-HU')} Ft/nap
-                </Badge>
-            </Table.Td>
-            <Table.Td>
-                <Badge color={element.isAutomatic ? 'blue' : 'gray'} variant="filled" size="md" tt="uppercase">
-                    {element.isAutomatic ? 'Automata' : 'Manuális'}
-                </Badge>
-            </Table.Td>
-            <Table.Td>{renderStatusBadge(element.status)}</Table.Td>
-            <Table.Td>
-                <Group gap="xs">
-                    <Button
-                        size="sm"
-                        leftSection={<IconBookmark size={16}/>}
-                        onClick={() => openBookingModal(element.id)}
-                        disabled={element.status !== CarAvailabilityStatus.Available}
-                        variant="light"
-                        color="blue"
+    const getDepotById = (depotId: number): IDepot | undefined => {
+        return depots.find(d => d.id === depotId);
+    };
+
+    const rows = items.map((element) => {
+        const depot = getDepotById(element.depotId);
+        return (
+            <Table.Tr key={element.id} style={{
+                transition: 'all 0.2s ease',
+                background: 'rgba(15, 23, 42, 0.4)',
+            }}
+                      onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(30, 41, 59, 0.5)';
+                      }}
+                      onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(15, 23, 42, 0.4)';
+                      }}>
+                <Table.Td>
+                    <Group gap="sm">
+                        <ThemeIcon size="lg" radius="md" variant="light" color="blue">
+                            <IconCar size={20} />
+                        </ThemeIcon>
+                        <Box>
+                            <Text fw={600} size="sm">{element.brand}</Text>
+                            <Text size="xs" c="dimmed">{element.model}</Text>
+                        </Box>
+                    </Group>
+                </Table.Td>
+                <Table.Td>
+                    {depot ? (
+                        <Group gap="xs">
+                            <IconMapPin size={16} stroke={1.5} />
+                            <Box>
+                                <Text size="sm" fw={500}>{depot.name}</Text>
+                                <Text size="xs" c="dimmed">{depot.city}</Text>
+                            </Box>
+                        </Group>
+                    ) : (
+                        <Text size="sm" c="dimmed">Nincs adat</Text>
+                    )}
+                </Table.Td>
+                <Table.Td>
+                    <Badge
+                        color="cyan"
+                        variant="filled"
+                        size="lg"
+                        tt="none"
+                        style={{
+                            fontWeight: 600,
+                        }}
                     >
-                        Foglalás
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="subtle"
-                        color="gray"
-                        leftSection={<IconListCheck size={16}/>}
-                        onClick={() => handleAddToWaitingList(element.id)}
-                        disabled={element.status === CarAvailabilityStatus.Available || element.status === CarAvailabilityStatus.NotProperCondition}
-                        loading={isWaitingListLoading === element.id}
-                    >
-                        Várólista
-                    </Button>
-                </Group>
-            </Table.Td>
-        </Table.Tr>
-    ));
+                        {element.pricePerDay.toLocaleString('hu-HU')} Ft/nap
+                    </Badge>
+                </Table.Td>
+                <Table.Td>
+                    <Badge color={element.isAutomatic ? 'blue' : 'gray'} variant="filled" size="md" tt="uppercase">
+                        {element.isAutomatic ? 'Automata' : 'Manuális'}
+                    </Badge>
+                </Table.Td>
+                <Table.Td>{renderStatusBadge(element.status)}</Table.Td>
+                <Table.Td>
+                    <Group gap="xs">
+                        <Button
+                            size="sm"
+                            leftSection={<IconBookmark size={16}/>}
+                            onClick={() => openBookingModal(element.id)}
+                            disabled={element.status !== CarAvailabilityStatus.Available}
+                            variant="light"
+                            color="blue"
+                        >
+                            Foglalás
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="subtle"
+                            color="gray"
+                            leftSection={<IconListCheck size={16}/>}
+                            onClick={() => handleAddToWaitingList(element.id)}
+                            disabled={element.status === CarAvailabilityStatus.Available || element.status === CarAvailabilityStatus.NotProperCondition}
+                            loading={isWaitingListLoading === element.id}
+                        >
+                            Várólista
+                        </Button>
+                    </Group>
+                </Table.Td>
+            </Table.Tr>
+        );
+    });
 
     const initialState = (
         <Center py={60} style={{flexDirection: 'column'}}>
@@ -277,6 +322,11 @@ const Cars = () => {
         </Center>
     );
 
+    const depotSelectData = depots.map(depot => ({
+        value: depot.id.toString(),
+        label: `${depot.name} - ${depot.city}`
+    }));
+
     return (
         <Container size="xl" my="xl">
             <Stack gap="xl">
@@ -304,14 +354,14 @@ const Cars = () => {
                         </ThemeIcon>
                         <Box>
                             <Title order={3} size="h4">Keresési Paraméterek</Title>
-                            <Text size="sm" c="dimmed">Add meg a bérlés időszakát</Text>
+                            <Text size="sm" c="dimmed">Add meg a bérlés időszakát és telephelyet</Text>
                         </Box>
                     </Group>
 
                     <Divider mb="xl" opacity={0.1} />
 
                     <Grid>
-                        <Grid.Col span={{base: 12, md: 6}}>
+                        <Grid.Col span={{base: 12, md: 4}}>
                             <DatePickerInput
                                 label="Bérlés kezdete"
                                 placeholder="Válassz kezdő dátumot"
@@ -330,7 +380,7 @@ const Cars = () => {
                                 }}
                             />
                         </Grid.Col>
-                        <Grid.Col span={{base: 12, md: 6}}>
+                        <Grid.Col span={{base: 12, md: 4}}>
                             <DatePickerInput
                                 label="Bérlés vége"
                                 placeholder="Válassz befejező dátumot"
@@ -340,6 +390,24 @@ const Cars = () => {
                                 clearable
                                 minDate={startDate ? dayjs(startDate).add(0, 'day').toDate() : new Date()}
                                 leftSection={<IconCalendarEvent size={18}/>}
+                                size="md"
+                                styles={{
+                                    input: {
+                                        background: 'rgba(15, 23, 42, 0.5)',
+                                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                                    }
+                                }}
+                            />
+                        </Grid.Col>
+                        <Grid.Col span={{base: 12, md: 4}}>
+                            <Select
+                                label="Telephely (opcionális)"
+                                placeholder="Válassz telephelyet"
+                                value={selectedDepotId}
+                                onChange={setSelectedDepotId}
+                                data={depotSelectData}
+                                clearable
+                                leftSection={<IconMapPin size={18}/>}
                                 size="md"
                                 styles={{
                                     input: {
@@ -392,7 +460,7 @@ const Cars = () => {
                                 <Divider mb="xl" opacity={0.1} />
 
                                 <ScrollArea>
-                                    <Table striped={false} highlightOnHover={false} miw={700} style={{
+                                    <Table striped={false} highlightOnHover={false} miw={800} style={{
                                         borderRadius: '8px',
                                         overflow: 'hidden',
                                     }}>
@@ -401,6 +469,7 @@ const Cars = () => {
                                         }}>
                                             <Table.Tr>
                                                 <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Jármű</Table.Th>
+                                                <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Telephely</Table.Th>
                                                 <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Ár</Table.Th>
                                                 <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Váltó</Table.Th>
                                                 <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Státusz</Table.Th>
@@ -427,6 +496,8 @@ const Cars = () => {
                     }}
                     initialStartDate={startDate}
                     initialEndDate={endDate}
+                    initialDepotId={selectedDepotId ? parseInt(selectedDepotId, 10) : null}
+                    depots={depots}
                 />
             )}
         </Container>

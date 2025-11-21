@@ -36,5 +36,6 @@
         public ICollection<WaitingList> WaitingLists { get; set; } = new List<WaitingList>();
         public DateTime? LastTechnicalInspection { get; set; }
         public decimal? KilometersAtLastInspection { get; set; }
+        public int DepotId { get; set; }
     }
 }

@@ -12,6 +12,8 @@
         public int? IssuedBy { get; set; }
         public int? TakenBackBy { get; set; }
         public int CarId { get; set; }
+        public int PickUpDepotId { get; set; }
+        public int? ReturnDepotId { get; set; }
         public decimal? StartingKilometer { get; set; }
         public decimal? EndingKilometer { get; set; }
         public bool InvoiceRequest { get; set; }
@@ -25,5 +27,7 @@
         public User RecipientOperator { get; set; }
         public Car Car { get; set; }
         public Receipt Receipt { get; set; }
+        public Depot PickUpDepot { get; set; }
+        public Depot ReturnDepot { get; set; }
     }
 }

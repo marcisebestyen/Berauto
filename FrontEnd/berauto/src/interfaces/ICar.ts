@@ -23,6 +23,8 @@ export interface ICar {
     isDeleted: boolean;
     isRented: boolean;
     status: CarAvailabilityStatus;
+    depotId: number;
+    depotName: string;
 }
 
 export interface CarFormData {

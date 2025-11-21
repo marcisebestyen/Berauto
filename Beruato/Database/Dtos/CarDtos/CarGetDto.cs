@@ -14,4 +14,6 @@ public class CarGetDto
     public decimal PricePerDay { get; set; }
     public bool IsAutomatic { get; set; }
     public decimal ActualKilometers { get; set; }
+    public int DepotId { get; set; }
+    public string DepotName { get; set; }
 }

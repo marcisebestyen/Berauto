@@ -22,6 +22,7 @@ public class TakeBackRequestDto
     /// (The odometer reading of the car at the time of return.)
     /// </summary>
     public decimal EndingKilometer { get; set; }
+    public int ReturnDepotId { get; set; }
 }
 
 public class RejectRentRequestDto

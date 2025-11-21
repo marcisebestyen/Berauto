@@ -46,6 +46,13 @@ namespace Services.Services
 
         public async Task<RentGetDto> AddRentAsync(RentCreateDto createRentDto)
         {
+            // Validate Depot existence
+            var depot = await _unitOfWork.DepotRepository.GetByIdAsync(new object[] { createRentDto.PickUpDepotId });
+            if (depot == null)
+            {
+                throw new KeyNotFoundException($"Depot with ID {createRentDto.PickUpDepotId} not found.");
+            }
+
             var rent = _mapper.Map<Rent>(createRentDto);
 
             await _unitOfWork.RentRepository.InsertAsync(rent);
@@ -63,6 +70,14 @@ namespace Services.Services
                 throw new ArgumentNullException(nameof(createGuestRentDto));
             }
 
+            // Validate Depot existence
+            var depot = await _unitOfWork.DepotRepository.GetByIdAsync(
+                new object[] { createGuestRentDto.PickUpDepotId });
+            if (depot == null)
+            {
+                throw new KeyNotFoundException($"Depot with ID {createGuestRentDto.PickUpDepotId} not found.");
+            }
+
             var guestUserDetails = new UserCreateGuestDto
             {
                 FirstName = createGuestRentDto.FirstName,
@@ -77,6 +92,9 @@ namespace Services.Services
             {
                 CarId = createGuestRentDto.CarId,
                 RenterId = guestUser.Id,
+                PickUpDepotId =
+                    createGuestRentDto
+                        .PickUpDepotId, // Manually mapping here as it's not using AutoMapper for GuestRent -> Rent
                 PlannedStart = createGuestRentDto.PlannedStart,
                 PlannedEnd = createGuestRentDto.PlannedEnd,
                 InvoiceRequest = createGuestRentDto.InvoiceRequest,
@@ -92,7 +110,7 @@ namespace Services.Services
 
 
         public async Task<IEnumerable<RentGetDto>> GetAllRentsAsync(
-    RentStatusFilter statusFilter = RentStatusFilter.All, int? userId = null)
+            RentStatusFilter statusFilter = RentStatusFilter.All, int? userId = null)
         {
             Expression<Func<Rent, bool>>? predicate = null;
             bool useGenericGetAsync = true;
@@ -133,11 +151,13 @@ namespace Services.Services
                     {
                         useGenericGetAsync = false;
                     }
+
                     break;
             }
 
             IEnumerable<Rent> rentsFromDb;
-            string[] includeProps = { "Car", "Renter", "Receipt" };
+            // UPDATED: Included "PickUpDepot"
+            string[] includeProps = { "Car", "Renter", "Receipt", "PickUpDepot" };
 
             if (useGenericGetAsync && predicate != null)
             {
@@ -157,7 +177,8 @@ namespace Services.Services
 
         public async Task<RentGetDto?> GetRentByIdAsync(int id)
         {
-            string[] includeProps = { "Car", "Receipt" };
+            // UPDATED: Included "PickUpDepot"
+            string[] includeProps = { "Car", "Receipt", "PickUpDepot" };
             var rents = await _unitOfWork.RentRepository.GetAsync(r => r.Id == id, includeProperties: includeProps);
             var rent = rents.FirstOrDefault();
 
@@ -328,7 +349,8 @@ namespace Services.Services
 
         public async Task<IEnumerable<RentGetDto>> GetRentsByCarIdAsync(int carId)
         {
-            string[] includeProps = { "Car", "Renter", "Receipt" };
+            // UPDATED: Included "PickUpDepot"
+            string[] includeProps = { "Car", "Renter", "Receipt", "PickUpDepot" };
             var rents = await _unitOfWork.RentRepository.GetAsync(r => r.CarId == carId,
                 includeProperties: includeProps);
 

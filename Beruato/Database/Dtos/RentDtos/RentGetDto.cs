@@ -18,6 +18,10 @@ public class RentGetDto
     public int? ApproverId { get; set; }
     public int? IssuerId { get; set; }
     public int? RecipientId { get; set; }
+    public int PickUpDepotId { get; set; }
+    public int? ReturnDepotId { get; set; }
+    public string PickUpDepotName { get; set; }
+    public string ReturnDepotName { get; set; }
 
     // Autó adatok
     public string CarBrand { get; set; }
