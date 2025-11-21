@@ -1,6 +1,7 @@
 using AutoMapper;
 using Database.Models;
 using Database.Dtos.CarDtos;
+using Database.Dtos.DepotDtos;
 using Database.Dtos.ReceiptDtos;
 using Database.Dtos.RentDtos;
 using Database.Dtos.UserDtos;
@@ -62,6 +63,13 @@ public class MappingService : Profile
             .ForMember(dest => dest.PlannedEnd, opt => opt.MapFrom(src => src.Rent.PlannedEnd))
             .ForMember(dest => dest.RenterName, opt => opt.MapFrom(src => src.Rent.Renter.UserName));
         CreateMap<UpdateReceiptDto, Receipt>()
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+        CreateMap<Depot, DepotGetDto>();
+
+        CreateMap<DepotCreateDto, Depot>();
+
+        CreateMap<DepotUpdateDto, Depot>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
     }
 }

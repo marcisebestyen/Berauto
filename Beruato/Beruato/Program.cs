@@ -74,6 +74,7 @@ namespace Beruato
                 var logger = provider.GetRequiredService<ILogger<FaqService>>();
                 return new FaqService(dbContext, geminiApiKey, logger);
             });
+            builder.Services.AddScoped<IDepotService, DepotService>();
 
             builder.Services.Configure<Services.Configurations.MailSettings>(
                 builder.Configuration.GetSection("MailtrapSettings"));
