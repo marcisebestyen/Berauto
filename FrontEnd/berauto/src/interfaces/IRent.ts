@@ -31,6 +31,7 @@ export interface IGuestRentCreateDto {
     licenceId?: string | null;
 
     carId: number;
+    pickUpDepotId: number;
     plannedStart: string;
     plannedEnd: string;
     invoiceRequest: boolean;
@@ -40,6 +41,7 @@ export interface IGuestRentCreateDto {
 export interface IRentCreateDto {
     carId: number;
     renterId: number;
+    pickUpDepotId: number;
     plannedStart: string;
     plannedEnd: string;
     invoiceRequest: boolean;

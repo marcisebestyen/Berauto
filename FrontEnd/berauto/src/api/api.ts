@@ -2,6 +2,7 @@ import axiosInstance from "./axios.config.ts";
 import {CarFormData, ICar} from "../interfaces/ICar.ts";
 import {IUserProfile} from "../interfaces/IUser.ts";
 import {ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto} from "../interfaces/IRent.ts";
+import {IDepot} from "../interfaces/IDepot.ts";
 import {IReceipt, IReceiptCreateDto} from "../interfaces/IReceipt";
 import {IWaitingListResponse} from "../interfaces/IWaitingList.ts";
 import {
@@ -20,12 +21,17 @@ interface JsonPatchOperation {
 
 
 const Cars = {
-    getAvailableCars: (startDate: Date, endDate: Date) => {
+    getAvailableCars: (startDate: Date, endDate: Date, depotId?: number) => {
         const formattedStartDate = startDate.toISOString();
         const formattedEndDate = endDate.toISOString();
-        return axiosInstance.get<ICar[]>(
-            `/cars/available?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
-        );
+
+        let url = `/cars/available?startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
+
+        if (depotId !== undefined) {
+            url += `&depotId=${depotId}`;
+        }
+
+        return axiosInstance.get<ICar[]>(url);
     },
     updateCar: (id: number, patchDocument: JsonPatchOperation[]) => {
         return axiosInstance.patch<void>(
@@ -157,6 +163,45 @@ const Staff = {
     }
 };
 
+const Depots = {
+    /**
+     * Lekérdezi az összes telephelyet (nyilvános endpoint).
+     */
+    getAll: () =>
+        axiosInstance.get<IDepot[]>('/api/depots/get-all'),
+
+    /**
+     * Lekérdezi egy telephely adatait azonosító alapján (nyilvános endpoint).
+     */
+    getById: (depotId: number) =>
+        axiosInstance.get<IDepot>(`/api/depots/get/${depotId}`),
+
+    /**
+     * Új telephely létrehozása (Admin csak).
+     */
+    create: (data: Omit<IDepot, 'id'>) =>
+        axiosInstance.post<IDepot>('/api/depots/create-depot', data),
+
+    /**
+     * Telephely módosítása JSON Patch dokumentummal (Admin csak).
+     */
+    update: (depotId: number, patchDocument: JsonPatchOperation[]) =>
+        axiosInstance.patch<void>(
+            `/api/depots/update/${depotId}`,
+            patchDocument,
+            {
+                headers: {
+                    'Content-Type': 'application/json-patch+json'
+                }
+            }
+        ),
+
+    /**
+     * Telephely törlése (Admin csak).
+     */
+    delete: (depotId: number) =>
+        axiosInstance.delete<void>(`/api/depots/delete/${depotId}`)
+};
 
 const Receipts = {
     getAll: () => axiosInstance.get<IReceipt[]>("/receipts/GetAllReceipts"),
@@ -178,6 +223,6 @@ const Receipts = {
 };
 
 
-const api = {Cars, Users, Rents, Staff, Receipts};
+const api = {Cars, Users, Rents, Staff, Depots, Receipts};
 
 export default api;
