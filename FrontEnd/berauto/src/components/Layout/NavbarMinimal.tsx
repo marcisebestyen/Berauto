@@ -6,11 +6,9 @@ import {
     IconCar,
     IconListCheck,
     IconTransferOut,
-    IconRun,
-    IconLockCheck,
     IconPlus,
     IconCircleMinus,
-    IconList
+    IconList, IconChartLine
 } from "@tabler/icons-react";
 import classes from "./NavbarMinimalColored.module.css";
 import {useNavigate, useLocation} from "react-router-dom";
@@ -110,10 +108,8 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
         ];
 
         const staffSpecificItems = [
-            { icon: IconListCheck, label: "Igények Kezelése", url: "/staff/pending-rents", color: "green" },
             { icon: IconTransferOut, label: "Autóátadások", url: "/staff/handovers", color: "violet" },
-            { icon: IconRun, label: "Futó Kölcsönzések", url: "/staff/running-rents", color: "orange" },
-            { icon: IconLockCheck, label: "Lezárt Kölcsönzések", url: "/staff/completed-rents", color: "lime" },
+            { icon: IconListCheck, label: "Kölcsönzések Kezelése", url: "/staff/rentals", color: "blue" },
         ];
 
         const userSpecificItems = [
@@ -121,6 +117,7 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
         ];
 
         const adminSpecificItems = [
+            { icon: IconChartLine, label: "Dashboard", url: "/admin/dashboard", color: "yellow" },
             { icon: IconPlus, label: "Autó hozzáadása", url: "/admin/add-car", color: "teal" },
             { icon: IconCar, label: "Autó szerkesztése", url: "/admin/update", color: "blue" },
             { icon: IconCircleMinus, label: "Autó eltávolítása", url: "/admin/delete", color: "red" },

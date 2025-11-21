@@ -10,6 +10,7 @@ import {
     IRejectRequestDto,
     IRejectSuccessResponse
 } from "../interfaces/RequestDto.ts";
+import {IStatistics} from "../interfaces/IStatistics.ts";
 
 interface JsonPatchOperation {
     op: "replace" | "add" | "remove" | "copy" | "move" | "test";
@@ -157,7 +158,11 @@ const Staff = {
     }
 };
 
-
+const Statistics = {
+    getDashboardStats: () => {
+        return axiosInstance.get<IStatistics>('/statistics/dashboard');
+    }
+}
 const Receipts = {
     getAll: () => axiosInstance.get<IReceipt[]>("/receipts/GetAllReceipts"),
 
@@ -178,6 +183,6 @@ const Receipts = {
 };
 
 
-const api = {Cars, Users, Rents, Staff, Receipts};
+const api = {Cars, Users, Rents, Staff, Receipts, Statistics};
 
 export default api;

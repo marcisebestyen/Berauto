@@ -4,16 +4,15 @@ import Dashboard from "../pages/Dashboard.tsx";
 import Cars from "../pages/Cars.tsx";
 import ProfilePage from "../pages/ProfilePage.tsx";
 import RegisterPage from "../pages/Register.tsx";
-import PendingRentPage from "../pages/PendingRentPage.tsx";
 import CarHandoverPage from "../pages/CarHandoverPage.tsx";
-import RunningRents from "../pages/RunningRents.tsx";
 import AddCar from "../pages/AddCar.tsx";
-import {CompletedRents} from "../pages/CompletedRents.tsx";
 import UpdateCar from "../pages/UpdateCar.tsx";
 import MyReceiptsPage from "../pages/MyReceiptsPage";
 import DeleteCarPage from "../pages/DeleteCarPage.tsx";
 import CarListPage from "../pages/CarList.tsx";
 import CarDetailsPage from "../pages/CarDetails.tsx";
+import AdminRentalsPage from "../pages/AdminRentalsPage.tsx";
+import AdminDashboard from "../pages/AdminDashboard.tsx";
 
 
 export const ROLES = {
@@ -44,6 +43,12 @@ export const routes = [
         isPrivate: false,
     },
     {
+        path: "admin/dashboard",
+        component: <AdminDashboard/>,
+        isPrivate: true,
+        roles: [ROLES.ADMIN],
+    },
+    {
         path: "cars",
         component: <Cars/>,
         isPrivate: false,
@@ -55,26 +60,14 @@ export const routes = [
         roles: [ROLES.STAFF, ROLES.ADMIN, ROLES.RENTER],
     },
     {
-        path: "staff/pending-rents",
-        component: <PendingRentPage/>,
-        isPrivate: true,
-        roles: [ROLES.STAFF, ROLES.ADMIN],
-    },
-    {
         path: "staff/handovers",
         component: <CarHandoverPage/>,
         isPrivate: true,
         roles: [ROLES.STAFF, ROLES.ADMIN],
     },
     {
-        path: "staff/running-rents",
-        component: <RunningRents/>,
-        isPrivate: true,
-        roles: [ROLES.STAFF, ROLES.ADMIN],
-    },
-    {
-        path: "staff/completed-rents",
-        component: <CompletedRents/>,
+        path: "staff/rentals",
+        component: <AdminRentalsPage/>,
         isPrivate: true,
         roles: [ROLES.STAFF, ROLES.ADMIN],
     },

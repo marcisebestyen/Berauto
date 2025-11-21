@@ -93,7 +93,7 @@ namespace Services.Services
                         mailMessage.Body = body;
                         mailMessage.IsBodyHtml = true;
 
-
+                        await Task.Delay(1000);
                         await client.SendMailAsync(mailMessage);
                     }
                 }
