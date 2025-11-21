@@ -2,6 +2,7 @@
 using Services.Services;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Database.Dtos.RentDtos;
 using Services.Database.Dtos;
 
 namespace Services.Controllers
@@ -92,6 +93,11 @@ namespace Services.Controllers
                 return BadRequest(new { message = "A kiadási adatok nem lehetnek üresek." });
             }
 
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             try
             {
                 var staffId = GetCurrentStaffIdFromToken();
@@ -125,10 +131,10 @@ namespace Services.Controllers
         /// (Records the return of a rental by the logged-in staff member.)
         /// </summary>
         /// <param name="rentId">A lezárandó bérlés egyedi azonosítója.</param>
-        /// <param name="request">A visszavétel részleteit tartalmazó adatok (aktuális vég, km állás).</param>
+        /// <param name="request">A visszavétel részleteit tartalmazó adatok (aktuális vég, km állás, visszavételi telephely).</param>
         /// <returns>A frissített bérlés adatait tartalmazó választ.</returns>
         /// <response code="200">Sikeresen frissítette a bérlést. A válasz teste: RentGetDto.</response>
-        /// <response code="400">Érvénytelen művelet (pl. bérlés nincs kiadva, km állás hibás).</response>
+        /// <response code="400">Érvénytelen művelet (pl. bérlés nincs kiadva, km állás hibás, hiányzó telephely).</response>
         /// <response code="401">A felhasználó nincs authentikálva, vagy a tokenből hiányzik a személyzeti azonosító.</response>
         /// <response code="403">A felhasználónak nincs joga végrehajtani ezt a műveletet.</response>
         /// <response code="404">A megadott azonosítóval nem található bérlés, vagy a személyzeti tag nem található/jogosult.</response>
@@ -140,13 +146,26 @@ namespace Services.Controllers
                 return BadRequest(new { message = "A visszavételi adatok nem lehetnek üresek." });
             }
 
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             try
             {
                 var staffId = GetCurrentStaffIdFromToken();
 
                 var actualEndUtc = DateTime.SpecifyKind(request.ActualEnd, DateTimeKind.Utc);
 
-                var rentDto = await _staffService.TakenBackBy(staffId, rentId, actualEndUtc, request.EndingKilometer);
+                // Updated call to include ReturnDepotId
+                var rentDto = await _staffService.TakenBackBy(
+                    staffId, 
+                    rentId, 
+                    actualEndUtc, 
+                    request.EndingKilometer, 
+                    request.ReturnDepotId
+                );
+                
                 return Ok(rentDto);
             }
             catch (UnauthorizedAccessException ex)

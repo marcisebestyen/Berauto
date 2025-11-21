@@ -1,6 +1,7 @@
 using AutoMapper;
 using Database.Models;
 using Database.Dtos.CarDtos;
+using Database.Dtos.DepotDtos;
 using Database.Dtos.ReceiptDtos;
 using Database.Dtos.RentDtos;
 using Database.Dtos.UserDtos;
@@ -44,7 +45,10 @@ public class MappingService : Profile
                 opt => opt.MapFrom(src => src.TotalCost))
             .ForMember(dest => dest.ReceiptId,
                 opt => opt.MapFrom(src => src.ReceiptId))
-            .ForMember(dest => dest.RenterName, opt => opt.MapFrom(src => src.Renter.UserName));
+            .ForMember(dest => dest.RenterName, opt => opt.MapFrom(src => src.Renter.UserName))
+            .ForMember(dest => dest.PickUpDepotName, opt => opt.MapFrom(src => src.PickUpDepot != null ? src.PickUpDepot.Name : null))
+            .ForMember(dest => dest.ReturnDepotName, opt => opt.MapFrom(src => src.ReturnDepot != null ? src.ReturnDepot.Name : null));
+            
         CreateMap<RentCreateDto, Rent>();
         CreateMap<RentUpdateByStaffDto, Rent>()
             .ForMember(dest => dest.ApprovedBy, opt => opt.MapFrom(src => src.ApprovedById))
@@ -62,6 +66,13 @@ public class MappingService : Profile
             .ForMember(dest => dest.PlannedEnd, opt => opt.MapFrom(src => src.Rent.PlannedEnd))
             .ForMember(dest => dest.RenterName, opt => opt.MapFrom(src => src.Rent.Renter.UserName));
         CreateMap<UpdateReceiptDto, Receipt>()
+            .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+        CreateMap<Depot, DepotGetDto>();
+
+        CreateMap<DepotCreateDto, Depot>();
+
+        CreateMap<DepotUpdateDto, Depot>()
             .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
     }
 }

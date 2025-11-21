@@ -3,6 +3,7 @@ using System;
 using Database.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Database.Migrations
 {
     [DbContext(typeof(BerautoDbContext))]
-    partial class BerautoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251121101319_AddPickUpDepotMigration")]
+    partial class AddPickUpDepotMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -209,9 +212,6 @@ namespace Database.Migrations
                     b.Property<int>("RenterId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("ReturnDepotId")
-                        .HasColumnType("integer");
-
                     b.Property<decimal?>("StartingKilometer")
                         .HasColumnType("numeric(18, 2)");
 
@@ -236,8 +236,6 @@ namespace Database.Migrations
                         .HasFilter("\"ReceiptId\" IS NOT NULL");
 
                     b.HasIndex("RenterId");
-
-                    b.HasIndex("ReturnDepotId");
 
                     b.HasIndex("TakenBackBy");
 
@@ -453,10 +451,6 @@ namespace Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Database.Models.Depot", "ReturnDepot")
-                        .WithMany()
-                        .HasForeignKey("ReturnDepotId");
-
                     b.HasOne("Database.Models.User", "RecipientOperator")
                         .WithMany()
                         .HasForeignKey("TakenBackBy")
@@ -473,8 +467,6 @@ namespace Database.Migrations
                     b.Navigation("RecipientOperator");
 
                     b.Navigation("Renter");
-
-                    b.Navigation("ReturnDepot");
                 });
 
             modelBuilder.Entity("Database.Models.WaitingList", b =>
