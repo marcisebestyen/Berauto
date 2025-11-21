@@ -9,6 +9,9 @@ public class RentCreateDto
 
     [Required(ErrorMessage = "Az autó azonosítójának megadása kötelező.")]
     public int CarId { get; set; }
+    
+    [Required(ErrorMessage = "Az átvételi telephely kiválasztása kötelező.")]
+    public int PickUpDepotId { get; set; }
 
     [Required(ErrorMessage = "A tervezett kezdési időpont megadása kötelező.")]
     public DateTime PlannedStart { get; set; }
