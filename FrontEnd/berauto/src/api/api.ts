@@ -229,7 +229,6 @@ const Receipts = {
 };
 
 
-const api = {Cars, Users, Rents, Staff, Receipts, Statistics};
-const api = {Cars, Users, Rents, Staff, Depots, Receipts};
+const api = {Cars, Users, Rents, Staff, Depots, Receipts, Statistics};
 
 export default api;
