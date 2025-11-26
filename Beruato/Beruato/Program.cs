@@ -28,7 +28,15 @@ namespace Beruato
 
             builder.Services.AddHangfire(config =>
             {
-                config.UsePostgreSqlStorage(builder.Configuration.GetConnectionString("Supabase"));
+                config.UsePostgreSqlStorage(
+                    builder.Configuration.GetConnectionString("Supabase"),
+                    new PostgreSqlStorageOptions
+                    {
+                        PrepareSchemaIfNecessary = true,
+                        InvisibilityTimeout = TimeSpan.FromMinutes(30),
+                        QueuePollInterval = TimeSpan.FromSeconds(15),
+                        UseNativeDatabaseTransactions = true
+                    });
             });
 
             builder.Services.AddHangfireServer();
@@ -54,9 +62,19 @@ namespace Beruato
 
             builder.Services.AddOpenApi();
             builder.Services.AddDbContext<BerautoDbContext>(options =>
-                options.UseNpgsql(builder.Configuration
-                    .GetConnectionString("Supabase"), b => b.MigrationsAssembly("Beruato")));
+                options.UseNpgsql(
+                    builder.Configuration.GetConnectionString("Supabase"), 
+                    npgsqlOptions =>
+                    {
+                        npgsqlOptions.MigrationsAssembly("Beruato");
+                        npgsqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(5),
+                            errorCodesToAdd: null);
+                        npgsqlOptions.CommandTimeout(60);
+                    }));
 
+            builder.Services.AddSingleton<EmailRateLimiter>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<ICarService, CarService>();
             builder.Services.AddScoped<IUserService, UserService>();
@@ -148,10 +166,6 @@ namespace Beruato
                     }
                 });
             });
-
-            builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
-
-            builder.Services.AddTransient<IEmailService, EmailService>();
 
             var app = builder.Build();
 

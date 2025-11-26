@@ -20,6 +20,7 @@ import {
     rem,
     ThemeIcon,
     Divider,
+    Select,
 } from '@mantine/core';
 import {notifications} from '@mantine/notifications';
 import {
@@ -34,6 +35,7 @@ import {
 } from '@tabler/icons-react';
 import api from '../api/api';
 import {IRentGetDto} from '../interfaces/IRent';
+import {IDepot} from '../interfaces/IDepot';
 import {DateTimePicker} from '@mantine/dates';
 import {useDisclosure} from '@mantine/hooks';
 import dayjs from 'dayjs';
@@ -43,9 +45,14 @@ function RunningRents() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedRent, setSelectedRent] = useState<IRentGetDto | null>(null);
-    const [actualEndDate, setActualEndDate] = useState<Date | null>(new Date());
+    // Mantine DateTimePicker onChange here provides string (ISO) — tároljuk stringként és konvertáljuk Date-re ahol szükséges
+    const [actualEndDate, setActualEndDate] = useState<string | null>(new Date().toISOString());
     const [endingKilometer, setEndingKilometer] = useState<string | number>('');
     const [modalOpened, {open: openModal, close: closeModal}] = useDisclosure(false);
+
+    // Leadási telephely kiválasztása
+    const [depots, setDepots] = useState<IDepot[]>([]);
+    const [selectedDropOffDepotId, setSelectedDropOffDepotId] = useState<string | null>(null);
 
     const inputStyles = {
         input: {
@@ -73,13 +80,27 @@ function RunningRents() {
         loadRents();
     }, []);
 
+    useEffect(() => {
+        const loadDepots = async () => {
+            try {
+                const res = await api.Depots.getAll();
+                setDepots(res.data || []);
+            } catch (e) {
+                // opcionális hiba kezelés
+            }
+        };
+        loadDepots();
+    }, []);
+
     const handleOpenModal = (rent: IRentGetDto) => {
         setSelectedRent(rent);
         // Alapértelmezett dátum a 'most', vagy ha az korábbi, mint a start, akkor a start
         const startDate = new Date(rent.actualStart!);
         const now = new Date();
-        setActualEndDate(now < startDate ? startDate : now);
+        // A DateTimePicker onChange stringet ad vissza, így itt ISO stringet tárolunk
+        setActualEndDate((now < startDate ? startDate : now).toISOString());
         setEndingKilometer(rent.startingKilometer ?? '');
+        setSelectedDropOffDepotId(null); // Reset leadási telephely
         openModal();
     };
 
@@ -95,35 +116,80 @@ function RunningRents() {
 
         // --- JAVÍTÁS: Dátumellenőrzés ---
         const actualStartDate = new Date(selectedRent.actualStart!);
-        if (actualEndDate < actualStartDate) {
+
+        // actualEndDate most string | null, konvertáljuk Date-re az összehasonlításhoz
+        const parsedActualEnd = actualEndDate ? new Date(actualEndDate) : null;
+        if (!parsedActualEnd) {
+            notifications.show({
+                title: 'Figyelmeztetés',
+                message: 'Kérjük, válasszon érvényes visszavételi időpontot!',
+                color: 'yellow',
+            });
+            return;
+        }
+
+        if (parsedActualEnd < actualStartDate) {
             notifications.show({
                 title: 'Érvénytelen dátum',
-                message: `A visszavétel dátuma (${dayjs(actualEndDate).format('YYYY.MM.DD HH:mm')}) nem lehet korábbi, mint a kiadás dátuma (${dayjs(actualStartDate).format('YYYY.MM.DD HH:mm')}).`,
+                message: `A visszavétel dátuma (${dayjs(parsedActualEnd).format('YYYY.MM.DD HH:mm')}) nem lehet korábbi, mint a kiadás dátuma (${dayjs(actualStartDate).format('YYYY.MM.DD HH:mm')}).`,
                 color: 'red',
             });
             return;
         }
         // --- JAVÍTÁS VÉGE ---
 
-        const utcDate = new Date(actualEndDate.getTime() - actualEndDate.getTimezoneOffset() * 60000);
+        if (!selectedDropOffDepotId || selectedDropOffDepotId === '') {
+            notifications.show({
+                title: 'Hiányzó telephely',
+                message: 'Kérjük, válassza ki a leadási telephelyet!',
+                color: 'orange',
+            });
+            return;
+        }
+
+        // A parsedActualEnd már Date objektum; az API belül actualEnd.toISOString() hívással
+        // megfelelő UTC ISO formátumot állít elő, ezért a manuális timezone-korrekció felesleges,
+        // és pontatlan eredményt adhat. Használjuk közvetlenül a parsedActualEnd-et.
+        const utcDate = parsedActualEnd;
+        const dropOffDepotId = parseInt(selectedDropOffDepotId, 10);
+
+        if (isNaN(dropOffDepotId) || dropOffDepotId <= 0) {
+            notifications.show({
+                title: 'Érvénytelen telephely',
+                message: 'Kérjük, válasszon ki egy érvényes telephelyet!',
+                color: 'red',
+            });
+            return;
+        }
 
         try {
             setLoading(true);
-            await api.Staff.takeBackCar(selectedRent.id, utcDate, Number(endingKilometer));
+            await api.Staff.takeBackCar(selectedRent.id, utcDate, Number(endingKilometer), dropOffDepotId);
             notifications.show({
                 title: 'Sikeres visszavétel',
                 message: `A(z) ${selectedRent.carModel} sikeresen visszavéve.`,
                 color: 'green',
                 icon: <IconCheck/>
             });
+            setSelectedDropOffDepotId(null); // Reset
             closeModal();
             loadRents();
         } catch (error: any) {
-            notifications.show({
-                title: 'Hiba',
-                message: error.response?.data?.message || 'Az autó visszavétele sikertelen',
-                color: 'red',
-            });
+            const serverMsg = error?.response?.data?.message;
+            // Ha a backend kifejezetten telephely hibára utal (pl. "Depot with id 0 not found"), mutassunk barátságosabb üzenetet és javaslatot
+            if (typeof serverMsg === 'string' && /depot.*not found|telephely.*nem található|depot with id/i.test(serverMsg)) {
+                notifications.show({
+                    title: 'Telephely hiba',
+                    message: 'A kiválasztott telephely nem található a szerveren. Kérjük, frissítse a telephelyek listáját (frissítés gomb), majd próbálja újra a visszavételt.',
+                    color: 'red',
+                });
+            } else {
+                notifications.show({
+                    title: 'Hiba',
+                    message: serverMsg || 'Az autó visszavétele sikertelen',
+                    color: 'red',
+                });
+            }
         } finally {
             setLoading(false);
         }
@@ -351,9 +417,21 @@ function RunningRents() {
                             label="Tényleges befejezés időpontja"
                             placeholder="Válassz időpontot"
                             value={actualEndDate}
-                            onChange={setActualEndDate}
+                            // A komponens onChange-je stringet ad vissza (ISO), ezért string | null-t várunk
+                            onChange={(value: string | null) => setActualEndDate(value)}
                             minDate={new Date(selectedRent.actualStart!)}
                             // maxDate={new Date()} // <-- JAVÍTÁS: Eltávolítva a tesztelés engedélyezéséhez
+                            required
+                            styles={inputStyles}
+                        />
+                        <Select
+                            label="Leadási telephely"
+                            placeholder="Válassz telephelyet"
+                            data={depots
+                                .filter(d => typeof d.id === 'number' && d.id > 0)
+                                .map(d => ({ value: d.id.toString(), label: `${d.name} - ${d.city}` }))}
+                            value={selectedDropOffDepotId}
+                            onChange={(v: string | null) => setSelectedDropOffDepotId(v)}
                             required
                             styles={inputStyles}
                         />
@@ -373,6 +451,7 @@ function RunningRents() {
                             <Button
                                 onClick={handleTakeBack}
                                 loading={loading}
+                                disabled={loading || !selectedDropOffDepotId}
                                 leftSection={<IconCheck size={16}/>}
                                 style={{
                                     background: 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)',

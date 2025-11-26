@@ -110,22 +110,23 @@ const Cars = () => {
 
         setIsLoading(true);
         try {
-            const utcStartDate = new Date(Date.UTC(
+            // A kiválasztott napokat helyi éjfélre állítjuk, így a toISOString nem okoz időzóna miatti elcsúszást
+            const localStart = new Date(
                 validStartDate.getFullYear(),
                 validStartDate.getMonth(),
                 validStartDate.getDate()
-            ));
-
-            const utcEndDate = new Date(Date.UTC(
+            );
+            const localEnd = new Date(
                 validEndDate.getFullYear(),
                 validEndDate.getMonth(),
                 validEndDate.getDate()
-            ));
+            );
 
-            // Call API with optional depotId parameter
             const depotIdParam = selectedDepotId ? parseInt(selectedDepotId, 10) : undefined;
-            const res = await api.Cars.getAvailableCars(utcStartDate, utcEndDate, depotIdParam);
-            setItems(res.data);
+            const res = await api.Cars.getAvailableCars(localStart, localEnd, depotIdParam);
+            const cars = res.data || [];
+            const filteredCars = typeof depotIdParam === 'number' ? cars.filter(c => c.depotId === depotIdParam) : cars;
+            setItems(filteredCars);
         } catch (error: any) {
             console.error('Error fetching cars:', error);
             notifications.show({

@@ -22,6 +22,7 @@ import {
     Divider,
     Textarea,
     Tabs, // Az összevonáshoz
+    Select,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
@@ -43,6 +44,7 @@ import {
 } from '@tabler/icons-react';
 import api from '../api/api';
 import { IRentGetDto } from '../interfaces/IRent';
+import { IDepot } from '../interfaces/IDepot';
 import { DateTimePicker } from '@mantine/dates';
 import { useDisclosure } from '@mantine/hooks';
 import dayjs from 'dayjs';
@@ -398,24 +400,37 @@ const PendingRentsTab = () => {
     );
 };
 
-
-// ========================================================================
-// 2. KOMPONENS: A RunningRents.tsx kódja bemásolva és átalakítva
-// ========================================================================
-
 const RunningRentsTab = () => {
     const [rents, setRents] = useState<IRentGetDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedRent, setSelectedRent] = useState<IRentGetDto | null>(null);
-    const [actualEndDate, setActualEndDate] = useState<Date | null>(new Date());
+    // Mantine DateTimePicker onChange típusa stringet ad vissza; itt ISO stringet tárolunk és később konvertálunk Date-é
+    const [actualEndDate, setActualEndDate] = useState<string | null>(new Date().toISOString());
     const [endingKilometer, setEndingKilometer] = useState<string | number>('');
     const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+
+    // Leadási telephely kiválasztása
+    const [depots, setDepots] = useState<IDepot[]>([]);
+    const [selectedDropOffDepotId, setSelectedDropOffDepotId] = useState<string>('');
 
     const inputStyles = {
         input: {
             background: 'rgba(15, 23, 42, 0.5)',
             borderColor: 'rgba(255, 255, 255, 0.1)',
+        }
+    };
+
+    const loadDepots = async () => {
+        try {
+            const response = await api.Depots.getAll();
+            setDepots(response.data || []);
+        } catch (error) {
+            notifications.show({
+                title: 'Hiba',
+                message: 'A telephelyek betöltése sikertelen',
+                color: 'red'
+            });
         }
     };
 
@@ -436,14 +451,17 @@ const RunningRentsTab = () => {
 
     useEffect(() => {
         loadRents();
+        loadDepots();
     }, []);
 
     const handleOpenModal = (rent: IRentGetDto) => {
         setSelectedRent(rent);
         const startDate = new Date(rent.actualStart!);
         const now = new Date();
-        setActualEndDate(now < startDate ? startDate : now);
+        // A DateTimePicker onChange stringet ad vissza, ezért ISO stringet tárolunk
+        setActualEndDate((now < startDate ? startDate : now).toISOString());
         setEndingKilometer(rent.startingKilometer ?? '');
+        setSelectedDropOffDepotId(''); // Reset leadási telephely
         openModal();
     };
 
@@ -458,26 +476,51 @@ const RunningRentsTab = () => {
         }
 
         const actualStartDate = new Date(selectedRent.actualStart!);
-        if (actualEndDate < actualStartDate) {
+
+        // actualEndDate most string | null; konvertáljuk Date-re az összehasonlításhoz
+        const parsedActualEnd = actualEndDate ? new Date(actualEndDate) : null;
+        if (!parsedActualEnd) {
+            notifications.show({
+                title: 'Figyelmeztetés',
+                message: 'Kérjük, válasszon érvényes visszavételi időpontot!',
+                color: 'yellow',
+            });
+            return;
+        }
+
+        if (parsedActualEnd < actualStartDate) {
             notifications.show({
                 title: 'Érvénytelen dátum',
-                message: `A visszavétel dátuma (${dayjs(actualEndDate).format('YYYY.MM.DD HH:mm')}) nem lehet korábbi, mint a kiadás dátuma (${dayjs(actualStartDate).format('YYYY.MM.DD HH:mm')}).`,
+                message: `A visszavétel dátuma (${dayjs(parsedActualEnd).format('YYYY.MM.DD HH:mm')}) nem lehet korábbi, mint a kiadás dátuma (${dayjs(actualStartDate).format('YYYY.MM.DD HH:mm')}).`,
                 color: 'red',
             });
             return;
         }
 
-        const utcDate = new Date(actualEndDate.getTime() - actualEndDate.getTimezoneOffset() * 60000);
+        if (!selectedDropOffDepotId) {
+            notifications.show({
+                title: 'Hiányzó telephely',
+                message: 'Kérjük, válassza ki a leadási telephelyet!',
+                color: 'orange',
+            });
+            return;
+        }
+
+        // Konvertáljuk az ISO stringből kapott Date-et UTC-re igazítva
+        const actualEndDateObj = parsedActualEnd;
+        const utcDate = new Date(actualEndDateObj.getTime() - actualEndDateObj.getTimezoneOffset() * 60000);
+        const dropOffDepotId = parseInt(selectedDropOffDepotId, 10);
 
         try {
             setLoading(true);
-            await api.Staff.takeBackCar(selectedRent.id, utcDate, Number(endingKilometer));
+            await api.Staff.takeBackCar(selectedRent.id, utcDate, Number(endingKilometer), dropOffDepotId);
             notifications.show({
                 title: 'Sikeres visszavétel',
                 message: `A(z) ${selectedRent.carModel} sikeresen visszavéve.`,
                 color: 'green',
                 icon: <IconCheck />
             });
+            setSelectedDropOffDepotId(''); // Reset
             closeModal();
             loadRents();
         } catch (error: any) {
@@ -701,8 +744,17 @@ const RunningRentsTab = () => {
                             label="Tényleges befejezés időpontja"
                             placeholder="Válassz időpontot"
                             value={actualEndDate}
-                            onChange={setActualEndDate}
+                            onChange={(value: string | null) => setActualEndDate(value)}
                             minDate={new Date(selectedRent.actualStart!)}
+                            required
+                            styles={inputStyles}
+                        />
+                        <Select
+                            label="Leadási telephely"
+                            placeholder="Válassz telephelyet"
+                            data={depots.map(d => ({ value: d.id.toString(), label: `${d.name} - ${d.city}` }))}
+                            value={selectedDropOffDepotId}
+                            onChange={(v: string | null) => setSelectedDropOffDepotId(v || '')}
                             required
                             styles={inputStyles}
                         />
@@ -754,7 +806,7 @@ const CompletedRentsTab = () => {
         setError(null);
         try {
             const response = await api.Staff.completedRents();
-            setRents(response.data);
+            setRents(response.data || []);
         } catch (error) {
             const errorMsg = 'A lezárt kölcsönzések betöltése sikertelen';
             notifications.show({

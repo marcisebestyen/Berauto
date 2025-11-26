@@ -6,6 +6,7 @@ export interface IHandOverRequestDto {
 export interface ITakeBackRequestDto {
     actualEnd: string;
     endingKilometer: number;
+    dropOffDepotId: number;
 }
 
 export interface IRejectRequestDto {

@@ -23,16 +23,15 @@ interface JsonPatchOperation {
 
 const Cars = {
     getAvailableCars: (startDate: Date, endDate: Date, depotId?: number) => {
-        const formattedStartDate = startDate.toISOString();
-        const formattedEndDate = endDate.toISOString();
-
-        let url = `/cars/available?startDate=${formattedStartDate}&endDate=${formattedEndDate}`;
-
-        if (depotId !== undefined) {
-            url += `&depotId=${depotId}`;
+        const params: Record<string, any> = {
+            startDate,
+            endDate,
+        };
+        if (typeof depotId === 'number') {
+            params.depotId = depotId;
         }
-
-        return axiosInstance.get<ICar[]>(url);
+        // A globális interceptor "YYYY-MM-DD" formátumra alakítja a date-only mezőket
+        return axiosInstance.get<ICar[]>('/cars/available', { params });
     },
     updateCar: (id: number, patchDocument: JsonPatchOperation[]) => {
         return axiosInstance.patch<void>(
@@ -134,10 +133,11 @@ const Staff = {
         );
     },
 
-    takeBackCar: (rentId: number, actualEnd: Date, endingKilometer: number) => {
+    takeBackCar: (rentId: number, actualEnd: Date, endingKilometer: number, dropOffDepotId: number) => {
         const requestBody: ITakeBackRequestDto = {
             actualEnd: actualEnd.toISOString(),
-            endingKilometer: endingKilometer
+            endingKilometer: endingKilometer,
+            dropOffDepotId: dropOffDepotId
         };
         return axiosInstance.post<IRentGetDto>(
             `/staff/take_back?rentId=${rentId}`,
@@ -174,26 +174,26 @@ const Depots = {
      * Lekérdezi az összes telephelyet (nyilvános endpoint).
      */
     getAll: () =>
-        axiosInstance.get<IDepot[]>('/api/depots/get-all'),
+        axiosInstance.get<IDepot[]>('/depots/get-all'),
 
     /**
      * Lekérdezi egy telephely adatait azonosító alapján (nyilvános endpoint).
      */
     getById: (depotId: number) =>
-        axiosInstance.get<IDepot>(`/api/depots/get/${depotId}`),
+        axiosInstance.get<IDepot>(`/depots/get/${depotId}`),
 
     /**
      * Új telephely létrehozása (Admin csak).
      */
     create: (data: Omit<IDepot, 'id'>) =>
-        axiosInstance.post<IDepot>('/api/depots/create-depot', data),
+        axiosInstance.post<IDepot>('/depots/create-depot', data),
 
     /**
      * Telephely módosítása JSON Patch dokumentummal (Admin csak).
      */
     update: (depotId: number, patchDocument: JsonPatchOperation[]) =>
         axiosInstance.patch<void>(
-            `/api/depots/update/${depotId}`,
+            `/depots/update/${depotId}`,
             patchDocument,
             {
                 headers: {
@@ -206,7 +206,7 @@ const Depots = {
      * Telephely törlése (Admin csak).
      */
     delete: (depotId: number) =>
-        axiosInstance.delete<void>(`/api/depots/delete/${depotId}`)
+        axiosInstance.delete<void>(`/depots/delete/${depotId}`)
 };
 
 const Receipts = {

@@ -118,16 +118,17 @@ const BookingModal = ({
 
         setLoading(true);
         try {
-            const utcStartDate = new Date(Date.UTC(
+            // Képzünk helyi éjféli dátumokat, a küldés pedig date-only ("YYYY-MM-DD")
+            const startLocal = new Date(
                 values.plannedStart.getFullYear(),
                 values.plannedStart.getMonth(),
                 values.plannedStart.getDate()
-            ));
-            const utcEndDate = new Date(Date.UTC(
+            );
+            const endLocal = new Date(
                 values.plannedEnd.getFullYear(),
                 values.plannedEnd.getMonth(),
                 values.plannedEnd.getDate()
-            ));
+            );
 
             const pickUpDepotId = parseInt(values.pickUpDepotId, 10);
 
@@ -135,8 +136,8 @@ const BookingModal = ({
                 const rentData: IRentCreateDto = {
                     carId: carId,
                     renterId: typeof user.id === 'string' ? parseInt(user.id, 10) : user.id,
-                    plannedStart: utcStartDate.toISOString(),
-                    plannedEnd: utcEndDate.toISOString(),
+                    plannedStart: dayjs(startLocal).format('YYYY-MM-DD'),
+                    plannedEnd: dayjs(endLocal).format('YYYY-MM-DD'),
                     pickUpDepotId: pickUpDepotId,
                     invoiceRequest: values.invoiceRequest,
                 };
@@ -144,8 +145,8 @@ const BookingModal = ({
             } else {
                 const guestData: IGuestRentCreateDto = {
                     carId: carId,
-                    plannedStart: utcStartDate.toISOString(),
-                    plannedEnd: utcEndDate.toISOString(),
+                    plannedStart: dayjs(startLocal).format('YYYY-MM-DD'),
+                    plannedEnd: dayjs(endLocal).format('YYYY-MM-DD'),
                     pickUpDepotId: pickUpDepotId,
                     invoiceRequest: values.invoiceRequest,
                     firstName: values.firstName,
