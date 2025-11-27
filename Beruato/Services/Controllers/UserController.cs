@@ -1,5 +1,5 @@
-using System.Security.Claims;
 using AutoMapper;
+using Database.Dtos;
 using Database.Dtos.UserDtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Services.Services;
+using System.Security.Claims;
 
 namespace Berauto.Controllers;
 
@@ -173,6 +174,27 @@ public class UserController : Controller
             registrationResult.User);
     }
 
+    [HttpPost("google-login")]
+    [ProducesResponseType(typeof(UserGetDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto googleLoginDto)
+    {
+        // Ez a kód hiányzik most a szerveredről!
+        if (googleLoginDto == null || string.IsNullOrWhiteSpace(googleLoginDto.AccessToken))
+        {
+            return BadRequest(new { Message = "A token megadása kötelező." });
+        }
+
+        var result = await _userService.LoginWithGoogleAsync(googleLoginDto);
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { Message = result.Errors.FirstOrDefault() ?? "Hiba történt a Google bejelentkezés során." });
+        }
+
+        return Ok(new { Token = result.Token, User = result.User });
+    }
+
     /// <summary>
     /// Segédfüggvény a bejelentkezett felhasználó azonosítójának kinyerésére.
     /// </summary>
@@ -190,4 +212,6 @@ public class UserController : Controller
 
         return userId;
     }
+
+
 }

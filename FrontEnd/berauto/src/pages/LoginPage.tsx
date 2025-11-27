@@ -22,8 +22,7 @@ import useAuth from "../hooks/useAuth.tsx";
 import { supabase } from "../utils/supabaseClient";
 
 const Login = () => {
-    const { login } = useAuth();
-
+    const { login, loginWithGoogle } = useAuth();
     const navigate = useNavigate();
     const [loginError, setLoginError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -39,13 +38,14 @@ const Login = () => {
             authListener.subscription.unsubscribe();
         };
     }, []);
+
     const handleGoogleLogin = async () => {
         setIsLoading(true);
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin
+                    redirectTo: `${window.location.origin}/login`
                 }
             });
             if (error) throw error;
@@ -58,27 +58,10 @@ const Login = () => {
     const finishGoogleLoginOnBackend = async (supabaseToken: string) => {
         setIsLoading(true);
         try {
-            const response = await fetch('https://localhost:7205/api/users/google-login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ accessToken: supabaseToken })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || data.Message || "Szerver oldali hiba történt.");
-            }
-
-            localStorage.setItem('token', data.token);
-
-            navigate("/");
-
+            await loginWithGoogle(supabaseToken);
+            window.location.href = "/";
         } catch (error: any) {
-            console.error("Backend hiba:", error);
-            setLoginError(error.message || "Nem sikerült a bejelentkezés a szerveren.");
+            setLoginError(error.message || "Nem sikerült a bejelentkezés.");
             await supabase.auth.signOut();
         } finally {
             setIsLoading(false);
@@ -98,7 +81,7 @@ const Login = () => {
         setLoginError(null);
         try {
             await login(values.identifier, values.password);
-            navigate("/");
+            window.location.href = "/";
         } catch (error: any) {
             const message = error.response?.data?.message ||
                 error.response?.data?.Message ||
@@ -216,6 +199,7 @@ const Login = () => {
                         </Button>
                     </Stack>
                 </form>
+
                 <Divider label="Vagy folytasd ezzel" labelPosition="center" my="lg" />
 
                 <Button
