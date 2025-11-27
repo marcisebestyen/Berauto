@@ -11,7 +11,7 @@ using Services.Services;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
-
+using Supabase;
 
 namespace Beruato
 {
@@ -25,6 +25,19 @@ namespace Beruato
             var geminiApiKey = builder.Configuration["Gemini:ApiKey"];
 
             var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+            var supabaseUrl = builder.Configuration["Supabase:Url"];
+            var supabaseKey = builder.Configuration["Supabase:Key"];
+
+            var options = new SupabaseOptions
+            {
+                AutoRefreshToken = true,
+                AutoConnectRealtime = true,
+            };
+
+            builder.Services.AddScoped<Supabase.Client>(_ =>
+                new Supabase.Client(supabaseUrl, supabaseKey, options));
+
 
             builder.Services.AddHangfire(config =>
             {
@@ -53,7 +66,7 @@ namespace Beruato
                 options.AddPolicy(name: MyAllowSpecificOrigins,
                     policy =>
                     {
-                        policy.WithOrigins("http://localhost:7285")
+                        policy.WithOrigins("http://localhost:7285", "http://localhost:5173")
                             .AllowAnyHeader()
                             .AllowAnyMethod()
                             .AllowCredentials();
@@ -63,7 +76,7 @@ namespace Beruato
             builder.Services.AddOpenApi();
             builder.Services.AddDbContext<BerautoDbContext>(options =>
                 options.UseNpgsql(
-                    builder.Configuration.GetConnectionString("Supabase"), 
+                    builder.Configuration.GetConnectionString("Supabase"),
                     npgsqlOptions =>
                     {
                         npgsqlOptions.MigrationsAssembly("Beruato");
@@ -102,10 +115,10 @@ namespace Beruato
             var secretKey = jwtSettings["Key"];
 
             builder.Services.AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters

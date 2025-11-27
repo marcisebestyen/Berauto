@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import { useState, useEffect } from 'react';
 import {
     Stack,
     TextInput,
@@ -15,19 +15,78 @@ import {
     Box,
     Divider,
 } from "@mantine/core";
-import {useForm} from "@mantine/form";
-import {useNavigate} from "react-router-dom";
-import {IconAt, IconLock, IconAlertCircle, IconLogin} from '@tabler/icons-react';
+import { useForm } from "@mantine/form";
+import { useNavigate } from "react-router-dom";
+import { IconAt, IconLock, IconAlertCircle, IconLogin, IconBrandGoogle } from '@tabler/icons-react';
 import useAuth from "../hooks/useAuth.tsx";
+import { supabase } from "../utils/supabaseClient";
 
 const Login = () => {
-    const {login} = useAuth();
+    const { login } = useAuth();
+
     const navigate = useNavigate();
     const [loginError, setLoginError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    useEffect(() => {
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                await finishGoogleLoginOnBackend(session.access_token);
+            }
+        });
+
+        return () => {
+            authListener.subscription.unsubscribe();
+        };
+    }, []);
+    const handleGoogleLogin = async () => {
+        setIsLoading(true);
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin
+                }
+            });
+            if (error) throw error;
+        } catch (error: any) {
+            setLoginError(error.message);
+            setIsLoading(false);
+        }
+    };
+
+    const finishGoogleLoginOnBackend = async (supabaseToken: string) => {
+        setIsLoading(true);
+        try {
+            const response = await fetch('https://localhost:7205/api/users/google-login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ accessToken: supabaseToken })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || data.Message || "Szerver oldali hiba történt.");
+            }
+
+            localStorage.setItem('token', data.token);
+
+            navigate("/");
+
+        } catch (error: any) {
+            console.error("Backend hiba:", error);
+            setLoginError(error.message || "Nem sikerült a bejelentkezés a szerveren.");
+            await supabase.auth.signOut();
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const form = useForm({
-        initialValues: {identifier: '', password: ''},
+        initialValues: { identifier: '', password: '' },
         validate: {
             identifier: (val) => !val ? 'Email vagy felhasználónév megadása kötelező' : null,
             password: (val) => val.length < 6 ? 'A jelszónak legalább 6 karakter hosszúnak kell lennie' : null,
@@ -39,15 +98,13 @@ const Login = () => {
         setLoginError(null);
         try {
             await login(values.identifier, values.password);
-            navigate("/"); // Redirect on success
+            navigate("/");
         } catch (error: any) {
-            // Próbáljuk meg kinyerni a szerver oldali hibaüzenetet
             const message = error.response?.data?.message ||
                 error.response?.data?.Message ||
                 error.message ||
                 'Helytelen bejelentkezési adatok.';
             setLoginError(message);
-            console.error("Bejelentkezési hiba:", error);
         } finally {
             setIsLoading(false);
         }
@@ -81,7 +138,6 @@ const Login = () => {
                     borderColor: 'rgba(255, 255, 255, 0.1)',
                 }}
             >
-                {/* Új Fejléc a referencia alapján */}
                 <Group gap="sm" mb="xl">
                     <ThemeIcon size="xl" radius="md" variant="light" color="cyan">
                         <IconLogin size={28}/>
@@ -103,7 +159,7 @@ const Login = () => {
                                 color="red"
                                 withCloseButton
                                 onClose={() => setLoginError(null)}
-                                variant="light" // Illeszkedés a sötét háttérhez
+                                variant="light"
                             >
                                 {loginError}
                             </Alert>
@@ -160,6 +216,27 @@ const Login = () => {
                         </Button>
                     </Stack>
                 </form>
+                <Divider label="Vagy folytasd ezzel" labelPosition="center" my="lg" />
+
+                <Button
+                    fullWidth
+                    variant="default"
+                    leftSection={<IconBrandGoogle size={20} />}
+                    onClick={handleGoogleLogin}
+                    loading={isLoading}
+                    styles={{
+                        root: {
+                            backgroundColor: 'white',
+                            color: 'black',
+                            '&:hover': {
+                                backgroundColor: '#f1f3f5'
+                            }
+                        }
+                    }}
+                >
+                    Bejelentkezés Google fiókkal
+                </Button>
+
             </Paper>
         </Container>
     );

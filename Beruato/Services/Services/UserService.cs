@@ -1,7 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using AutoMapper;
+using Database.Dtos;
 using Database.Dtos.UserDtos;
 using Database.Models;
 using Database.Results;
@@ -10,6 +8,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Services.Repositories;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using User = Database.Models.User;
 
 namespace Services.Services;
 
@@ -20,6 +22,8 @@ public interface IUserService
     Task<LoginResult> LoginAsync(UserLoginDto loginDto);
     Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto);
     Task<User> GetOrCreateGuestUserAsync(UserCreateGuestDto guestDto);
+
+    Task<LoginResult> LoginWithGoogleAsync(GoogleLoginDto googleLoginDto);
 }
 
 public class UserService : IUserService
@@ -28,14 +32,16 @@ public class UserService : IUserService
     private readonly IMapper _mapper;
     private readonly ILogger<UserService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly Supabase.Client _supabaseClient;
 
     public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration, Supabase.Client supabaseClient)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _supabaseClient = supabaseClient ?? throw new ArgumentNullException(nameof(supabaseClient));
     }
 
     public async Task<UserGetDto?> GetUserByIdAsync(int userId)
@@ -164,6 +170,11 @@ public class UserService : IUserService
             return LoginResult.Failure("A jelszó megadása kötelező.");
         }
 
+        if (user.Password == null)
+        {
+            return LoginResult.Failure("Kérjük jelentkezzen be Google fiókjával.");
+        }
+
         bool isPasswordValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.Password);
 
         if (!isPasswordValid)
@@ -171,6 +182,80 @@ public class UserService : IUserService
             return LoginResult.Failure("Hibás e-mail cím vagy jelszó.");
         }
 
+        // Itt hívjuk meg a közös Token generátort
+        var tokenString = GenerateJwtToken(user);
+        var userGetDto = _mapper.Map<UserGetDto>(user);
+
+        return LoginResult.Success(userGetDto, tokenString);
+    }
+
+    public async Task<LoginResult> LoginWithGoogleAsync(GoogleLoginDto googleLoginDto)
+    {
+        try
+        {
+            var supabaseUser = await _supabaseClient.Auth.GetUser(googleLoginDto.AccessToken);
+
+            if (supabaseUser == null)
+            {
+                return LoginResult.Failure("Érvénytelen Google bejelentkezés.");
+            }
+
+            var email = supabaseUser.Email;
+
+            if (string.IsNullOrEmpty(email))
+            {
+                return LoginResult.Failure("Nem sikerült lekérni az email címet a szolgáltatótól.");
+            }
+
+            var dbUser = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email)).FirstOrDefault();
+
+            if (dbUser == null)
+            {
+                string firstName = "Google";
+                string lastName = "User";
+
+                if (supabaseUser.UserMetadata != null && supabaseUser.UserMetadata.ContainsKey("full_name"))
+                {
+                    var fullName = supabaseUser.UserMetadata["full_name"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(fullName))
+                    {
+                        var parts = fullName.Split(' ');
+                        firstName = parts.FirstOrDefault() ?? "Google";
+                        lastName = parts.Length > 1 ? string.Join(" ", parts.Skip(1)) : "User";
+                    }
+                }
+
+                dbUser = new User
+                {
+                    Email = email,
+                    UserName = email,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    RegisteredUser = true,
+                    Role = Role.Renter,
+                    Password = null,
+                    PhoneNumber = "",
+                    LicenceId = "",
+                    Address = ""
+                };
+
+                await _unitOfWork.UserRepository.InsertAsync(dbUser);
+                await _unitOfWork.SaveAsync();
+            }
+            var tokenString = GenerateJwtToken(dbUser);
+            var userGetDto = _mapper.Map<UserGetDto>(dbUser);
+
+            return LoginResult.Success(userGetDto, tokenString);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Hiba történt a Google bejelentkezés során.");
+            return LoginResult.Failure($"Hiba történt a bejelentkezés során: {ex.Message}");
+        }
+    }
+
+    private string GenerateJwtToken(User user)
+    {
         var tokenHandler = new JwtSecurityTokenHandler();
         var jwtSettings = _configuration.GetSection("Jwt");
         var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ??
@@ -179,7 +264,7 @@ public class UserService : IUserService
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Name, user.UserName ?? user.Email),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
@@ -195,11 +280,7 @@ public class UserService : IUserService
                 new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);
-        var tokenString = tokenHandler.WriteToken(token);
-
-        var userGetDto = _mapper.Map<UserGetDto>(user);
-
-        return LoginResult.Success(userGetDto, tokenString);
+        return tokenHandler.WriteToken(token);
     }
 
     public async Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto)
