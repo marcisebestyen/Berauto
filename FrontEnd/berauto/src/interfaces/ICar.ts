@@ -1,6 +1,13 @@
 export type FuelType = "Diesel" | "Petrol" | "Hybrid" | "Electric";
 export type RequiredLicenceType = "AM" | "A1" | "A2" | "A" | "B";
 
+export enum CarAvailabilityStatus {
+    Available = 0,
+    Rented = 1,
+    NotProperCondition = 2,
+    Deleted = 3,
+}
+
 export interface ICar {
     id: number;
     brand: string;
@@ -12,6 +19,12 @@ export interface ICar {
     pricePerDay: number;
     isAutomatic: boolean;
     actualKilometers: number;
+    inProperCondition: boolean;
+    isDeleted: boolean;
+    isRented: boolean;
+    status: CarAvailabilityStatus;
+    depotId: number;
+    depotName: string;
 }
 
 export interface CarFormData {

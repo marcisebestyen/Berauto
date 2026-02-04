@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import {useState, useEffect} from 'react';
 import {
     Table,
     Button,
@@ -12,14 +12,27 @@ import {
     Badge,
     ScrollArea,
     Center,
-    Alert,
+    ActionIcon,
+    rem,
+    Container,
+    ThemeIcon,
+    Box,
+    Divider,
 } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
-import { useDisclosure } from '@mantine/hooks';
-import { notifications } from '@mantine/notifications';
-import { IconCheck, IconAlertCircle, IconCarSuv } from '@tabler/icons-react';
+import {DatePickerInput} from '@mantine/dates';
+import {useDisclosure} from '@mantine/hooks';
+import {notifications} from '@mantine/notifications';
+import {
+    IconCheck,
+    IconAlertCircle,
+    IconCarSuv,
+    IconRefresh,
+    IconInfoCircle,
+    IconCar,
+    IconCalendarEvent,
+} from '@tabler/icons-react';
 import api from '../api/api';
-import { IRentGetDto } from '../interfaces/IRent';
+import {IRentGetDto} from '../interfaces/IRent';
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
@@ -36,7 +49,7 @@ const CarHandoverPage = () => {
     const [selectedRent, setSelectedRent] = useState<IRentGetDto | null>(null);
     const [selectedActualStartDates, setSelectedActualStartDates] = useState<Record<number, Date | null>>({});
 
-    const [handoverModalOpened, { open: openHandoverModal, close: closeHandoverModal }] = useDisclosure(false);
+    const [handoverModalOpened, {open: openHandoverModal, close: closeHandoverModal}] = useDisclosure(false);
 
     const dateFormat = "YYYY.MM.DD";
 
@@ -45,22 +58,25 @@ const CarHandoverPage = () => {
         setError(null);
         try {
             const response = await api.Rents.getRentsGloballyByFilter("ApprovedForHandover");
+            if (!Array.isArray(response.data)) {
+                throw new Error("A szerver válasza nem a várt formátumú (nem tömb).");
+            }
+
             setHandovers(response.data);
             const initialDates: Record<number, Date | null> = {};
             response.data.forEach(rent => {
-                const plannedStartDate = rent.plannedStart ? dayjs(rent.plannedStart) : null;
-                const today = dayjs().startOf('day');
-                if (plannedStartDate && plannedStartDate.isSameOrAfter(today)) {
-                    initialDates[rent.id] = plannedStartDate.toDate();
-                } else {
-                    initialDates[rent.id] = today.toDate();
-                }
+                const plannedStartDate = rent.plannedStart ? dayjs(rent.plannedStart) : dayjs();
+                initialDates[rent.id] = plannedStartDate.isAfter(dayjs()) ? plannedStartDate.toDate() : dayjs().toDate();
             });
             setSelectedActualStartDates(initialDates);
         } catch (err: any) {
             console.error("Hiba az átadandó bérlések lekérésekor:", err);
             setError("Nem sikerült betölteni az átadásra váró kölcsönzéseket.");
-            notifications.show({ title: 'Lekérdezési Hiba', message: err.response?.data?.message || err.message || 'Ismeretlen hiba történt.', color: 'red', icon: <IconAlertCircle />, });
+            notifications.show({
+                title: 'Lekérdezési Hiba',
+                message: err.message || 'Ismeretlen hiba történt.',
+                color: 'red'
+            });
         } finally {
             setIsLoading(false);
         }
@@ -70,27 +86,20 @@ const CarHandoverPage = () => {
         fetchHandovers();
     }, []);
 
-    const handleActualStartDateChange = (rentId: number, dateString: string | null) => {
-        if (dateString) {
-            const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
-            setSelectedActualStartDates(prevDates => ({
-                ...prevDates,
-                [rentId]: parsedDate,
-            }));
-        } else {
-            setSelectedActualStartDates(prevDates => ({
-                ...prevDates,
-                [rentId]: null,
-            }));
-        }
+    const handleActualStartDateChange = (rentId: number, value: any) => {
+        const date = value instanceof Date ? value : (value ? new Date(value) : null);
+        setSelectedActualStartDates(prevDates => ({
+            ...prevDates,
+            [rentId]: date,
+        }));
     };
 
     const handleHandoverClick = (rent: IRentGetDto) => {
         if (!selectedActualStartDates[rent.id]) {
             notifications.show({
                 title: 'Hiányzó adat',
-                message: 'Kérjük, válassza ki a tényleges átadás dátumát a listában!',
-                color: 'orange',
+                message: 'Kérjük, válassza ki a tényleges átadás dátumát!',
+                color: 'orange'
             });
             return;
         }
@@ -99,34 +108,73 @@ const CarHandoverPage = () => {
     };
 
     const confirmHandover = async () => {
-        if (!selectedRent || !selectedRent.id) { /* ... */ return; }
-        const actualHandoverTime = selectedActualStartDates[selectedRent.id];
-        if (!actualHandoverTime) { /* ... */ return; }
+        if (!selectedRent?.id || !selectedActualStartDates[selectedRent.id]) return;
+
+        const localTime = selectedActualStartDates[selectedRent.id];
+        if (!localTime) return;
+        const utcTime = new Date(Date.UTC(localTime.getFullYear(), localTime.getMonth(), localTime.getDate()));
 
         setIsLoading(true);
         try {
-            await api.Staff.handOverCar(selectedRent.id, actualHandoverTime);
-            notifications.show({ title: 'Sikeres Átadás', message: `A(z) ${selectedRent.id} azonosítójú kölcsönzéshez az autó átadva.`, color: 'green', icon: <IconCheck />, });
+            await api.Staff.handOverCar(selectedRent.id, utcTime);
+            notifications.show({
+                title: 'Sikeres Átadás',
+                message: `Az autó átadása rögzítve.`,
+                color: 'green',
+                icon: <IconCheck/>
+            });
+            closeHandoverModal();
             fetchHandovers();
         } catch (err: any) {
-            console.error("Hiba az autó átadása során:", err);
-            notifications.show({ title: 'Átadási Hiba', message: err.response?.data?.message || err.message || 'Az autó átadása nem sikerült.', color: 'red', icon: <IconAlertCircle />, });
+            notifications.show({
+                title: 'Átadási Hiba',
+                message: err.response?.data?.message || 'Az autó átadása nem sikerült.',
+                color: 'red',
+                icon: <IconAlertCircle/>
+            });
         } finally {
             setIsLoading(false);
-            closeHandoverModal();
         }
     };
 
     const rows = handovers.map((rent) => (
-        <Table.Tr key={rent.id}>
-            <Table.Td>{rent.renterId}</Table.Td>
-            <Table.Td>{rent.carBrand || '-'}{rent.carModel ? ` ${rent.carModel}` : ''}</Table.Td>
-            <Table.Td>{rent.plannedStart ? dayjs(rent.plannedStart).format('YYYY.MM.DD HH:mm') : '-'}</Table.Td>
-            <Table.Td style={{ minWidth: 180 }}>
+        <Table.Tr key={rent.id} style={{
+            transition: 'all 0.2s ease',
+            background: 'rgba(15, 23, 42, 0.4)',
+        }}
+                  onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(30, 41, 59, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(15, 23, 42, 0.4)';
+                  }}>
+            <Table.Td>
+                <Badge color="blue" variant="light" size="lg" style={{fontWeight: 600}}>
+                    #{rent.id}
+                </Badge>
+            </Table.Td>
+            <Table.Td>
+                <Group gap="sm">
+                    <ThemeIcon size="lg" radius="md" variant="light" color="blue">
+                        <IconCar size={20} />
+                    </ThemeIcon>
+                    <Box>
+                        <Text fw={600} size="sm">{rent.carBrand}</Text>
+                        <Text size="xs" c="dimmed">{rent.carModel}</Text>
+                    </Box>
+                </Group>
+            </Table.Td>
+            <Table.Td>
+                <Box>
+                    <Text size="sm" fw={500}>{dayjs(rent.plannedStart).format('YYYY.MM.DD')}</Text>
+                    <Text size="xs" c="dimmed">{dayjs(rent.plannedStart).format('HH:mm')}</Text>
+                </Box>
+            </Table.Td>
+            <Table.Td style={{minWidth: 200}}>
                 <DatePickerInput
                     placeholder="Átadás dátuma"
-                    value={selectedActualStartDates[rent.id] ? dayjs(selectedActualStartDates[rent.id]).format(dateFormat) : null}
-                    onChange={(dateString) => handleActualStartDateChange(rent.id, dateString)}
+                    value={selectedActualStartDates[rent.id] || null}
+                    onChange={(date) => handleActualStartDateChange(rent.id, date)}
                     minDate={
                         rent.plannedStart
                             ? (dayjs(rent.plannedStart).isSameOrAfter(dayjs().startOf('day'))
@@ -138,85 +186,196 @@ const CarHandoverPage = () => {
                     locale="hu"
                     valueFormat={dateFormat}
                     disabled={!rent.approverId || !!rent.actualStart}
-                    size="xs"
+                    size="sm"
+                    leftSection={<IconCalendarEvent size={16}/>}
+                    styles={{
+                        input: {
+                            background: 'rgba(15, 23, 42, 0.5)',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                        }
+                    }}
                 />
             </Table.Td>
             <Table.Td>
-                <Badge color={rent.approverId ? 'teal' : 'gray'} variant='light'>
-                    {rent.approverId ? `Jóváhagyva (ID: ${rent.approverId})` : 'Nincs jóváhagyva'}
+                <Badge color="teal" variant="filled" size="md" tt="uppercase">
+                    ID: {rent.approverId}
                 </Badge>
             </Table.Td>
             <Table.Td>
                 <Button
-                    size="xs"
-                    color="blue"
+                    size="sm"
                     onClick={() => handleHandoverClick(rent)}
-                    leftSection={<IconCarSuv size={14}/>}
-                    disabled={!rent.approverId || !!rent.actualStart || !selectedActualStartDates[rent.id]}
+                    leftSection={<IconCarSuv size={16}/>}
+                    disabled={!!rent.actualStart || !selectedActualStartDates[rent.id]}
+                    variant="light"
+                    color="blue"
                 >
-                    Átadás Rögzítése
+                    Átadás
                 </Button>
             </Table.Td>
         </Table.Tr>
     ));
 
-    if (isLoading && handovers.length === 0) { return <Center style={{ height: '100%' }}><LoadingOverlay visible={true} /></Center>; }
-    if (error) { return ( <Center style={{ height: '100%' }}><Alert icon={<IconAlertCircle size="1rem" />} title="Hiba!" color="red" radius="md">{error}</Alert></Center> ); }
+    const emptyState = (
+        <Center py={60} style={{flexDirection: 'column'}}>
+            <ThemeIcon size={80} radius="xl" variant="light" color="gray" mb="md">
+                <IconInfoCircle size={40} stroke={1.5}/>
+            </ThemeIcon>
+            <Title order={3} fw={700} mb="xs">Nincsenek átadásra váró foglalások</Title>
+            <Text c="dimmed" size="sm" ta="center" maw={400}>
+                Jelenleg minden jóváhagyott autó át van adva.
+            </Text>
+        </Center>
+    );
+
+    const errorState = (
+        <Center py={60} style={{flexDirection: 'column'}}>
+            <ThemeIcon size={80} radius="xl" variant="light" color="red" mb="md">
+                <IconAlertCircle size={40} stroke={1.5} />
+            </ThemeIcon>
+            <Title order={3} fw={700} mb="xs">Hiba történt</Title>
+            <Text c="dimmed" size="sm" ta="center" maw={400} mb="md">
+                {error}
+            </Text>
+            <Button
+                color="red"
+                variant="light"
+                onClick={fetchHandovers}
+                leftSection={<IconRefresh size={16}/>}
+            >
+                Újrapróbálás
+            </Button>
+        </Center>
+    );
 
     return (
-        <Paper shadow="sm" p="md" withBorder>
-            <LoadingOverlay visible={isLoading && handovers.length > 0} />
-            <Title order={2} mb="lg">Átadásra Váró Autók</Title>
-            {handovers.length > 0 ? (
-                <ScrollArea>
-                    <Table striped highlightOnHover withTableBorder withColumnBorders miw={950}>
-                        <Table.Thead>
-                            <Table.Tr>
-                                <Table.Th>Bérlő ID</Table.Th>
-                                <Table.Th>Autó</Table.Th>
-                                <Table.Th>Tervezett Kezdet</Table.Th>
-                                <Table.Th>Tényleges Átadás</Table.Th>
-                                <Table.Th>Jóváhagyás</Table.Th>
-                                <Table.Th>Műveletek</Table.Th>
-                            </Table.Tr>
-                        </Table.Thead>
-                        <Table.Tbody>{rows}</Table.Tbody>
-                    </Table>
-                </ScrollArea>
-            ) : !isLoading ? ( <Text>Nincsenek átadásra váró foglalások.</Text> ) : null}
+        <Container size="xl" my="xl">
+            <Stack gap="xl">
+                {/* Fejléc */}
+                <Box>
+                    <Title order={1} size="h2" fw={900} style={{
+                        background: 'linear-gradient(45deg, #3b82f6 0%, #8b5cf6 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        marginBottom: '0.5rem',
+                    }}>
+                        Átadásra Váró Autók
+                    </Title>
+                    <Text c="dimmed" size="sm">Jóváhagyott bérlések autóinak átadása</Text>
+                </Box>
 
-            <Modal
-                opened={handoverModalOpened}
-                onClose={closeHandoverModal}
-                title={`Átadás megerősítése (Bérlés ID: ${selectedRent?.id})`}
-                centered
-            >
-                <Stack>
-                    <Text size="sm">Bérlő ID: {selectedRent?.renterId}</Text>
-                    <Text size="sm">Autó: {selectedRent?.carBrand} {selectedRent?.carModel}</Text>
-                    <Text>Tényleges átadás időpontja:
-                        <strong>
-                            {selectedActualStartDates[selectedRent?.id ?? 0]
-                                ? dayjs(selectedActualStartDates[selectedRent?.id ?? 0]).format('YYYY.MM.DD')
-                                : 'Nincs kiválasztva'}
-                        </strong>
-                    </Text>
-                    <Text>Biztosan rögzíti az autó átadását a kiválasztott dátummal?</Text>
-
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="default" onClick={closeHandoverModal}>Mégsem</Button>
-                        <Button
+                {/* Fő tartalom */}
+                <Paper shadow="xl" p="xl" withBorder style={{
+                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                }}>
+                    <Group justify="space-between" mb="xl">
+                        <Group gap="sm">
+                            <ThemeIcon size="xl" radius="md" variant="light" color="blue">
+                                <IconCarSuv size={28}/>
+                            </ThemeIcon>
+                            <Box>
+                                <Title order={3} size="h4">Átadásra Váró Járművek</Title>
+                                <Text size="sm" c="dimmed">
+                                    {handovers.length > 0
+                                        ? `${handovers.length} jármű vár átadásra`
+                                        : 'Nincsenek átadásra váró járművek'}
+                                </Text>
+                            </Box>
+                        </Group>
+                        <ActionIcon
+                            variant="light"
+                            size="xl"
                             color="blue"
-                            onClick={confirmHandover}
+                            onClick={fetchHandovers}
                             loading={isLoading}
-                            disabled={!selectedActualStartDates[selectedRent?.id ?? 0]}
+                            aria-label="Adatok frissítése"
                         >
-                            Átadás Rögzítése
-                        </Button>
+                            <IconRefresh style={{width: rem(20)}}/>
+                        </ActionIcon>
                     </Group>
-                </Stack>
+
+                    <Divider mb="xl" opacity={0.1} />
+
+                    <Box style={{position: 'relative', minHeight: '300px'}}>
+                        <LoadingOverlay visible={isLoading} overlayProps={{radius: 'sm', blur: 2}}/>
+
+                        {!isLoading && error && errorState}
+                        {!isLoading && !error && handovers.length === 0 && emptyState}
+                        {!isLoading && !error && handovers.length > 0 && (
+                            <ScrollArea>
+                                <Table striped={false} highlightOnHover={false} miw={900} style={{
+                                    borderRadius: '8px',
+                                    overflow: 'hidden',
+                                }}>
+                                    <Table.Thead style={{
+                                        background: 'rgba(15, 23, 42, 0.6)',
+                                    }}>
+                                        <Table.Tr>
+                                            <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Bérlés ID</Table.Th>
+                                            <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Jármű</Table.Th>
+                                            <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Tervezett Kezdet</Table.Th>
+                                            <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Tényleges Átadás</Table.Th>
+                                            <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Jóváhagyó</Table.Th>
+                                            <Table.Th style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem'}}>Művelet</Table.Th>
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>{rows}</Table.Tbody>
+                                </Table>
+                            </ScrollArea>
+                        )}
+                    </Box>
+                </Paper>
+            </Stack>
+
+            {/* Átadás Megerősítés Modal */}
+            <Modal opened={handoverModalOpened} onClose={closeHandoverModal} title="Átadás megerősítése" centered>
+                {selectedRent && (
+                    <Stack>
+                        <Text>Biztosan rögzíti az alábbi bérléshez tartozó autó átadását?</Text>
+                        <Paper withBorder p="md" radius="md" style={{
+                            background: 'rgba(15, 23, 42, 0.5)',
+                        }}>
+                            <Stack gap="sm">
+                                <Group>
+                                    <ThemeIcon size="md" variant="light" color="blue">
+                                        <IconCar size={16} />
+                                    </ThemeIcon>
+                                    <Box flex={1}>
+                                        <Text fw={600} size="sm">Bérlés ID:</Text>
+                                        <Badge color="blue" variant="light" size="lg">
+                                            #{selectedRent.id}
+                                        </Badge>
+                                    </Box>
+                                </Group>
+                                <Group>
+                                    <Text fw={500} style={{width: 100}}>Jármű:</Text>
+                                    <Text size="sm">{selectedRent.carBrand} {selectedRent.carModel}</Text>
+                                </Group>
+                                <Group>
+                                    <Text fw={500} style={{width: 100}}>Átadás dátuma:</Text>
+                                    <Badge color="blue" size="lg" variant="filled">
+                                        {dayjs(selectedActualStartDates[selectedRent.id]).format(dateFormat)}
+                                    </Badge>
+                                </Group>
+                            </Stack>
+                        </Paper>
+
+                        <Group justify="flex-end" mt="md">
+                            <Button variant="default" onClick={closeHandoverModal}>Mégsem</Button>
+                            <Button
+                                color="blue"
+                                onClick={confirmHandover}
+                                loading={isLoading}
+                                leftSection={<IconCheck size={16}/>}
+                            >
+                                Megerősítés
+                            </Button>
+                        </Group>
+                    </Stack>
+                )}
             </Modal>
-        </Paper>
+        </Container>
     );
 };
 

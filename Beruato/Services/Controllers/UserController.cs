@@ -1,15 +1,13 @@
-using System.Security.Claims;
 using AutoMapper;
 using Database.Dtos;
 using Database.Dtos.UserDtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Services.Services;
+using System.Security.Claims;
 
 namespace Berauto.Controllers;
 
@@ -63,7 +61,7 @@ public class UserController : Controller
     [Authorize]
     [HttpPatch("updateProfile")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)] 
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -171,45 +169,30 @@ public class UserController : Controller
         {
             return BadRequest(new { Errors = registrationResult.Errors });
         }
+
         return CreatedAtAction(nameof(GetMyProfile), new { userId = registrationResult.User.Id },
             registrationResult.User);
     }
 
-    [HttpPost("check-email-for-direct-reset")]
-    [ProducesResponseType(typeof(object),
-        StatusCodes.Status200OK)]
+    [HttpPost("google-login")]
+    [ProducesResponseType(typeof(UserGetDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> CheckEmailForReset([FromBody] ForgotPasswordRequest req)
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto googleLoginDto)
     {
-        if (!ModelState.IsValid)
+        // Ez a kód hiányzik most a szerveredről!
+        if (googleLoginDto == null || string.IsNullOrWhiteSpace(googleLoginDto.AccessToken))
         {
-            return BadRequest(ModelState);
+            return BadRequest(new { Message = "A token megadása kötelező." });
         }
 
-        bool emailExists = await _userService.CheckEmailExistsAndRegisteredAsync(req.Email);
-        return Ok(new { emailExists = emailExists });
-    }
+        var result = await _userService.LoginWithGoogleAsync(googleLoginDto);
 
-    [HttpPost("direct-reset-password")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
-    {
-        if (!ModelState.IsValid)
+        if (!result.Succeeded)
         {
-            return BadRequest(ModelState);
+            return BadRequest(new { Message = result.Errors.FirstOrDefault() ?? "Hiba történt a Google bejelentkezés során." });
         }
 
-        var result = await _userService.ResetPasswordAsync(dto.Email, dto.NewPassword);
-
-        if (result.Succeeded)
-        {
-            string successMessage = result.Messages.FirstOrDefault() ?? "A jelszó sikeresen módosítva.";
-            return Ok(new { Message = successMessage });
-        }
-
-        return BadRequest(new
-            { Message = result.Errors.FirstOrDefault() ?? "A jelszó módosítása sikertelen.", Errors = result.Errors });
+        return Ok(new { Token = result.Token, User = result.User });
     }
 
     /// <summary>
@@ -229,5 +212,6 @@ public class UserController : Controller
 
         return userId;
     }
+
 
 }

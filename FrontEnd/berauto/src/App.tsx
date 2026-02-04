@@ -8,6 +8,7 @@ import { Notifications } from '@mantine/notifications';
 
 import { AuthProvider } from './context/AuthContext';
 import Routing from './routing/Routing.tsx';
+import ChatbotWidget from './components/ChatbotWidget';
 
 function App() {
     return (
@@ -16,6 +17,7 @@ function App() {
             <BrowserRouter>
                 <AuthProvider>
                     <Routing />
+                    <ChatbotWidget />
                 </AuthProvider>
             </BrowserRouter>
         </MantineProvider>

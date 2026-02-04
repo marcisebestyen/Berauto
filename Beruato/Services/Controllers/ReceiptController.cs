@@ -14,11 +14,13 @@ public class ReceiptController : Controller
 {
     private readonly IReceiptService _receiptService;
     private readonly ILogger<ReceiptController> _logger;
+    private readonly IInvoicePdfService _invoicePdfService;
 
-    public ReceiptController(IReceiptService receiptService, ILogger<ReceiptController> logger)
+    public ReceiptController(IReceiptService receiptService, ILogger<ReceiptController> logger, IInvoicePdfService invoicePdfService)
     {
         _receiptService = receiptService ?? throw new ArgumentNullException(nameof(receiptService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _invoicePdfService = invoicePdfService;
     }
 
     /// <summary>
@@ -102,6 +104,42 @@ public class ReceiptController : Controller
 
         var result = await _receiptService.GetReceiptsByUserIdAsync(userId);
         return Ok(result);
+    }
+    [HttpGet("{rentId}/download")]
+    [Authorize]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadReceiptByRentId(int rentId)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+        {
+            return Unauthorized(new { Message = "A felhasználó nincs bejelentkezve." });
+        }
+
+        try
+        {
+            // 1. A Service elvégzi az ÖSSZES munkát
+            byte[]? pdfBytes = await _receiptService.GenerateInvoicePdfByRentIdAsync(rentId, userId);
+
+            // 2. Ellenőrzés (null = nem található VAGY nincs jogosultság)
+            if (pdfBytes == null)
+            {
+                return NotFound(new { Message = "A kért számla nem található vagy nincs jogosultsága a megtekintéséhez." });
+            }
+
+            // 3. Fájl visszaadása
+            var fileName = $"szamla-berles-{rentId}.pdf";
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Hiba a PDF letöltésekor (RentId: {RentId})", rentId);
+            return StatusCode(500, "Szerver hiba történt a PDF generálása közben.");
+        }
     }
 
 }

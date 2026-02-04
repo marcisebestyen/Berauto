@@ -1,14 +1,17 @@
 using Database.Data;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Services.Configurations;
 using Services.Repositories;
 using Services.Services;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
-
+using Supabase;
 
 namespace Beruato
 {
@@ -16,15 +19,43 @@ namespace Beruato
     {
         public static void Main(string[] args)
         {
+            QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
             var builder = WebApplication.CreateBuilder(args);
+            var geminiApiKey = builder.Configuration["Gemini:ApiKey"];
 
             var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
+            var supabaseUrl = builder.Configuration["Supabase:Url"];
+            var supabaseKey = builder.Configuration["Supabase:Key"];
+
+            var options = new SupabaseOptions
+            {
+                AutoRefreshToken = true,
+                AutoConnectRealtime = true,
+            };
+
+            builder.Services.AddScoped<Supabase.Client>(_ =>
+                new Supabase.Client(supabaseUrl, supabaseKey, options));
 
 
-            builder.Services.AddControllers();
-            builder.Services.AddControllers().AddNewtonsoftJson();
+            builder.Services.AddHangfire(config =>
+            {
+                config.UsePostgreSqlStorage(
+                    builder.Configuration.GetConnectionString("Supabase"),
+                    new PostgreSqlStorageOptions
+                    {
+                        PrepareSchemaIfNecessary = true,
+                        InvisibilityTimeout = TimeSpan.FromMinutes(30),
+                        QueuePollInterval = TimeSpan.FromSeconds(15),
+                        UseNativeDatabaseTransactions = true
+                    });
+            });
+
+            builder.Services.AddHangfireServer();
+
             builder.Services.AddControllers()
+                .AddNewtonsoftJson()
                 .AddJsonOptions(options =>
                 {
                     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -35,7 +66,7 @@ namespace Beruato
                 options.AddPolicy(name: MyAllowSpecificOrigins,
                     policy =>
                     {
-                        policy.WithOrigins("http://localhost:7285")
+                        policy.WithOrigins("http://localhost:7285", "http://localhost:5173")
                             .AllowAnyHeader()
                             .AllowAnyMethod()
                             .AllowCredentials();
@@ -44,26 +75,50 @@ namespace Beruato
 
             builder.Services.AddOpenApi();
             builder.Services.AddDbContext<BerautoDbContext>(options =>
-                options.UseSqlServer(builder.Configuration
-                        .GetConnectionString(
-                            "Server=localhost;Database=BerautoDb;TrustServerCertificate=True;User Id=sa;Password=yourStrong(&)Password"),
-                    b => b.MigrationsAssembly("Beruato")));
+                options.UseNpgsql(
+                    builder.Configuration.GetConnectionString("Supabase"),
+                    npgsqlOptions =>
+                    {
+                        npgsqlOptions.MigrationsAssembly("Beruato");
+                        npgsqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(5),
+                            errorCodesToAdd: null);
+                        npgsqlOptions.CommandTimeout(60);
+                    }));
 
+            builder.Services.AddSingleton<EmailRateLimiter>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<ICarService, CarService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IRentService, RentService>();
             builder.Services.AddScoped<IStaffService, StaffService>();
             builder.Services.AddScoped<IReceiptService, ReceiptService>();
-            
+            builder.Services.AddScoped<IInvoicePdfService, InvoicePdfService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+            builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+            builder.Services.AddScoped<WeeklySummaryJob>();
+            builder.Services.AddScoped<AdminStaffSummaryJob>();
+            builder.Services.AddScoped<FaqService>(provider =>
+            {
+                var dbContext = provider.GetRequiredService<BerautoDbContext>();
+                var logger = provider.GetRequiredService<ILogger<FaqService>>();
+                return new FaqService(dbContext, geminiApiKey, logger);
+            });
+            builder.Services.AddScoped<IDepotService, DepotService>();
+
+            builder.Services.Configure<Services.Configurations.MailSettings>(
+                builder.Configuration.GetSection("MailtrapSettings"));
+
             var jwtSettings = builder.Configuration.GetSection("Jwt");
             var secretKey = jwtSettings["Key"];
 
             builder.Services.AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
@@ -82,16 +137,8 @@ namespace Beruato
                         NameClaimType = ClaimTypes.NameIdentifier
                     };
                 });
-            
-            builder.Services.AddAuthorization();
 
-            // builder.Services.AddAuthorization(options =>
-            // {
-            //     options.AddPolicy("GuestPolicy", policy => policy.RequireRole("Guest"));
-            //     options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
-            //     options.AddPolicy("UserPolicy", policy => policy.RequireRole("User"));
-            //     options.AddPolicy("DirectorPolicy", policy => policy.RequireRole("Director"));
-            // });
+            builder.Services.AddAuthorization();
 
             builder.Services.AddAutoMapper(typeof(Services.Services.MappingService).Assembly);
 
@@ -139,6 +186,19 @@ namespace Beruato
             {
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Berauto API v1"));
+                app.UseHangfireDashboard();
+
+                RecurringJob.AddOrUpdate<WeeklySummaryJob>(
+                    "weekly-summary",
+                    job => job.SendWeeklySummaryAsync(),
+                    "0 9 * * 0");
+                RecurringJob.AddOrUpdate<AdminStaffSummaryJob>(
+                    "admin-staff-summary-emails",
+                    job => job.SendAdminStaffSummaryAsync(),
+                    "0 9 * * 0");
+
+                BackgroundJob.Enqueue<WeeklySummaryJob>(job => job.SendWeeklySummaryAsync());
+                BackgroundJob.Enqueue<AdminStaffSummaryJob>(job => job.SendAdminStaffSummaryAsync());
             }
 
             app.UseHttpsRedirection();

@@ -29,17 +29,13 @@
         public decimal PricePerDay { get; set; }
         public bool IsAutomatic { get; set; }
         public decimal ActualKilometers { get; set; }
-        public bool InProperCondition { get; set; } // műszaki állapota megfelelő 
+        public bool InProperCondition { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public bool IsRented { get; set; } = false;
+
+        public ICollection<WaitingList> WaitingLists { get; set; } = new List<WaitingList>();
+        public DateTime? LastTechnicalInspection { get; set; }
+        public decimal? KilometersAtLastInspection { get; set; }
+        public int DepotId { get; set; }
     }
 }
-/*
- * az igény táblából kell lekérdezni, hogy az igényelni kívánt
- * intervallumban van-e igény az adott autóra,
- * amennyiben igen => nem elérhető, egyébként => elérhető
- */
-
-/*
- * InProperCondition állapot nem összekeverendő azzal, hogy elérhető
- * (igényelhető dátum szerint), arra vonatkozik, hogy műszakilag
- * renben van, ezt az admin tudja állítani
- */

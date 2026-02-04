@@ -1,55 +1,89 @@
 import {useEffect, useState} from "react";
-import {rem, Button, useMantineTheme, DefaultMantineColor, Stack} from "@mantine/core";
+import {rem, useMantineTheme, DefaultMantineColor, Stack, Text, Box, Divider} from "@mantine/core";
 import {
     IconUserCircle,
-    IconLogout,
     IconHome,
     IconCar,
     IconListCheck,
     IconTransferOut,
-    IconRun,
-    IconLockCheck,
     IconPlus,
-    IconCircleMinus
+    IconCircleMinus,
+    IconList, IconChartLine
 } from "@tabler/icons-react";
 import classes from "./NavbarMinimalColored.module.css";
 import {useNavigate, useLocation} from "react-router-dom";
 import {useMediaQuery} from "@mantine/hooks";
 import useAuth from "../../hooks/useAuth.tsx";
 
-
 interface NavbarLinkProps {
     icon: typeof IconHome;
     label: string;
     color: DefaultMantineColor;
     active?: boolean;
-
     onClick?(): void;
 }
 
 function NavbarLink({icon: Icon, label, color, active, onClick}: NavbarLinkProps) {
     const theme = useMantineTheme();
     return (
-        <div
+        <Box
             role="button"
             className={`${classes.link} ${active ? classes.activeLink : ''}`}
             onClick={onClick}
             data-active={active || undefined}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: rem(12),
+                padding: `${rem(10)} ${rem(16)}`,
+                borderRadius: rem(8),
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: active ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                border: active ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid transparent',
+            }}
+            onMouseEnter={(e) => {
+                if (!active) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                }
+            }}
+            onMouseLeave={(e) => {
+                if (!active) {
+                    e.currentTarget.style.background = 'transparent';
+                }
+            }}
         >
-            <Button
-                variant="light"
-                color={active ? color : theme.primaryColor}
-                className={classes.iconButton}
-                style={{width: rem(40), height: rem(40), flexGrow: 0, flexShrink: 0, flexBasis: rem(40)}}
+            <Box
+                style={{
+                    width: rem(40),
+                    height: rem(40),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: rem(8),
+                    background: active
+                        ? `linear-gradient(135deg, ${theme.colors[color][6]} 0%, ${theme.colors[color][7]} 100%)`
+                        : 'rgba(255, 255, 255, 0.05)',
+                    transition: 'all 0.2s ease',
+                }}
             >
                 <Icon
-                    className={classes.linkIcon}
-                    style={{width: rem(25), height: rem(25), flexGrow: 0, flexShrink: 0, flexBasis: rem(25)}}
+                    style={{width: rem(22), height: rem(22)}}
                     stroke={1.8}
+                    color={active ? 'white' : theme.colors[color][5]}
                 />
-            </Button>
-            <span className={classes.label}>{label}</span>
-        </div>
+            </Box>
+            <Text
+                size="sm"
+                fw={active ? 600 : 500}
+                style={{
+                    color: active ? theme.colors[color][4] : 'rgba(255, 255, 255, 0.7)',
+                    transition: 'all 0.2s ease',
+                }}
+            >
+                {label}
+            </Text>
+        </Box>
     );
 }
 
@@ -65,32 +99,30 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
     const [activeLink, setActiveLink] = useState<string | null>(null);
     const navigate = useNavigate();
     const location = useLocation();
-    const {logout, isAuthenticated, user} = useAuth();
+    const {isAuthenticated, user} = useAuth();
 
     const getMenuItems = () => {
         const basePublicItems = [
             { icon: IconHome, label: "Kezdőlap", url: "/dashboard", color: "blue" },
-            { icon: IconCar, label: "Autó bérlése", url: "/cars", color: "teal" },
+            { icon: IconCar, label: "Autó bérlése", url: "/cars", color: "cyan" },
         ];
 
         const staffSpecificItems = [
-            { icon: IconListCheck, label: "Igények Kezelése", url: "/staff/pending-rents", color: "violet" },
-            { icon: IconTransferOut, label: "Autóátadások", url: "/staff/handovers", color: "grape" },
-            { icon: IconRun, label: "Futó Kölcsönzések", url: "/staff/running-rents", color: "orange" },
-            { icon: IconLockCheck, label: "Lezárt Kölcsönzések", url: "/staff/completed-rents", color: "lime" },
-            { icon: IconUserCircle, label: "Számlák", url: "/staff/receipts", color: "blue" },
+            { icon: IconTransferOut, label: "Autóátadások", url: "/staff/handovers", color: "violet" },
+            { icon: IconListCheck, label: "Kölcsönzések Kezelése", url: "/staff/rentals", color: "blue" },
         ];
+
         const userSpecificItems = [
             { icon: IconUserCircle, label: "Saját számláim", url: "/receipts/my", color: "blue" },
         ];
-        const adminSpecificItems = [
-            { icon: IconPlus, label: "Autó hozzáadása", url: "/admin/add-car", color: "green" },
-            { icon: IconCar, label: "Autó adatok szerkesztése", url: "/admin/update", color: "green" },
-            {
-                icon: IconCircleMinus, label: "Autó eltávolítása", url: "/admin/delete", color: "red"
-            }
-        ];
 
+        const adminSpecificItems = [
+            { icon: IconChartLine, label: "Dashboard", url: "/admin/dashboard", color: "yellow" },
+            { icon: IconPlus, label: "Autó hozzáadása", url: "/admin/add-car", color: "teal" },
+            { icon: IconCar, label: "Autó szerkesztése", url: "/admin/update", color: "blue" },
+            { icon: IconCircleMinus, label: "Autó eltávolítása", url: "/admin/delete", color: "red" },
+            { icon: IconList, label: "Autók listája" , url: "/admin/list-cars", color: "grape" },
+        ];
 
         let visibleItems = [...basePublicItems];
 
@@ -101,6 +133,7 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
         if (isAuthenticated && user?.role === ROLES.ADMIN) {
             visibleItems = [...visibleItems, ...staffSpecificItems, ...adminSpecificItems];
         }
+
         if (isAuthenticated && (user?.role === ROLES.RENTER || user?.role === ROLES.ADMIN || user?.role === ROLES.STAFF)) {
             visibleItems = [...visibleItems, ...userSpecificItems];
         }
@@ -108,14 +141,7 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
         return visibleItems;
     };
 
-
     const menuItems = getMenuItems();
-
-    const handleLogout = () => {
-        logout(() => {
-            window.location.href = '/';
-        });
-    };
 
     useEffect(() => {
         const currentPath = location.pathname;
@@ -133,45 +159,83 @@ export function NavbarMinimal({toggle}: { toggle: () => void }) {
         }
     }, [location.pathname, isAuthenticated, menuItems]);
 
-    const links = menuItems
-        .map((link) => (
-            <NavbarLink
-                {...link}
-                key={link.label}
-                active={activeLink === link.url}
-                onClick={() => {
-                    navigate(link.url);
-                    if (isMobile) toggle();
-                }}
-            />
-        ));
+    // Csoportosítjuk a menüelemeket
+    const baseItems = menuItems.slice(0, 2);
+    const staffItems = menuItems.filter(item =>
+        item.url.startsWith('/staff/')
+    );
+    const adminItems = menuItems.filter(item =>
+        item.url.startsWith('/admin/')
+    );
+    const userItems = menuItems.filter(item =>
+        item.url.startsWith('/receipts/')
+    );
 
-    return (
-        <nav className={classes.navbar}>
-            <div className={classes.navbarWrapper}>
-                <Stack gap="xs" className={classes.navbarMain}>
-                    {links}
-                </Stack>
-                {isAuthenticated && (
-                    <div className={classes.footer} style={{width: !isMobile ? 'calc(100% - 16px)' : '90%'}}>
+    const renderSection = (items: typeof menuItems, title?: string) => {
+        if (items.length === 0) return null;
+        return (
+            <>
+                {title && (
+                    <Text
+                        size="xs"
+                        fw={700}
+                        tt="uppercase"
+                        c="dimmed"
+                        px={16}
+                        mt="md"
+                        mb="xs"
+                        style={{letterSpacing: '0.5px'}}
+                    >
+                        {title}
+                    </Text>
+                )}
+                <Stack gap={4}>
+                    {items.map((link) => (
                         <NavbarLink
-                            active={activeLink === "/profile"}
-                            icon={IconUserCircle}
-                            label="Profil"
+                            {...link}
+                            key={link.label}
+                            active={activeLink === link.url}
                             onClick={() => {
-                                navigate("/profile");
+                                navigate(link.url);
                                 if (isMobile) toggle();
                             }}
-                            color="grape"
                         />
-                        <NavbarLink
-                            icon={IconLogout}
-                            label="Kijelentkezés"
-                            onClick={handleLogout}
-                            color="red"
-                        />
-                    </div>
-                )}
+                    ))}
+                </Stack>
+            </>
+        );
+    };
+
+    return (
+        <nav className={classes.navbar} style={{
+            background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+        }}>
+            <div className={classes.navbarWrapper} style={{padding: rem(12)}}>
+                <Stack gap="xs" className={classes.navbarMain}>
+                    {renderSection(baseItems)}
+
+                    {staffItems.length > 0 && (
+                        <>
+                            <Divider my="sm" opacity={0.1} />
+                            {renderSection(staffItems, "Személyzet")}
+                        </>
+                    )}
+
+                    {adminItems.length > 0 && (
+                        <>
+                            <Divider my="sm" opacity={0.1} />
+                            {renderSection(adminItems, "Adminisztráció")}
+                        </>
+                    )}
+
+                    {userItems.length > 0 && (
+                        <>
+                            <Divider my="sm" opacity={0.1} />
+                            {renderSection(userItems, "Profil")}
+                        </>
+                    )}
+                </Stack>
             </div>
         </nav>
     );

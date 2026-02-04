@@ -17,7 +17,7 @@ public interface ICarService
     Task<CarGetDto> AddCarAsync(CarCreateDto createCarDto);
     Task<ServiceResult> UpdateCarAsync(int id, JsonPatchDocument<Car> patchDocument, ModelStateDictionary modelState);
     Task DeleteCarAsync(int id);
-    Task<IEnumerable<CarGetDto>> GetAvailableCarsAsync(DateTime startDate, DateTime endDate);
+    Task<IEnumerable<CarGetWithStatusDto>> GetAllCarsWithAvailabilityAsync(DateTime startDate, DateTime endDate);
 }
 
 public class CarService : ICarService
@@ -33,14 +33,15 @@ public class CarService : ICarService
 
     public async Task<IEnumerable<CarGetDto>> GetAllCarsAsync()
     {
-        var cars = await _unitOfWork.CarRepository.GetAllAsync();
+        var cars = await _unitOfWork.CarRepository.GetAsync(car => !car.IsDeleted);
         return _mapper.Map<IEnumerable<CarGetDto>>(cars);
     }
+
 
     public async Task<CarGetDto?> GetCarByIdAsync(int id)
     {
         var car = await _unitOfWork.CarRepository.GetByIdAsync(new object[] { id });
-        if (car == null)
+        if (car == null || car.IsDeleted)
         {
             return null;
         }
@@ -61,15 +62,13 @@ public class CarService : ICarService
     public async Task<ServiceResult> UpdateCarAsync(int id, JsonPatchDocument<Car> patchDocument,
         ModelStateDictionary modelState)
     {
-
         var existingCar =
             await _unitOfWork.CarRepository.GetByIdAsync(new object[]
             {
                 id
-            }); 
+            });
         if (existingCar == null)
         {
-            // _logger.LogInformation("UpdateCarAsync: Car with ID {CarId} not found.", id);
             throw new KeyNotFoundException($"A {id} azonosítójú autó nem található.");
         }
 
@@ -99,11 +98,10 @@ public class CarService : ICarService
                 }
                 else
                 {
-                    modelState.AddModelError(string.Empty, validationResult.ErrorMessage); 
+                    modelState.AddModelError(string.Empty, validationResult.ErrorMessage);
                 }
             }
 
-            // _logger.LogWarning("UpdateCarAsync: Entity validation failed after patch for car ID {CarId}. ModelState: {@ModelState}", id, modelState);
             throw new ArgumentException(
                 "Az entitás validációja sikertelen a patch alkalmazása után. Lásd a részleteket.", nameof(existingCar));
         }
@@ -115,32 +113,65 @@ public class CarService : ICarService
 
     public async Task DeleteCarAsync(int id)
     {
-        try
+        var carToDelete = await _unitOfWork.CarRepository.GetByIdAsync(new object[] { id });
+        if (carToDelete == null)
         {
-            await _unitOfWork.CarRepository.DeleteAsync(id);
-            await _unitOfWork.SaveAsync();
+            throw new KeyNotFoundException($"A(z) {id} azonosítójú autó nem található.");
         }
-        catch (KeyNotFoundException)
+
+        if (carToDelete.IsRented)
         {
-            throw;
+            throw new InvalidOperationException(
+                $"A(z) {id} azonosítójú autó nem törölhető, mert jelenleg ki van adva.");
         }
+
+        if (carToDelete.IsDeleted)
+        {
+            return;
+        }
+
+        carToDelete.IsDeleted = true;
+        await _unitOfWork.CarRepository.UpdateAsync(carToDelete);
+        await _unitOfWork.SaveAsync();
     }
 
-
-    public async Task<IEnumerable<CarGetDto>> GetAvailableCarsAsync(DateTime startDate, DateTime endDate)
+    public async Task<IEnumerable<CarGetWithStatusDto>> GetAllCarsWithAvailabilityAsync(DateTime startDate,
+        DateTime endDate)
     {
-        var rentedCarIds =
-            (await _unitOfWork.RentRepository.GetAsync(rent =>
+        var rentedCarIds = (await _unitOfWork.RentRepository.GetAsync(rent =>
                 rent.PlannedStart < endDate && rent.PlannedEnd > startDate
             ))
             .Select(rent => rent.CarId)
             .Distinct()
             .ToList();
 
-        var availableCarsEntities =
-            await _unitOfWork.CarRepository.GetAsync(car => car.InProperCondition && !rentedCarIds.Contains(car.Id)
-            );
+        var allCars = await _unitOfWork.CarRepository.GetAllAsync();
+        var resultList = new List<CarGetWithStatusDto>();
 
-        return _mapper.Map<IEnumerable<CarGetDto>>(availableCarsEntities);
+        foreach (var car in allCars)
+        {
+            var carDto = _mapper.Map<CarGetWithStatusDto>(car);
+
+            if (car.IsDeleted)
+            {
+                carDto.Status = CarAvailabilityStatus.Deleted;
+            }
+            else if (!car.InProperCondition)
+            {
+                carDto.Status = CarAvailabilityStatus.NotProperCondition;
+            }
+            else if (rentedCarIds.Contains(car.Id))
+            {
+                carDto.Status = CarAvailabilityStatus.Rented;
+            }
+            else
+            {
+                carDto.Status = CarAvailabilityStatus.Available;
+            }
+
+            resultList.Add(carDto);
+        }
+
+        return resultList;
     }
 }

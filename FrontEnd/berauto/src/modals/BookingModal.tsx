@@ -6,21 +6,34 @@ import {
     Group,
     Checkbox,
     LoadingOverlay,
+    Grid,
+    Text,
+    Divider,
+    Accordion,
+    Select,
 } from '@mantine/core';
-import { useForm } from '@mantine/form';
-import { DatePickerInput } from '@mantine/dates';
+import {useForm} from '@mantine/form';
+import {DatePickerInput} from '@mantine/dates';
 import useAuth from '../hooks/useAuth';
 import api from '../api/api.ts';
-import { useEffect, useState } from 'react';
-import { notifications } from '@mantine/notifications';
-
+import {useEffect, useState, useCallback} from 'react';
+import {notifications} from '@mantine/notifications';
+import {
+    IconUser,
+    IconAt,
+    IconPhone,
+    IconLicense,
+    IconCalendarEvent,
+    IconCheck,
+    IconUserCheck,
+    IconBookmark,
+    IconMapPin,
+} from '@tabler/icons-react';
 import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
 import 'dayjs/locale/hu';
+import {IGuestRentCreateDto, IRentCreateDto} from '../interfaces/IRent';
+import {IDepot} from "../interfaces/IDepot.ts";
 
-import { IGuestRentCreateDto, IRentCreateDto } from '../interfaces/IRent';
-
-dayjs.extend(customParseFormat);
 dayjs.locale('hu');
 
 interface BookingModalProps {
@@ -29,6 +42,8 @@ interface BookingModalProps {
     onClose: () => void;
     initialStartDate: Date | null;
     initialEndDate: Date | null;
+    initialDepotId: number | null;
+    depots: IDepot[];
 }
 
 interface UserForBooking {
@@ -40,11 +55,17 @@ interface UserForBooking {
     phoneNumber?: string;
 }
 
-const BookingModal = ({ carId, opened, onClose, initialStartDate, initialEndDate }: BookingModalProps) => {
-    const { user }: { user: UserForBooking | null | undefined } = useAuth();
+const BookingModal = ({
+                          carId,
+                          opened,
+                          onClose,
+                          initialStartDate,
+                          initialEndDate,
+                          initialDepotId,
+                          depots
+                      }: BookingModalProps) => {
+    const {user}: { user: UserForBooking | null | undefined } = useAuth();
     const [loading, setLoading] = useState(false);
-
-    const dateFormat = 'YYYY.MM.DD';
 
     const form = useForm({
         initialValues: {
@@ -55,176 +76,305 @@ const BookingModal = ({ carId, opened, onClose, initialStartDate, initialEndDate
             phoneNumber: '',
             plannedStart: null as Date | null,
             plannedEnd: null as Date | null,
-            requiresReceipt: false,
+            pickUpDepotId: '',
+            invoiceRequest: false,
         },
         validate: {
-            firstName: (v: string) => (!v || v.trim() === '' ? 'Keresztnév kötelező' : null),
-            lastName: (v: string) => (!v || v.trim() === '' ? 'Vezetéknév kötelező' : null),
-            email: (v: string) => (/^\S+@\S+$/.test(v) ? null : 'Hibás email cím'),
-            licenceId: (v: string) => (!v || v.trim() === '' ? 'Jogosítvány szám kötelező' : null),
-            phoneNumber: (v: string) => (!v || v.trim() === '' ? 'Telefonszám kötelező' : null),
-            plannedStart: (value: Date | null) => {
-                if (!value) return 'Kezdési időpont kötelező';
-                if (initialStartDate && dayjs(value).startOf('day').isBefore(dayjs(initialStartDate).startOf('day'))) {
-                    return `A kezdés nem lehet korábbi, mint ${dayjs(initialStartDate).format(dateFormat)}`;
-                }
-                if (dayjs(value).startOf('day').isBefore(dayjs().startOf('day'))) {
-                    return 'A kezdés nem lehet a mai napnál korábbi.';
-                }
+            firstName: (v) => (!user && (!v || v.trim() === '') ? 'Keresztnév kötelező' : null),
+            lastName: (v) => (!user && (!v || v.trim() === '') ? 'Vezetéknév kötelező' : null),
+            email: (v) => (!user && !/^\S+@\S+$/.test(v) ? 'Hibás email cím' : null),
+            plannedStart: (v) => (v ? null : 'Kezdési időpont kötelező'),
+            plannedEnd: (v, values) => {
+                if (!v) return 'Befejezési időpont kötelező';
+                if (values.plannedStart && v < values.plannedStart) return 'A befejezés nem lehet korábbi a kezdésnél.';
                 return null;
             },
-            plannedEnd: (value: Date | null, values: { plannedStart: Date | null }) => {
-                if (!value) return 'Befejezési időpont kötelező';
-                if (values.plannedStart && value < values.plannedStart) {
-                    return 'A befejezés nem lehet korábbi a kezdésnél.';
-                }
-                if (initialEndDate && dayjs(value).startOf('day').isAfter(dayjs(initialEndDate).startOf('day'))) {
-                    return `A befejezés nem lehet későbbi, mint ${dayjs(initialEndDate).format(dateFormat)}`;
-                }
-                return null;
-            },
+            pickUpDepotId: (v) => (!v || v.trim() === '' ? 'Telephely kiválasztása kötelező' : null),
         },
     });
 
+    const initializeForm = useCallback(() => {
+        form.setValues({
+            firstName: user?.firstName || '',
+            lastName: user?.lastName || '',
+            email: user?.email || '',
+            licenceId: user?.licenceId || '',
+            phoneNumber: user?.phoneNumber || '',
+            plannedStart: initialStartDate,
+            plannedEnd: initialEndDate,
+            pickUpDepotId: initialDepotId ? initialDepotId.toString() : '',
+            invoiceRequest: false,
+        });
+    }, [user, initialStartDate, initialEndDate, initialDepotId]);
+
     useEffect(() => {
         if (opened) {
-            let startToSet = initialStartDate;
-            let endToSet = initialEndDate;
-
-
-            if (startToSet && endToSet && startToSet > endToSet) {
-                endToSet = startToSet;
-            }
-
-            if (user && user.id) {
-                form.setValues({
-                    firstName: user.firstName || '',
-                    lastName: user.lastName || '',
-                    email: user.email || '',
-                    licenceId: user.licenceId || '',
-                    phoneNumber: user.phoneNumber || '',
-                    plannedStart: startToSet,
-                    plannedEnd: endToSet,
-                    requiresReceipt: form.values.requiresReceipt,
-                });
-            } else {
-                form.setValues({
-                    ...form.setInitialValues,
-                    plannedStart: startToSet,
-                    plannedEnd: endToSet,
-                    requiresReceipt: false,
-                });
-            }
-        } else {
-            form.reset();
+            initializeForm();
         }
-    }, [opened, user, initialStartDate, initialEndDate, form.setValues, form.reset]);
+    }, [opened, initializeForm]);
 
+    const handleSubmit = async (values: typeof form.values) => {
+        if (!values.plannedStart || !values.plannedEnd || !values.pickUpDepotId) return;
 
-    const handleSubmit = async (valuesToSubmit: typeof form.values) => {
-        if (!valuesToSubmit.plannedStart || !valuesToSubmit.plannedEnd) {
-            notifications.show({ title: 'Hiba', message: 'A kezdési és befejezési dátum megadása kötelező.', color: 'red', });
-            return;
-        }
-        if (!(valuesToSubmit.plannedStart instanceof Date) || !(valuesToSubmit.plannedEnd instanceof Date)) {
-            notifications.show({ title: 'Hiba', message: 'Belső hiba: érvénytelen dátum objektumok.', color: 'red', });
-            return;
-        }
         setLoading(true);
         try {
-            const plannedStartISO = valuesToSubmit.plannedStart.toISOString();
-            const plannedEndISO = valuesToSubmit.plannedEnd.toISOString();
-            if (user && user.id) {
-                const authenticatedRentData: IRentCreateDto = {
+            // Képzünk helyi éjféli dátumokat, a küldés pedig date-only ("YYYY-MM-DD")
+            const startLocal = new Date(
+                values.plannedStart.getFullYear(),
+                values.plannedStart.getMonth(),
+                values.plannedStart.getDate()
+            );
+            const endLocal = new Date(
+                values.plannedEnd.getFullYear(),
+                values.plannedEnd.getMonth(),
+                values.plannedEnd.getDate()
+            );
+
+            const pickUpDepotId = parseInt(values.pickUpDepotId, 10);
+
+            if (user?.id) {
+                const rentData: IRentCreateDto = {
                     carId: carId,
                     renterId: typeof user.id === 'string' ? parseInt(user.id, 10) : user.id,
-                    plannedStart: plannedStartISO,
-                    plannedEnd: plannedEndISO,
-                    invoiceRequest: valuesToSubmit.requiresReceipt,
+                    plannedStart: dayjs(startLocal).format('YYYY-MM-DD'),
+                    plannedEnd: dayjs(endLocal).format('YYYY-MM-DD'),
+                    pickUpDepotId: pickUpDepotId,
+                    invoiceRequest: values.invoiceRequest,
                 };
-                await api.Rents.createAuthenticatedRent(authenticatedRentData);
-                notifications.show({ title: 'Sikeres foglalás', message: 'Foglalásodat rögzítettük.', color: 'green', });
+                await api.Rents.createAuthenticatedRent(rentData);
             } else {
-                const guestRentData: IGuestRentCreateDto = {
-                    firstName: valuesToSubmit.firstName, lastName: valuesToSubmit.lastName, email: valuesToSubmit.email,
-                    phoneNumber: valuesToSubmit.phoneNumber, licenceId: valuesToSubmit.licenceId,
-                    carId: carId, plannedStart: plannedStartISO, plannedEnd: plannedEndISO,
-                    invoiceRequest: valuesToSubmit.requiresReceipt,
+                const guestData: IGuestRentCreateDto = {
+                    carId: carId,
+                    plannedStart: dayjs(startLocal).format('YYYY-MM-DD'),
+                    plannedEnd: dayjs(endLocal).format('YYYY-MM-DD'),
+                    pickUpDepotId: pickUpDepotId,
+                    invoiceRequest: values.invoiceRequest,
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    email: values.email,
+                    phoneNumber: values.phoneNumber,
+                    licenceId: values.licenceId,
                 };
-                await api.Rents.createGuestRent(guestRentData);
-                notifications.show({ title: 'Sikeres foglalás (vendég)', message: 'Foglalásodat rögzítettük.', color: 'green', });
+                await api.Rents.createGuestRent(guestData);
             }
+
+            notifications.show({
+                title: 'Sikeres foglalás!',
+                message: 'Kérésedet rögzítettük, hamarosan felvesszük veled a kapcsolatot.',
+                color: 'green',
+                icon: <IconCheck/>
+            });
             form.reset();
             onClose();
         } catch (error: any) {
-            console.error('Foglalás hiba:', error);
-            const errorMsg = error.response?.data?.message ||
-                (error.response?.data?.errors ? Object.values(error.response.data.errors).flat().join('; ') : null) ||
-                error.message ||
-                'Nem sikerült a foglalás. Kérlek próbáld újra.';
-            notifications.show({ title: 'Hiba', message: errorMsg, color: 'red',});
-        } finally { setLoading(false); }
-    };
-
-    const handlePlannedStartChange = (dateString: string | null): void => {
-        if (dateString) {
-            const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
-            form.setFieldValue('plannedStart', parsedDate);
-            if (form.values.plannedEnd && parsedDate > form.values.plannedEnd) {
-                form.setFieldValue('plannedEnd', null);
-            }
-        } else {
-            form.setFieldValue('plannedStart', null);
+            const errorMsg = error.response?.data?.message || 'A foglalás nem sikerült. Kérjük, ellenőrizd az adatokat.';
+            notifications.show({title: 'Hiba', message: errorMsg, color: 'red'});
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handlePlannedEndChange = (dateString: string | null): void => {
-        if (dateString) {
-            const parsedDate = dayjs(dateString, dateFormat, 'hu').toDate();
-            form.setFieldValue('plannedEnd', parsedDate);
-        } else {
-            form.setFieldValue('plannedEnd', null);
+    const isGuest = !user;
+
+    const inputStyles = {
+        input: {
+            background: 'rgba(15, 23, 42, 0.5)',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
         }
     };
+
+    const depotSelectData = depots.map(depot => ({
+        value: depot.id.toString(),
+        label: `${depot.name} - ${depot.city}, ${depot.street} ${depot.houseNumber}`
+    }));
 
     return (
-        <Modal opened={opened} onClose={onClose} title="Foglalási adatok" centered size="md">
+        <Modal
+            opened={opened}
+            onClose={onClose}
+            title={
+                <Group gap="sm">
+                    <IconBookmark size={20} />
+                    <Text fw={700} size="lg">Foglalás részletei</Text>
+                </Group>
+            }
+            centered
+            size="lg"
+            styles={{
+                content: {
+                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    backdropFilter: 'blur(10px)',
+                },
+                header: {
+                    background: 'transparent',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                },
+                title: {
+                    color: '#FFF',
+                },
+                body: {
+                    paddingBottom: 'var(--mantine-spacing-xl)',
+                }
+            }}
+        >
             <form onSubmit={form.onSubmit(handleSubmit)}>
-                <LoadingOverlay visible={loading} />
+                <LoadingOverlay visible={loading} overlayProps={{radius: 'sm', blur: 2}}/>
                 <Stack>
-                    <TextInput label="Vezetéknév" placeholder="Kovács" {...form.getInputProps('lastName')} />
-                    <TextInput label="Keresztnév" placeholder="István" {...form.getInputProps('firstName')} />
-                    <TextInput label="Email" type="email" placeholder="email@example.com" {...form.getInputProps('email')} />
-                    <TextInput label="Jogosítvány szám" placeholder="AB123456" {...form.getInputProps('licenceId')} />
-                    <TextInput label="Telefonszám" placeholder="06301234567" {...form.getInputProps('phoneNumber')} />
+                    {!isGuest ? (
+                        <Accordion
+                            variant="separated"
+                            radius="md"
+                            defaultValue="user-data"
+                            styles={{
+                                item: {
+                                    background: 'rgba(15, 23, 42, 0.6)',
+                                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                                },
+                                control: {
+                                    '&:hover': {
+                                        background: 'rgba(30, 41, 59, 0.5)',
+                                    }
+                                },
+                                panel: {
+                                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                                }
+                            }}
+                        >
+                            <Accordion.Item value="user-data">
+                                <Accordion.Control icon={<IconUserCheck size={20} color="var(--mantine-color-teal-6)"/>}>
+                                    <Stack gap={0}>
+                                        <Text size="sm" fw={500}>Bejelentkezve mint: {user.firstName} {user.lastName}</Text>
+                                        <Text size="xs" c="dimmed">Az adataidat automatikusan kitöltöttük. Kattints a részletekért.</Text>
+                                    </Stack>
+                                </Accordion.Control>
+                                <Accordion.Panel>
+                                    <Stack gap="xs" p="xs">
+                                        <Group gap="xs">
+                                            <IconAt size={16} stroke={1.5}/>
+                                            <Text size="sm">{user.email}</Text>
+                                        </Group>
+                                        <Group gap="xs">
+                                            <IconPhone size={16} stroke={1.5}/>
+                                            <Text size="sm">{user.phoneNumber || 'Nincs megadva'}</Text>
+                                        </Group>
+                                        <Group gap="xs">
+                                            <IconLicense size={16} stroke={1.5}/>
+                                            <Text size="sm">{user.licenceId || 'Nincs megadva'}</Text>
+                                        </Group>
+                                    </Stack>
+                                </Accordion.Panel>
+                            </Accordion.Item>
+                        </Accordion>
+                    ) : (
+                        <Stack>
+                            <Text size="sm" c="dimmed">Vendégként történő foglaláshoz kérjük, add meg az adataidat.</Text>
+                            <Grid>
+                                <Grid.Col span={{base: 12, sm: 6}}>
+                                    <TextInput
+                                        withAsterisk
+                                        label="Vezetéknév"
+                                        leftSection={<IconUser size={16}/>}
+                                        {...form.getInputProps('lastName')}
+                                        styles={inputStyles}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={{base: 12, sm: 6}}>
+                                    <TextInput
+                                        withAsterisk
+                                        label="Keresztnév"
+                                        leftSection={<IconUser size={16}/>}
+                                        {...form.getInputProps('firstName')}
+                                        styles={inputStyles}
+                                    />
+                                </Grid.Col>
+                            </Grid>
+                            <TextInput
+                                withAsterisk
+                                label="Email"
+                                type="email"
+                                leftSection={<IconAt size={16}/>}
+                                {...form.getInputProps('email')}
+                                styles={inputStyles}
+                            />
+                            <Grid>
+                                <Grid.Col span={{base: 12, sm: 6}}>
+                                    <TextInput
+                                        label="Telefonszám"
+                                        leftSection={<IconPhone size={16}/>}
+                                        {...form.getInputProps('phoneNumber')}
+                                        styles={inputStyles}
+                                    />
+                                </Grid.Col>
+                                <Grid.Col span={{base: 12, sm: 6}}>
+                                    <TextInput
+                                        label="Jogosítvány"
+                                        leftSection={<IconLicense size={16}/>}
+                                        {...form.getInputProps('licenceId')}
+                                        styles={inputStyles}
+                                    />
+                                </Grid.Col>
+                            </Grid>
+                        </Stack>
+                    )}
 
-                    <DatePickerInput
-                        label="Tervezett kezdés"
-                        placeholder="Válassz dátumot"
-                        value={form.values.plannedStart ? dayjs(form.values.plannedStart).format(dateFormat) : null}
-                        onChange={handlePlannedStartChange}
-                        valueFormat={dateFormat}
-                        error={form.errors.plannedStart}
-                        clearable={true}
-                        minDate={initialStartDate ? dayjs(initialStartDate).startOf('day').toDate() : dayjs().startOf('day').toDate()}
-                        locale="hu"
+                    <Divider my="xs" label="Bérlés részletei" labelPosition="center" opacity={0.1}/>
+
+                    <Grid>
+                        <Grid.Col span={{base: 12, sm: 6}}>
+                            <DatePickerInput
+                                withAsterisk
+                                label="Bérlés kezdete"
+                                leftSection={<IconCalendarEvent size={16}/>}
+                                {...form.getInputProps('plannedStart')}
+                                minDate={dayjs().startOf('day').toDate()}
+                                valueFormat='YYYY.MM.DD'
+                                locale='hu'
+                                styles={inputStyles}
+                            />
+                        </Grid.Col>
+                        <Grid.Col span={{base: 12, sm: 6}}>
+                            <DatePickerInput
+                                withAsterisk
+                                label="Bérlés vége"
+                                leftSection={<IconCalendarEvent size={16}/>}
+                                {...form.getInputProps('plannedEnd')}
+                                minDate={form.values.plannedStart || dayjs().startOf('day').toDate()}
+                                valueFormat='YYYY.MM.DD'
+                                locale='hu'
+                                styles={inputStyles}
+                            />
+                        </Grid.Col>
+                    </Grid>
+
+                    <Select
+                        withAsterisk
+                        label="Átvételi telephely"
+                        placeholder="Válassz telephelyet"
+                        leftSection={<IconMapPin size={16}/>}
+                        data={depotSelectData}
+                        {...form.getInputProps('pickUpDepotId')}
+                        styles={inputStyles}
                     />
-                    <DatePickerInput
-                        label="Tervezett vége"
-                        placeholder="Válassz dátumot"
-                        value={form.values.plannedEnd ? dayjs(form.values.plannedEnd).format(dateFormat) : null}
-                        onChange={handlePlannedEndChange}
-                        valueFormat={dateFormat}
-                        error={form.errors.plannedEnd}
-                        clearable={true}
-                        minDate={form.values.plannedStart ? dayjs(form.values.plannedStart).startOf('day').toDate() : (initialStartDate ? dayjs(initialStartDate).startOf('day').toDate() : dayjs().startOf('day').toDate())}
-                        maxDate={initialEndDate ? dayjs(initialEndDate).endOf('day').toDate() : undefined}
-                        locale="hu"
+
+                    <Checkbox
+                        label="Számlát kérek a foglalásról"
+                        {...form.getInputProps('invoiceRequest', {type: 'checkbox'})}
+                        mt="sm"
                     />
-                    <Checkbox label="Számlát kérek" {...form.getInputProps('requiresReceipt', { type: 'checkbox' })} />
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="outline" onClick={onClose} mr="sm">Mégsem</Button>
-                        <Button type="submit" loading={loading}>Foglalás megerősítése</Button>
+
+                    <Group justify="flex-end" mt="xl">
+                        <Button variant="default" onClick={onClose}>Mégsem</Button>
+                        <Button
+                            type="submit"
+                            loading={loading}
+                            style={{
+                                background: 'linear-gradient(45deg, #3b82f6 0%, #06b6d4 100%)',
+                                fontWeight: 600,
+                            }}
+                        >
+                            Foglalás megerősítése
+                        </Button>
                     </Group>
                 </Stack>
             </form>

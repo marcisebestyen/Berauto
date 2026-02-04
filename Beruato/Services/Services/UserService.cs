@@ -1,7 +1,5 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using AutoMapper;
+using Database.Dtos;
 using Database.Dtos.UserDtos;
 using Database.Models;
 using Database.Results;
@@ -10,6 +8,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Services.Repositories;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using User = Database.Models.User;
 
 namespace Services.Services;
 
@@ -20,8 +22,8 @@ public interface IUserService
     Task<LoginResult> LoginAsync(UserLoginDto loginDto);
     Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto);
     Task<User> GetOrCreateGuestUserAsync(UserCreateGuestDto guestDto);
-    Task<bool> CheckEmailExistsAndRegisteredAsync(string email);
-    Task<ServiceResult> ResetPasswordAsync(string email, string newPassword);
+
+    Task<LoginResult> LoginWithGoogleAsync(GoogleLoginDto googleLoginDto);
 }
 
 public class UserService : IUserService
@@ -30,14 +32,16 @@ public class UserService : IUserService
     private readonly IMapper _mapper;
     private readonly ILogger<UserService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly Supabase.Client _supabaseClient;
 
     public UserService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UserService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration, Supabase.Client supabaseClient)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _supabaseClient = supabaseClient ?? throw new ArgumentNullException(nameof(supabaseClient));
     }
 
     public async Task<UserGetDto?> GetUserByIdAsync(int userId)
@@ -94,7 +98,6 @@ public class UserService : IUserService
 
         if (userUpdateDto.Email != null && user.Email != userUpdateDto.Email)
         {
-            // Ellenőrizzük, hogy az új email cím nem foglalt-e már más felhasználó által
             var existingUserWithEmail =
                 (await _unitOfWork.UserRepository.GetAsync(u => u.Email == userUpdateDto.Email && u.Id != user.Id))
                 .FirstOrDefault();
@@ -107,15 +110,15 @@ public class UserService : IUserService
             changed = true;
         }
 
-        if(userUpdateDto.Address != null && user.Address != userUpdateDto.Address)
+        if (userUpdateDto.Address != null && user.Address != userUpdateDto.Address)
         {
             user.Address = userUpdateDto.Address;
             changed = true;
         }
-        
+
         if (!changed)
         {
-            return ServiceResult.Success(); // Nem történt változás
+            return ServiceResult.Success();
         }
 
         try
@@ -130,11 +133,10 @@ public class UserService : IUserService
         }
         catch (DbUpdateException ex)
         {
-            // Logolás javasolt: _logger.LogError(ex, "Hiba történt a felhasználó adatainak frissítésekor.");
             return ServiceResult.Failed(
                 $"Adatbázis hiba történt a frissítés során: {ex.InnerException?.Message ?? ex.Message}");
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Váratlan hiba történt a felhasználó adatainak frissítésekor.");
             return ServiceResult.Failed($"Váratlan hiba történt: {ex.Message}");
@@ -168,6 +170,11 @@ public class UserService : IUserService
             return LoginResult.Failure("A jelszó megadása kötelező.");
         }
 
+        if (user.Password == null)
+        {
+            return LoginResult.Failure("Kérjük jelentkezzen be Google fiókjával.");
+        }
+
         bool isPasswordValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.Password);
 
         if (!isPasswordValid)
@@ -175,6 +182,80 @@ public class UserService : IUserService
             return LoginResult.Failure("Hibás e-mail cím vagy jelszó.");
         }
 
+        // Itt hívjuk meg a közös Token generátort
+        var tokenString = GenerateJwtToken(user);
+        var userGetDto = _mapper.Map<UserGetDto>(user);
+
+        return LoginResult.Success(userGetDto, tokenString);
+    }
+
+    public async Task<LoginResult> LoginWithGoogleAsync(GoogleLoginDto googleLoginDto)
+    {
+        try
+        {
+            var supabaseUser = await _supabaseClient.Auth.GetUser(googleLoginDto.AccessToken);
+
+            if (supabaseUser == null)
+            {
+                return LoginResult.Failure("Érvénytelen Google bejelentkezés.");
+            }
+
+            var email = supabaseUser.Email;
+
+            if (string.IsNullOrEmpty(email))
+            {
+                return LoginResult.Failure("Nem sikerült lekérni az email címet a szolgáltatótól.");
+            }
+
+            var dbUser = (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email)).FirstOrDefault();
+
+            if (dbUser == null)
+            {
+                string firstName = "Google";
+                string lastName = "User";
+
+                if (supabaseUser.UserMetadata != null && supabaseUser.UserMetadata.ContainsKey("full_name"))
+                {
+                    var fullName = supabaseUser.UserMetadata["full_name"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(fullName))
+                    {
+                        var parts = fullName.Split(' ');
+                        firstName = parts.FirstOrDefault() ?? "Google";
+                        lastName = parts.Length > 1 ? string.Join(" ", parts.Skip(1)) : "User";
+                    }
+                }
+
+                dbUser = new User
+                {
+                    Email = email,
+                    UserName = email,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    RegisteredUser = true,
+                    Role = Role.Renter,
+                    Password = null,
+                    PhoneNumber = "",
+                    LicenceId = "",
+                    Address = ""
+                };
+
+                await _unitOfWork.UserRepository.InsertAsync(dbUser);
+                await _unitOfWork.SaveAsync();
+            }
+            var tokenString = GenerateJwtToken(dbUser);
+            var userGetDto = _mapper.Map<UserGetDto>(dbUser);
+
+            return LoginResult.Success(userGetDto, tokenString);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Hiba történt a Google bejelentkezés során.");
+            return LoginResult.Failure($"Hiba történt a bejelentkezés során: {ex.Message}");
+        }
+    }
+
+    private string GenerateJwtToken(User user)
+    {
         var tokenHandler = new JwtSecurityTokenHandler();
         var jwtSettings = _configuration.GetSection("Jwt");
         var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ??
@@ -183,7 +264,7 @@ public class UserService : IUserService
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(ClaimTypes.Name, user.UserName ?? user.Email),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
@@ -199,11 +280,7 @@ public class UserService : IUserService
                 new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);
-        var tokenString = tokenHandler.WriteToken(token);
-
-        var userGetDto = _mapper.Map<UserGetDto>(user);
-
-        return LoginResult.Success(userGetDto, tokenString);
+        return tokenHandler.WriteToken(token);
     }
 
     public async Task<RegistrationResult> RegisterAsync(UserCreateDto registrationDto)
@@ -220,7 +297,7 @@ public class UserService : IUserService
             return RegistrationResult.Failure("Ez az e-mail cím már regisztrálva van.");
         }
 
-        string userNameToRegister = registrationDto.Email; 
+        string userNameToRegister = registrationDto.Email;
         var existingUserByUserName = (await _unitOfWork.UserRepository.GetAsync(u => u.UserName == userNameToRegister))
             .FirstOrDefault();
         if (existingUserByUserName != null)
@@ -233,7 +310,6 @@ public class UserService : IUserService
 
         var newUser = new User
         {
-
             FirstName = registrationDto.FirstName,
             LastName = registrationDto.LastName,
             Email = registrationDto.Email,
@@ -251,12 +327,12 @@ public class UserService : IUserService
             await _unitOfWork.UserRepository.InsertAsync(newUser);
             await _unitOfWork.SaveAsync();
         }
-        catch (DbUpdateException ex) 
+        catch (DbUpdateException ex)
         {
             return RegistrationResult.Failure(
                 $"Adatbázis hiba történt a regisztráció során: {ex.InnerException?.Message ?? ex.Message}");
         }
-        catch (Exception ex) 
+        catch (Exception ex)
         {
             return RegistrationResult.Failure($"Váratlan hiba történt a regisztráció során: {ex.Message}");
         }
@@ -277,7 +353,8 @@ public class UserService : IUserService
 
         if (existingUser != null)
         {
-            _logger.LogInformation("Guest user found with email: {Email}, ID: {UserId}", guestDto.Email, existingUser.Id);
+            _logger.LogInformation("Guest user found with email: {Email}, ID: {UserId}", guestDto.Email,
+                existingUser.Id);
             return existingUser;
         }
 
@@ -286,73 +363,17 @@ public class UserService : IUserService
             FirstName = guestDto.FirstName,
             LastName = guestDto.LastName,
             Email = guestDto.Email,
-            UserName = guestDto.Email, 
+            UserName = guestDto.Email,
             PhoneNumber = guestDto.PhoneNumber,
             LicenceId = guestDto.LicenceId,
-            RegisteredUser = false, 
-            Password = null,        
-            Role = Role.Renter      
+            RegisteredUser = false,
+            Password = null,
+            Role = Role.Renter
         };
 
         await _unitOfWork.UserRepository.InsertAsync(newUser);
         await _unitOfWork.SaveAsync();
         _logger.LogInformation("New guest user created with email: {Email}, ID: {UserId}", guestDto.Email, newUser.Id);
         return newUser;
-    }
-
-
-    public async Task<bool> CheckEmailExistsAndRegisteredAsync(string email)
-    {
-        if (string.IsNullOrWhiteSpace(email))
-        {
-            _logger.LogWarning("CheckEmailExistsAndRegisteredAsync called with empty email.");
-            return false;
-        }
-
-        var user =
-            (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email && u.RegisteredUser)).FirstOrDefault();
-
-        return user != null;
-    }
-
-    public async Task<ServiceResult> ResetPasswordAsync(string email, string newPassword)
-    {
-        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(newPassword))
-        {
-            _logger.LogWarning("ResetPasswordAsync called with empty email and password.");
-            return ServiceResult.Failed("Az e-mail cím és az új jelszó megadása kötelező.");
-        }
-
-        var user =
-            (await _unitOfWork.UserRepository.GetAsync(u => u.Email == email && u.RegisteredUser)).FirstOrDefault();
-
-        if (user == null)
-        {
-            _logger.LogWarning("DirectResetPasswordAsync called for non-existent or non-registered user email: {Email}",
-                email);
-            return ServiceResult.Failed("A megadott e-mail címmel nem található regisztrált felhasználó.");
-        }
-
-        user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
-
-        try
-        {
-            await _unitOfWork.UserRepository.UpdateAsync(user);
-            await _unitOfWork.SaveAsync();
-            _logger.LogInformation(
-                "Password directly reset for user {UserId} (Email: {Email}) in university project mode.", user.Id,
-                email);
-            return ServiceResult.Success("A jelszó sikeresen megváltoztatva.");
-        }
-        catch (DbUpdateException dbEx)
-        {
-            _logger.LogError(dbEx, "Database error during direct password reset for email {Email}", email);
-            return ServiceResult.Failed($"Adatbázis hiba történt: {dbEx.InnerException?.Message ?? dbEx.Message}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error during direct password reset for email {Email}", email);
-            return ServiceResult.Failed("Váratlan hiba történt a jelszó módosítása közben.");
-        }
     }
 }

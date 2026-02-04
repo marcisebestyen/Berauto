@@ -1,6 +1,3 @@
-using Database.Dtos.CarDtos;
-using Database.Dtos.UserDtos;
-
 namespace Database.Dtos.RentDtos;
 
 public class RentGetDto
@@ -14,16 +11,21 @@ public class RentGetDto
     public decimal? StartingKilometer { get; set; }
     public decimal? EndingKilometer { get; set; }
     public bool InvoiceRequest { get; set; }
-    public DateTime? IssuedAt { get; set; } // Számla kiállítási dátuma (a bérléshez kapcsolódóan)
-
-    // Kapcsolódó entitások egyszerűsített formában
+    public DateTime? IssuedAt { get; set; }
+    public bool Finished { get; set; }
     public int RenterId { get; set; }
     public int CarId { get; set; }
-    public int? ApproverId { get; set; } // Lehet null, ha még nincs jóváhagyva
-    public int? IssuerId { get; set; }   // Lehet null, ha még nincs kiadva
-    public int? RecipientId { get; set; } // Lehet null, ha még nincs visszavéve
+    public int? ApproverId { get; set; }
+    public int? IssuerId { get; set; }
+    public int? RecipientId { get; set; }
+    public int PickUpDepotId { get; set; }
+    public int? ReturnDepotId { get; set; }
+    public string PickUpDepotName { get; set; }
+    public string ReturnDepotName { get; set; }
 
-    //autó adatok
+    // Autó adatok
     public string CarBrand { get; set; }
     public string CarModel { get; set; }
+    public decimal? TotalCost { get; set; }
+    public int? ReceiptId { get; set; }
 }

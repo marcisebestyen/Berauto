@@ -1,9 +1,17 @@
 import axiosInstance from "./axios.config.ts";
 import {CarFormData, ICar} from "../interfaces/ICar.ts";
 import {IUserProfile} from "../interfaces/IUser.ts";
-import { ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto } from "../interfaces/IRent.ts";
-import { IReceipt, IReceiptCreateDto } from "../interfaces/IReceipt";
-import { IHandOverRequestDto, ITakeBackRequestDto, IRejectRequestDto, IRejectSuccessResponse } from "../interfaces/RequestDto.ts";
+import {ISimpleRent, IGuestRentCreateDto, IRentGetDto, IRentCreateDto} from "../interfaces/IRent.ts";
+import {IDepot} from "../interfaces/IDepot.ts";
+import {IReceipt, IReceiptCreateDto} from "../interfaces/IReceipt";
+import {IWaitingListResponse} from "../interfaces/IWaitingList.ts";
+import {
+    IHandOverRequestDto,
+    ITakeBackRequestDto,
+    IRejectRequestDto,
+    IRejectSuccessResponse
+} from "../interfaces/RequestDto.ts";
+import {IStatistics} from "../interfaces/IStatistics.ts";
 
 interface JsonPatchOperation {
     op: "replace" | "add" | "remove" | "copy" | "move" | "test";
@@ -12,13 +20,18 @@ interface JsonPatchOperation {
     from?: string;
 }
 
+
 const Cars = {
-    getAvailableCars: (startDate: Date, endDate: Date) => {
-        const formattedStartDate = startDate.toISOString();
-        const formattedEndDate = endDate.toISOString();
-        return axiosInstance.get<ICar[]>(
-            `/cars/available?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
-        );
+    getAvailableCars: (startDate: Date, endDate: Date, depotId?: number) => {
+        const params: Record<string, any> = {
+            startDate,
+            endDate,
+        };
+        if (typeof depotId === 'number') {
+            params.depotId = depotId;
+        }
+        // A globális interceptor "YYYY-MM-DD" formátumra alakítja a date-only mezőket
+        return axiosInstance.get<ICar[]>('/cars/available', { params });
     },
     updateCar: (id: number, patchDocument: JsonPatchOperation[]) => {
         return axiosInstance.patch<void>(
@@ -49,6 +62,9 @@ const Cars = {
     },
     deleteCar: (carId: number) => {
         return axiosInstance.delete<void>(`/cars/delete/${carId}`);
+    },
+    getCarById(carId: number) {
+        return axiosInstance.get<ICar>(`/cars/get/${carId}`);
     }
 };
 
@@ -70,7 +86,7 @@ const Users = {
     getUserRents: (userId: string | number | undefined) => {
         if (userId === undefined) {
             console.warn("getUserRents: userId is undefined. Returning empty array.");
-            return Promise.resolve({ data: [] as ISimpleRent[] });
+            return Promise.resolve({data: [] as ISimpleRent[]});
         }
         return axiosInstance.get<ISimpleRent[]>(`/Rent?userId=${userId}`);
     },
@@ -78,7 +94,7 @@ const Users = {
     getActiveRents: (userId: string | number | undefined) => {
         if (userId === undefined) {
             console.warn("getActiveRents: userId is undefined. Returning empty array.");
-            return Promise.resolve({ data: [] as ISimpleRent[] });
+            return Promise.resolve({data: [] as ISimpleRent[]});
         }
         return axiosInstance.get<ISimpleRent[]>(`/Rent?userId=${userId}&filter=Running`);
     }
@@ -93,6 +109,12 @@ const Rents = {
 
     getRentsGloballyByFilter: (filter: "Open" | "Closed" | "Running" | "All" | "ApprovedForHandover") => {
         return axiosInstance.get<IRentGetDto[]>(`/Rent?filter=${filter}`);
+    },
+    getRentsByCarId(carId: number) {
+        return axiosInstance.get<IRentGetDto[]>(`/Rent/get-rents-by-carId/${carId}`);
+    },
+    addToWaitingList(carId: number) {
+        return axiosInstance.post<IWaitingListResponse>(`/Rent/add-to-waiting-list/${carId}`);
     }
 };
 
@@ -111,10 +133,11 @@ const Staff = {
         );
     },
 
-    takeBackCar: (rentId: number, actualEnd: Date, endingKilometer: number) => {
+    takeBackCar: (rentId: number, actualEnd: Date, endingKilometer: number, dropOffDepotId: number) => {
         const requestBody: ITakeBackRequestDto = {
             actualEnd: actualEnd.toISOString(),
-            endingKilometer: endingKilometer
+            endingKilometer: endingKilometer,
+            dropOffDepotId: dropOffDepotId
         };
         return axiosInstance.post<IRentGetDto>(
             `/staff/take_back?rentId=${rentId}`,
@@ -127,7 +150,7 @@ const Staff = {
             reason: reason
         };
         return axiosInstance.post<IRejectSuccessResponse>(
-            `/api/staff/reject?rentId=${rentId}`,
+            `/staff/reject?rentId=${rentId}`,
             requestBody
         );
     },
@@ -141,6 +164,50 @@ const Staff = {
     }
 };
 
+const Statistics = {
+    getDashboardStats: () => {
+        return axiosInstance.get<IStatistics>('/statistics/dashboard');
+    }
+}
+const Depots = {
+    /**
+     * Lekérdezi az összes telephelyet (nyilvános endpoint).
+     */
+    getAll: () =>
+        axiosInstance.get<IDepot[]>('/depots/get-all'),
+
+    /**
+     * Lekérdezi egy telephely adatait azonosító alapján (nyilvános endpoint).
+     */
+    getById: (depotId: number) =>
+        axiosInstance.get<IDepot>(`/depots/get/${depotId}`),
+
+    /**
+     * Új telephely létrehozása (Admin csak).
+     */
+    create: (data: Omit<IDepot, 'id'>) =>
+        axiosInstance.post<IDepot>('/depots/create-depot', data),
+
+    /**
+     * Telephely módosítása JSON Patch dokumentummal (Admin csak).
+     */
+    update: (depotId: number, patchDocument: JsonPatchOperation[]) =>
+        axiosInstance.patch<void>(
+            `/depots/update/${depotId}`,
+            patchDocument,
+            {
+                headers: {
+                    'Content-Type': 'application/json-patch+json'
+                }
+            }
+        ),
+
+    /**
+     * Telephely törlése (Admin csak).
+     */
+    delete: (depotId: number) =>
+        axiosInstance.delete<void>(`/depots/delete/${depotId}`)
+};
 
 const Receipts = {
     getAll: () => axiosInstance.get<IReceipt[]>("/receipts/GetAllReceipts"),
@@ -153,9 +220,14 @@ const Receipts = {
 
     getForCurrentUser: () =>
         axiosInstance.get<IReceipt[]>("/receipts/user"),
+
+    downloadReceipt: (receiptId: number) => {
+        return axiosInstance.get(`/receipts/${receiptId}/download`, {
+            responseType: 'blob',
+        });
+    }
 };
 
-
-const api = { Cars, Users, Rents, Staff, Receipts};
+const api = {Cars, Users, Rents, Staff, Depots, Receipts, Statistics};
 
 export default api;

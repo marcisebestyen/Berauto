@@ -11,6 +11,7 @@ interface User {
     firstName?: string;
     lastName?: string;
     licenceId?: string;
+    phoneNumber?: string;
 }
 
 interface DecodedJwtPayload {
@@ -31,15 +32,49 @@ const useAuth = () => {
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                 return JSON.parse(storedUser);
             } catch (error) {
-                console.error("Token vagy user parse hiba:", error);
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 return null;
             }
         }
-
         return null;
     });
+
+    const handleLoginSuccess = (token: string, userDto: any) => {
+        if (token && typeof token === 'string') {
+            localStorage.setItem('token', token);
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+            try {
+                const decodedPayload = jwtDecode<DecodedJwtPayload>(token);
+
+                const mappedUser: User = {
+                    id: decodedPayload.nameid || 'defaultIdOnError',
+                    email: decodedPayload.email || 'defaultEmailOnError',
+                    role: decodedPayload.role || 'defaultRoleOnError',
+                    username: decodedPayload.unique_name || 'defaultUsernameOnError',
+                    firstName: userDto.firstName || '',
+                    lastName: userDto.lastName || '',
+                    licenceId: userDto.licenceId || '',
+                    phoneNumber: userDto.phoneNumber || ''
+                };
+
+                if (mappedUser.id !== 'defaultIdOnError' && mappedUser.email !== 'defaultEmailOnError') {
+                    localStorage.setItem('user', JSON.stringify(mappedUser));
+                    setUser(mappedUser);
+                } else {
+                    throw new Error('User data incomplete in token.');
+                }
+            } catch (e) {
+                localStorage.removeItem('token');
+                delete axios.defaults.headers.common['Authorization'];
+                setUser(null);
+                throw new Error('Sikeres bejelentkezés, de a token feldolgozása nem sikerült.');
+            }
+        } else {
+            throw new Error('Hiányzik vagy hibás a token a válaszban.');
+        }
+    };
 
     const login = async (email: string, password: string): Promise<void> => {
         try {
@@ -47,44 +82,8 @@ const useAuth = () => {
                 identifier: email,
                 password
             });
-
-            const token = response.data.token;
-            const userDto = response.data.user;
-
-            if (token && typeof token === 'string') {
-                localStorage.setItem('token', token);
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-                try {
-                    const decodedPayload = jwtDecode<DecodedJwtPayload>(token);
-
-                    const mappedUser: User = {
-                        id: decodedPayload.nameid || 'defaultIdOnError',
-                        email: decodedPayload.email || 'defaultEmailOnError',
-                        role: decodedPayload.role || 'defaultRoleOnError',
-                        username: decodedPayload.unique_name || 'defaultUsernameOnError',
-                        firstName: userDto.firstName || '',
-                        lastName: userDto.lastName || ''
-                    };
-
-                    if (mappedUser.id !== 'defaultIdOnError' && mappedUser.email !== 'defaultEmailOnError') {
-                        localStorage.setItem('user', JSON.stringify(mappedUser));
-                        setUser(mappedUser);
-                    } else {
-                        throw new Error('User data incomplete in token.');
-                    }
-                } catch (e) {
-                    console.error('Token decode hiba:', e);
-                    localStorage.removeItem('token');
-                    delete axios.defaults.headers.common['Authorization'];
-                    setUser(null);
-                    throw new Error('Sikeres bejelentkezés, de a token feldolgozása nem sikerült.');
-                }
-            } else {
-                throw new Error('Hiányzik vagy hibás a token a válaszban.');
-            }
+            handleLoginSuccess(response.data.token, response.data.user);
         } catch (error: any) {
-            console.error('Login hiba:', error.message, error);
             if (error.response?.status === 401) {
                 throw new Error('Hibás email cím vagy jelszó!');
             } else if (error.response?.status === 404) {
@@ -99,6 +98,18 @@ const useAuth = () => {
         }
     };
 
+    const loginWithGoogle = async (supabaseToken: string): Promise<void> => {
+        try {
+            const response = await axiosInstance.post<{ token: string; user: any }>('/users/google-login', {
+                accessToken: supabaseToken
+            });
+            handleLoginSuccess(response.data.token, response.data.user);
+        } catch (error: any) {
+            const msg = error.response?.data?.Message || error.message || 'Sikertelen Google bejelentkezés.';
+            throw new Error(msg);
+        }
+    };
+
     const logout = (onLogout?: () => void) => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -110,11 +121,21 @@ const useAuth = () => {
         }
     };
 
+    const isProfileComplete = (): boolean => {
+        if (!user) return false;
+        return (
+            !!user.licenceId && user.licenceId.trim() !== '' &&
+            !!user.phoneNumber && user.phoneNumber.trim() !== ''
+        );
+    };
+
     return {
         user,
         login,
+        loginWithGoogle,
         logout,
-        isAuthenticated: !!user
+        isAuthenticated: !!user,
+        isProfileComplete
     };
 };
 

@@ -19,6 +19,7 @@ export interface ISimpleRent {
     actualStart?: string | null;
     actualEnd?: string | null;
     totalCost?: number | null;
+    receiptId?: number | null;
 }
 
 
@@ -30,6 +31,7 @@ export interface IGuestRentCreateDto {
     licenceId?: string | null;
 
     carId: number;
+    pickUpDepotId: number;
     plannedStart: string;
     plannedEnd: string;
     invoiceRequest: boolean;
@@ -39,6 +41,7 @@ export interface IGuestRentCreateDto {
 export interface IRentCreateDto {
     carId: number;
     renterId: number;
+    pickUpDepotId: number;
     plannedStart: string;
     plannedEnd: string;
     invoiceRequest: boolean;
@@ -66,4 +69,12 @@ export interface IRentGetDto {
     carModel?: string | null;
 
     totalCost?: number | null;
+    finished: boolean;
+}
+
+export interface IRentForCalendar extends IRentGetDto {
+    parsedPlannedStart: Date;
+    parsedPlannedEnd: Date;
+    parsedActualStart?: Date | null;
+    parsedActualEnd?: Date | null;
 }
